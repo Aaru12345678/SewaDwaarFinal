@@ -9,10 +9,9 @@ import AppointmentList from "./pages/AppointmentList";
 import Notifications from "./pages/Notifications";
 import VisitorNavbar from "./pages/VisitorNavbar";
 import AppointmentDetails from "./pages/AppointmentDetails";
+
 // Admin pages
-import Dashboard from "./pages/admin";   // Admin dashboard
-import Sidebar from "./pages/Sidebar";   // Admin Sidebar
-import Navbar from "./pages/Navbar";     // Admin Navbar
+import Dashboard from "./pages/admin"; // Admin dashboard (includes sidebar now)
 
 function App() {
   return (
@@ -56,14 +55,14 @@ function App() {
           }
         />
         <Route
-  path="/appointment/:id"
-  element={
-    <>
-      <VisitorNavbar />
-      <AppointmentDetails />
-    </>
-  }
-/>
+          path="/appointment/:id"
+          element={
+            <>
+              <VisitorNavbar />
+              <AppointmentDetails />
+            </>
+          }
+        />
         <Route
           path="/notifications"
           element={
@@ -74,19 +73,8 @@ function App() {
           }
         />
 
-        {/* Admin Route with Sidebar + Navbar */}
-        <Route
-          path="/admin"
-          element={
-            <div className="app">
-              <Sidebar />
-              <div className="main">
-                <Navbar />
-                <Dashboard />
-              </div>
-            </div>
-          }
-        />
+        {/* Admin Route */}
+        <Route path="/admin" element={<Dashboard />} />
       </Routes>
     </Router>
   );

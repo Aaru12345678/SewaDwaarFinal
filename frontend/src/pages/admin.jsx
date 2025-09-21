@@ -1,29 +1,29 @@
 import React from "react";
-import '../css/admin.css';   // 👈 Add this line
+import "./admin.css";
 import Cards from "../pages/Cards";
 
- 
 import {
+  ResponsiveContainer,
   LineChart,
   Line,
+  CartesianGrid,
   XAxis,
   YAxis,
-  CartesianGrid,
   Tooltip,
-  ResponsiveContainer,
   PieChart,
   Pie,
   Cell,
 } from "recharts";
+import { FaBuilding, FaCalendarAlt, FaUsers, FaChartBar, FaUserCog } from "react-icons/fa";
 
 const data = [
-  { name: "Jan", value: 220 },
-  { name: "Feb", value: 230 },
-  { name: "Mar", value: 300 },
-  { name: "Apr", value: 250 },
-  { name: "May", value: 320 },
-  { name: "Jun", value: 330 },
-  { name: "Jul", value: 410 },
+  { name: "Mon", value: 10 },
+  { name: "Tue", value: 12 },
+  { name: "Wed", value: 18 },
+  { name: "Thu", value: 15 },
+  { name: "Fri", value: 17 },
+  { name: "Sat", value: 14 },
+  { name: "Sun", value: 20 },
 ];
 
 const pieData = [
@@ -32,67 +32,83 @@ const pieData = [
   { name: "Dept C", value: 30 },
 ];
 
-const COLORS = ["#0088FE", "#00C49F", "#FF8042"];
+const COLORS = ["#4e73df", "#1cc88a", "#36b9cc"];
 
 const Admin = () => {
   return (
-    <div className="dashboard">
-      {/* Cards Section */}
-      <div className="cards">
-        <Cards number="32" label="Appointments Today" />
-        <Cards number="8" label="Walk-ins Today" />
-        <Cards number="12" label="Active Departments" />
-        <Cards number="5" label="Active Officers" />
-      </div>
+    <div className="admin-layout">
+      {/* Sidebar */}
+      <aside className="sidebar">
+        <h2 className="logo">ADMINISTRATIVE</h2>
+        <ul>
+          <li><FaBuilding /> Departments & Officers</li>
+          <li><FaCalendarAlt /> Slot & Holiday Config</li>
+          <li><FaUsers /> Appointments & Walk-in Logs</li>
+          <li><FaChartBar /> Analytics & Reports</li>
+          <li><FaUserCog /> User Roles & Access</li>
+        </ul>
+      </aside>
 
-      {/* Charts Section */}
-      <div className="charts">
-        {/* Line Chart */}
-        <div className="chart">
-          <h3>Appointments</h3>
-          <div style={{ width: "100%", height: 300 }}>
-            <ResponsiveContainer>
-              <LineChart data={data}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" />
-                <YAxis />
-                <Tooltip />
-                <Line
-                  type="monotone"
-                  dataKey="value"
-                  stroke="#007bff"
-                  strokeWidth={2}
-                />
-              </LineChart>
-            </ResponsiveContainer>
+      {/* Main Content */}
+      <div className="main">
+        {/* Top Header */}
+        <header className="topbar">
+          <div></div>
+          <div className="top-actions">
+            <span>👤 Admin Profile</span>
+            <button className="logout-btn">Logout</button>
           </div>
-        </div>
+        </header>
 
-        {/* Pie Chart */}
-        <div className="chart">
-          <h3>Department-wise Appointments</h3>
-          <div style={{ width: "100%", height: 300 }}>
-            <ResponsiveContainer>
-              <PieChart>
-                <Pie
-                  data={pieData}
-                  dataKey="value"
-                  outerRadius={100}
-                  fill="#8884d8"
-                  label
-                >
-                  {pieData.map((entry, index) => (
-                    <Cell
-                      key={`cell-${index}`}
-                      fill={COLORS[index % COLORS.length]}
+        {/* Dashboard Content */}
+        <main className="dashboard">
+          {/* Cards */}
+          <div className="cards">
+            <Cards number="115" label="Total Appointments" />
+            <Cards number="23" label="Walk-ins Today" />
+            <Cards number="04" label="Active Departments" />
+            <Cards number="08" label="Active Officers" />
+          </div>
+
+          {/* Charts */}
+          <div className="charts">
+            <div className="chart">
+              <h3>Appointments Trend</h3>
+              <div className="chart-content">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={data}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="name" />
+                    <YAxis />
+                    <Tooltip />
+                    <Line
+                      type="monotone"
+                      dataKey="value"
+                      stroke="#4e73df"
+                      strokeWidth={2}
                     />
-                  ))}
-                </Pie>
-                <Tooltip />
-              </PieChart>
-            </ResponsiveContainer>
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+
+            <div className="chart">
+              <h3>Department-wise Appointments</h3>
+              <div className="chart-content">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie data={pieData} dataKey="value" outerRadius={100} label>
+                      {pieData.map((entry, index) => (
+                        <Cell key={index} fill={COLORS[index % COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
           </div>
-        </div>
+        </main>
       </div>
     </div>
   );
