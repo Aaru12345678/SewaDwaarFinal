@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import "./AppointmentWizard.css"; // Link to basic CSS
+import "./css/AppointmentWizard.css"; // Link to basic CSS
 
 const AppointmentWizard = () => {
   const [step, setStep] = useState(1);

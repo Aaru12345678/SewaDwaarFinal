@@ -1,5 +1,5 @@
 import React from "react";
-import "./admin.css";   // 👈 Add this line
+import "./css/admin.css";   // 👈 Add this line
 import Cards from "../pages/Cards";
 
  

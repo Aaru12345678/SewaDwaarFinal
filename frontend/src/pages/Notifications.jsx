@@ -1,6 +1,6 @@
 // src/pages/Notifications.jsx
 import React, { useState } from "react";
-import "./Notifications.css";
+import "./css/Notifications.css";
 
 const Notifications = () => {
   const [notifications, setNotifications] = useState([

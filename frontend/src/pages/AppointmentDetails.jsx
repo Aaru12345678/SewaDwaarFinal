@@ -1,7 +1,7 @@
 // src/pages/AppointmentDetails.jsx
 import React from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import "./AppointmentDetails.css";
+import "./css/AppointmentDetails.css";
 const AppointmentDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
