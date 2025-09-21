@@ -1,7 +1,7 @@
 // src/pages/AppointmentList.jsx
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import "./css/AppointmentList.css";
+import "../css/AppointmentList.css";
 
 const AppointmentList = () => {
   // Dummy data (replace with API data later)

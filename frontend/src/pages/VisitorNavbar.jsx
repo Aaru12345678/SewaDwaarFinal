@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { FaHome, FaCalendarAlt, FaHistory, FaBell, FaUserCircle } from "react-icons/fa";
-import "./css/VisitorNavbar.css";
+import "../css/VisitorNavbar.css";
 
 function VisitorNavbar() {
   const [dropdownOpen, setDropdownOpen] = useState(false);

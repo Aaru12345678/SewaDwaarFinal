@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useParams } from "react-router-dom";
 import { QRCodeSVG } from "qrcode.react";
-import "./css/AppointmentPass.css";
+import "../css/AppointmentPass.css";
 
 const AppointmentPass = () => {
   const { id } = useParams();  // ✅ Get ID from URL

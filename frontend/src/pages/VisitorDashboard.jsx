@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import "./css/VisitorDashboard.css";
+import "../css/VisitorDashboard.css";
 const VisitorDashboard = () => {
   const navigate = useNavigate();
 
