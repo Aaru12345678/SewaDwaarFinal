@@ -1,0 +1,54 @@
+.appointment-list-container {
+  padding: 20px;
+}
+
+.appointment-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 20px;
+}
+
+.appointment-table th,
+.appointment-table td {
+  border: 1px solid #ddd;
+  padding: 10px;
+  text-align: center;
+}
+
+.appointment-table th {
+  background-color: #f4f4f4;
+}
+
+button {
+  margin: 0 5px;
+  padding: 6px 12px;
+  border: none;
+  background: #007bff;
+  color: white;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+button:hover {
+  background: #0056b3;
+}
+
+.status.pending {
+  color: orange;
+  font-weight: bold;
+}
+
+.status.accepted {
+  color: green;
+  font-weight: bold;
+}
+
+.status.completed {
+  color: blue;
+  font-weight: bold;
+}
+
+.status.cancelled {
+  color: red;
+  font-weight: bold;
+}

@@ -1,0 +1,44 @@
+/* src/pages/AppointmentDetails.css */
+
+.appointment-details {
+  max-width: 500px;
+  margin: 40px auto;
+  padding: 20px 25px;
+  background: #ffffff;
+  border-radius: 10px;
+  box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.1);
+  font-family: Arial, sans-serif;
+  color: #333;
+}
+
+.appointment-details h2 {
+  text-align: center;
+  margin-bottom: 20px;
+  color: #2c3e50;
+}
+
+.appointment-details p {
+  font-size: 16px;
+  margin: 10px 0;
+}
+
+.appointment-details strong {
+  color: #34495e;
+}
+
+.appointment-details button {
+  display: block;
+  margin: 20px auto 0;
+  padding: 10px 20px;
+  background-color: #3498db;
+  color: white;
+  font-size: 15px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.3s;
+}
+
+.appointment-details button:hover {
+  background-color: #2980b9;
+}

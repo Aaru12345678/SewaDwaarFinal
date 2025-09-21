@@ -1,0 +1,116 @@
+/* Container */
+.dashboard-container {
+  min-height: 100vh;
+  background-color: #f0f0f0;
+  padding: 20px;
+  font-family: Arial, sans-serif;
+}
+
+.dashboard-inner {
+  max-width: 1000px;
+  margin: 0 auto;
+}
+
+/* Header */
+.welcome {
+  font-size: 24px;
+  font-weight: 600;
+  margin-bottom: 5px;
+}
+
+.intro {
+  color: #555;
+  margin-bottom: 20px;
+}
+
+/* Cards */
+.cards {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 15px;
+  margin-bottom: 20px;
+}
+
+.card {
+  background-color: #fff;
+  flex: 1 1 calc(25% - 15px);
+  padding: 20px;
+  border-radius: 12px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+  text-align: center;
+}
+
+.card h3 {
+  margin-bottom: 10px;
+}
+
+.count {
+  font-size: 24px;
+  font-weight: bold;
+  color: #1d4ed8;
+}
+
+/* Button */
+.book-btn {
+  background-color: #1d4ed8;
+  color: white;
+  padding: 12px 25px;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  margin-bottom: 20px;
+}
+
+.book-btn:hover {
+  background-color: #2563eb;
+}
+
+/* Table */
+.table-container {
+  background-color: #fff;
+  padding: 10px;
+  border-radius: 12px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+  overflow-x: auto;
+  margin-bottom: 20px;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th, td {
+  padding: 10px;
+  text-align: left;
+  border-bottom: 1px solid #ddd;
+}
+
+.no-data {
+  text-align: center;
+  color: #888;
+}
+
+.view-btn {
+  color: #1d4ed8;
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+.view-btn:hover {
+  text-decoration: underline;
+}
+
+/* Notifications */
+.notifications {
+  background-color: #fff;
+  padding: 15px;
+  border-radius: 12px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+}
+
+.note {
+  font-size: 12px;
+  color: #888;
+}
