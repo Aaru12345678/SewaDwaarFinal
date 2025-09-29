@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import "../css/userRoles.css";
+import { FaUsers } from "react-icons/fa";
 
 const sampleRoles = [
   { role: "Super Admin", users: 2, permissions: "All Access" },
@@ -56,98 +57,127 @@ const UserRoles = () => {
   };
 
   return (
-    <div className="dashboard">
-      {/* Filters */}
-      <div className="filters">
-        <label>
-          Role:
-          <select value={roleFilter} onChange={(e) => setRoleFilter(e.target.value)}>
-            <option value="All">All</option>
-            {sampleRoles.map((r, idx) => (
-              <option key={idx} value={r.role}>{r.role}</option>
-            ))}
-          </select>
-        </label>
+    <div className="user-roles-page">
+      {/* Header */}
+      <div className="header">
+        <h1><FaUsers /> User Roles & Access</h1>
       </div>
 
-      {/* Cards */}
-      <div className="cards">
-        <div className="card">Total Roles: {filteredRoles.length}</div>
-        <div className="card">
-          Total Users: {filteredRoles.reduce((acc, r) => acc + r.users, 0)}
-        </div>
-      </div>
-
-      {/* Roles Table */}
-      <div className="chart roles-table">
-        <h3>User Roles & Access</h3>
-        <table>
-          <thead>
-            <tr>
-              <th>Role</th>
-              <th>Users</th>
-              <th>Permissions</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredRoles.map((r, idx) => (
-              <tr key={idx}>
-                <td>{r.role}</td>
-                <td>{r.users}</td>
-                <td>{r.permissions}</td>
-                <td>
-                  <button className="btn btn-view" onClick={() => handleView(r.role)}>View</button>
-                  <button className="btn btn-edit" onClick={() => handleEdit(r)}>Edit</button>
-                  <button className="btn btn-delete">Delete</button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      {/* View Modal */}
-      {viewRole && (
-        <div className="modal-bg" onClick={() => setViewRole(null)}>
-          <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <h3>Users in {viewRole}</h3>
-            <ul>
-              {sampleUsers.filter(u => u.role === viewRole).map(u => (
-                <li key={u.id}>{u.name}</li>
+      {/* Dashboard */}
+      <div className="dashboard">
+        {/* Filters */}
+        <div className="filters">
+          <label>
+            Role:
+            <select
+              value={roleFilter}
+              onChange={(e) => setRoleFilter(e.target.value)}
+            >
+              <option value="All">All</option>
+              {sampleRoles.map((r, idx) => (
+                <option key={idx} value={r.role}>{r.role}</option>
               ))}
-            </ul>
-            <div className="modal-buttons">
-              <button className="btn btn-view" onClick={() => setViewRole(null)}>Close</button>
-            </div>
-          </div>
+            </select>
+          </label>
         </div>
-      )}
 
-      {/* Edit Modal */}
-      {editRole && (
-        <div className="modal-bg" onClick={() => setEditRole(null)}>
-          <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <h3>Edit Role: {editRole.role}</h3>
-            <input
-              type="text"
-              value={editRoleName}
-              onChange={(e) => setEditRoleName(e.target.value)}
-              placeholder="Role Name"
-            />
-            <input
-              type="text"
-              value={editPermissions}
-              onChange={(e) => setEditPermissions(e.target.value)}
-              placeholder="Permissions"
-            />
-            <div className="modal-buttons">
-              <button className="btn btn-edit" onClick={handleSaveEdit}>Save</button>
-              <button className="btn btn-view" onClick={() => setEditRole(null)}>Cancel</button>
-            </div>
+        {/* Cards */}
+        <div className="cards">
+          <div className="card">Total Roles: {filteredRoles.length}</div>
+          <div className="card">
+            Total Users: {filteredRoles.reduce((acc, r) => acc + r.users, 0)}
           </div>
         </div>
-      )}
+
+        {/* Roles Table */}
+        <div className="chart roles-table">
+          <h3>User Roles & Access</h3>
+          <table>
+            <thead>
+              <tr>
+                <th>Role</th>
+                <th>Users</th>
+                <th>Permissions</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredRoles.map((r, idx) => (
+                <tr key={idx}>
+                  <td>{r.role}</td>
+                  <td>{r.users}</td>
+                  <td>{r.permissions}</td>
+                  <td>
+                    <button
+                      className="btn btn-view"
+                      onClick={() => handleView(r.role)}
+                    >
+                      View
+                    </button>
+                    <button
+                      className="btn btn-edit"
+                      onClick={() => handleEdit(r)}
+                    >
+                      Edit
+                    </button>
+                    <button className="btn btn-delete">Delete</button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        {/* View Modal */}
+        {viewRole && (
+          <div className="modal-bg" onClick={() => setViewRole(null)}>
+            <div className="modal" onClick={(e) => e.stopPropagation()}>
+              <h3>Users in {viewRole}</h3>
+              <ul>
+                {sampleUsers
+                  .filter((u) => u.role === viewRole)
+                  .map((u) => (
+                    <li key={u.id}>{u.name}</li>
+                  ))}
+              </ul>
+              <div className="modal-buttons">
+                <button className="btn btn-view" onClick={() => setViewRole(null)}>
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Edit Modal */}
+        {editRole && (
+          <div className="modal-bg" onClick={() => setEditRole(null)}>
+            <div className="modal" onClick={(e) => e.stopPropagation()}>
+              <h3>Edit Role: {editRole.role}</h3>
+              <input
+                type="text"
+                value={editRoleName}
+                onChange={(e) => setEditRoleName(e.target.value)}
+                placeholder="Role Name"
+              />
+              <input
+                type="text"
+                value={editPermissions}
+                onChange={(e) => setEditPermissions(e.target.value)}
+                placeholder="Permissions"
+              />
+              <div className="modal-buttons">
+                <button className="btn btn-edit" onClick={handleSaveEdit}>
+                  Save
+                </button>
+                <button className="btn btn-view" onClick={() => setEditRole(null)}>
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 };

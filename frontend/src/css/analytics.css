@@ -160,3 +160,9 @@
     width: 100%;
   }
 }
+
+.analytics-roles-page {
+  font-family: 'Segoe UI', sans-serif;
+  padding: 24px;
+  background-color: #f9fafb;
+}

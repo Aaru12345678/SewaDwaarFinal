@@ -126,3 +126,25 @@
   justify-content: flex-end;
   gap: 10px;
 }
+
+.slot-holiday-page {
+  font-family: 'Segoe UI', sans-serif;
+  padding: 24px;
+  background-color: #f9fafb;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 22px;
+  font-weight: bold;
+  color: #1f3a60;
+  margin-bottom: 20px;
+}
+
+.user-roles-page {
+  font-family: 'Segoe UI', sans-serif;
+  padding: 24px;
+  background-color: #f9fafb;
+}
