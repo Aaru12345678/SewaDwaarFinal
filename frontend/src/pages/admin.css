@@ -12,15 +12,15 @@
   background: #1f3a60;
   color: #fff;
   padding: 20px;
-} */
+}
 
 .sidebar .logo {
   font-size: 18px;
   font-weight: bold;
   margin-bottom: 30px;
-} */
+}
 
- .sidebar ul {
+.sidebar ul {
   list-style: none;
   padding: 0;
 }
@@ -32,11 +32,20 @@
   margin: 18px 0;
   font-size: 15px;
   cursor: pointer;
+}
+
+/* Make sidebar links white */
+.sidebar ul li a {
+  color: white; /* white text */
+  text-decoration: none; /* remove underline */
+  display: flex;
+  align-items: center;
+  gap: 10px;
   transition: color 0.2s;
 }
 
-/* .sidebar ul li:hover {
-  color: #4e73df;
+.sidebar ul li a:hover {
+  color: #4e73df; /* light blue on hover */
 }
 
 /* Main Section */

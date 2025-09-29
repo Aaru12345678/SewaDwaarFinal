@@ -1,6 +1,14 @@
 import React from "react";
+import { Routes, Route, Link } from "react-router-dom";
 import "./admin.css";
 import Cards from "../pages/Cards";
+
+// Placeholder pages (you should create these files under src/pages/)
+import Departments from "../pages/Departments";
+import SlotConfig from "../pages/SlotConfig";
+import Appointments from "../pages/Appointments";
+import Analytics from "../pages/Analytics";
+import UserRoles from "../pages/UserRoles";
 
 import {
   ResponsiveContainer,
@@ -14,8 +22,15 @@ import {
   Pie,
   Cell,
 } from "recharts";
-import { FaBuilding, FaCalendarAlt, FaUsers, FaChartBar, FaUserCog } from "react-icons/fa";
+import {
+  FaBuilding,
+  FaCalendarAlt,
+  FaUsers,
+  FaChartBar,
+  FaUserCog,
+} from "react-icons/fa";
 
+// Chart Data
 const data = [
   { name: "Mon", value: 10 },
   { name: "Tue", value: 12 },
@@ -41,11 +56,31 @@ const Admin = () => {
       <aside className="sidebar">
         <h2 className="logo">ADMINISTRATIVE</h2>
         <ul>
-          <li><FaBuilding /> Departments & Officers</li>
-          <li><FaCalendarAlt /> Slot & Holiday Config</li>
-          <li><FaUsers /> Appointments & Walk-in Logs</li>
-          <li><FaChartBar /> Analytics & Reports</li>
-          <li><FaUserCog /> User Roles & Access</li>
+          <li>
+            <Link to="departments">
+              <FaBuilding /> Departments & Officers
+            </Link>
+          </li>
+          <li>
+            <Link to="slot-config">
+              <FaCalendarAlt /> Slot & Holiday Config
+            </Link>
+          </li>
+          <li>
+            <Link to="appointments">
+              <FaUsers /> Appointments & Walk-in Logs
+            </Link>
+          </li>
+          <li>
+            <Link to="analytics">
+              <FaChartBar /> Analytics & Reports
+            </Link>
+          </li>
+          <li>
+            <Link to="user-roles">
+              <FaUserCog /> User Roles & Access
+            </Link>
+          </li>
         </ul>
       </aside>
 
@@ -60,54 +95,78 @@ const Admin = () => {
           </div>
         </header>
 
-        {/* Dashboard Content */}
+        {/* Page Content */}
         <main className="dashboard">
-          {/* Cards */}
-          <div className="cards">
-            <Cards number="115" label="Total Appointments" />
-            <Cards number="23" label="Walk-ins Today" />
-            <Cards number="04" label="Active Departments" />
-            <Cards number="08" label="Active Officers" />
-          </div>
+          <Routes>
+            {/* Dashboard (default) */}
+            <Route
+              path="/"
+              element={
+                <>
+                  {/* Cards */}
+                  <div className="cards">
+                    <Cards number="115" label="Total Appointments" />
+                    <Cards number="23" label="Walk-ins Today" />
+                    <Cards number="04" label="Active Departments" />
+                    <Cards number="08" label="Active Officers" />
+                  </div>
 
-          {/* Charts */}
-          <div className="charts">
-            <div className="chart">
-              <h3>Appointments Trend</h3>
-              <div className="chart-content">
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={data}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="name" />
-                    <YAxis />
-                    <Tooltip />
-                    <Line
-                      type="monotone"
-                      dataKey="value"
-                      stroke="#4e73df"
-                      strokeWidth={2}
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
+                  {/* Charts */}
+                  <div className="charts">
+                    <div className="chart">
+                      <h3>Appointments Trend</h3>
+                      <div className="chart-content">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <LineChart data={data}>
+                            <CartesianGrid strokeDasharray="3 3" />
+                            <XAxis dataKey="name" />
+                            <YAxis />
+                            <Tooltip />
+                            <Line
+                              type="monotone"
+                              dataKey="value"
+                              stroke="#4e73df"
+                              strokeWidth={2}
+                            />
+                          </LineChart>
+                        </ResponsiveContainer>
+                      </div>
+                    </div>
 
-            <div className="chart">
-              <h3>Department-wise Appointments</h3>
-              <div className="chart-content">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie data={pieData} dataKey="value" outerRadius={100} label>
-                      {pieData.map((entry, index) => (
-                        <Cell key={index} fill={COLORS[index % COLORS.length]} />
-                      ))}
-                    </Pie>
-                    <Tooltip />
-                  </PieChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
-          </div>
+                    <div className="chart">
+                      <h3>Department-wise Appointments</h3>
+                      <div className="chart-content">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <PieChart>
+                            <Pie
+                              data={pieData}
+                              dataKey="value"
+                              outerRadius={100}
+                              label
+                            >
+                              {pieData.map((entry, index) => (
+                                <Cell
+                                  key={index}
+                                  fill={COLORS[index % COLORS.length]}
+                                />
+                              ))}
+                            </Pie>
+                            <Tooltip />
+                          </PieChart>
+                        </ResponsiveContainer>
+                      </div>
+                    </div>
+                  </div>
+                </>
+              }
+            />
+            {/* Other Pages */}
+            <Route path="departments" element={<Departments />} />
+            <Route path="slot-config" element={<SlotConfig />} />
+            <Route path="appointments" element={<Appointments />} />
+            <Route path="analytics" element={<Analytics />} />
+            <Route path="user-roles" element={<UserRoles />} />
+          </Routes>
         </main>
       </div>
     </div>
