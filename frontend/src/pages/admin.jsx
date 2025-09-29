@@ -1,6 +1,6 @@
 import React from "react";
 import { Routes, Route, Link } from "react-router-dom";
-import "./admin.css";
+import "../css/admin.css";
 import Cards from "../pages/Cards";
 
 // Placeholder pages (you should create these files under src/pages/)

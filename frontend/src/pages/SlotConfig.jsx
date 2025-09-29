@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { FaClock, FaCalendarAlt, FaEdit, FaTrash } from "react-icons/fa";
-import "./slotHoliday.css"; // reuse same CSS
+import "../css/slotHoliday.css"; // reuse same CSS
 
 const SlotConfig = () => {
   const [slots, setSlots] = useState([

@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { FaBuilding, FaUser, FaEdit, FaTrash } from "react-icons/fa";
-import "./departments.css";
+import "../css/departments.css";
 
 const Departments = () => {
   const [departments, setDepartments] = useState([
