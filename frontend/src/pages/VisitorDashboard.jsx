@@ -37,6 +37,10 @@ const VisitorDashboard = () => {
 
         {/* Dashboard Cards */}
         <div className="cards">
+           <div className="card">
+            <h3>Total</h3>
+            <p className="count"> {upcomingCount + pendingCount + completedCount + cancelledCount}</p>
+           </div>
           <div className="card">
             <h3>Upcoming Appointments</h3>
             <p className="count">{upcomingCount}</p>

@@ -123,3 +123,58 @@ button[type="button"], button[type="submit"] {
 button:hover {
   background: #0056b3;
 }
+
+.radio-group {
+  display: flex;
+  gap: 16px;
+  margin: 18px 0;
+}
+
+/* each option box */
+.radio-option {
+  flex: 1;                         
+  display: flex;
+  align-items: center;             
+  justify-content: flex-start;     
+  gap: 12px;                       
+  padding: 12px 14px;
+  border: 1px solid #d9d9d9;
+  border-radius: 6px;
+  background: #fafafa;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+  box-sizing: border-box;
+}
+
+/* radio input style */
+.radio-option input[type="radio"] {
+  margin: 0;
+  width: 16px;
+  height: 16px;
+  accent-color: #007bff; 
+}
+
+/* label text */
+.radio-option .radio-text {
+  font-weight: 600;
+  color: #333;
+  line-height: 1;
+  font-size: 14px;
+}
+
+/* hover */
+.radio-option:hover {
+  background: #f5f7fb;
+}
+
+/* selected style (added via React className) */
+.radio-option.selected {
+  border-color: #007bff;
+  background: #eaf4ff;
+}
+.radio-option.selected .radio-text {
+  color: #007bff;
+}
+
+
+

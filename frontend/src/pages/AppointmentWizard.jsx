@@ -4,6 +4,7 @@ import "../css/AppointmentWizard.css"; // Link to basic CSS
 
 const AppointmentWizard = () => {
   const [step, setStep] = useState(1);
+  const [mode, setMode] = useState("department");
   const [formData, setFormData] = useState({
     org_id: "",
     dept_id: "",
@@ -86,55 +87,96 @@ const AppointmentWizard = () => {
 
       {/* Form */}
       <form onSubmit={handleSubmit}>
-        {/* Step 1 */}
-        {step === 1 && (
-          <div className="form-step">
-            <label>Organization</label>
-            <select
-              name="org_id"
-              value={formData.org_id}
-              onChange={handleChange}
-              required
-            >
-              <option value="">Select Organization</option>
-              {organizations.map((org) => (
-                <option key={org.id} value={org.id}>
-                  {org.name}
-                </option>
-              ))}
-            </select>
+  {/* Step 1 */}
+  {step === 1 && (
+    <div className="form-step">
+      <div className="radio-group">
+        <label
+          className={`radio-option ${mode === "department" ? "selected" : ""}`}
+          htmlFor="byDept"
+        >
+          <input
+            id="byDept"
+            type="radio"
+            name="mode"
+            value="department"
+            checked={mode === "department"}
+            onChange={() => setMode("department")}
+          />
+          <span className="radio-text">Search by Department</span>
+        </label>
 
-            <label>Department</label>
-            <select
-              name="dept_id"
-              value={formData.dept_id}
-              onChange={handleChange}
-              required
-            >
-              <option value="">Select Department</option>
-              {departments.map((dept) => (
-                <option key={dept.id} value={dept.id}>
-                  {dept.name}
-                </option>
-              ))}
-            </select>
+        <label
+          className={`radio-option ${mode === "service" ? "selected" : ""}`}
+          htmlFor="byService"
+        >
+          <input
+            id="byService"
+            type="radio"
+            name="mode"
+            value="service"
+            checked={mode === "service"}
+            onChange={() => setMode("service")}
+          />
+          <span className="radio-text">Search by Service</span>
+        </label>
+      </div>
 
-            <label>Service</label>
-            <select
-              name="service_id"
-              value={formData.service_id}
-              onChange={handleChange}
-              required
-            >
-              <option value="">Select Service</option>
-              {services.map((service) => (
-                <option key={service.id} value={service.id}>
-                  {service.name}
-                </option>
-              ))}
-            </select>
-          </div>
-        )}
+
+    {/* Organization Dropdown */}
+    <label>Organization</label>
+    <select
+      name="org_id"
+      value={formData.org_id}
+      onChange={handleChange}
+      required
+    >
+      <option value="">Select Organization</option>
+      {organizations.map((org) => (
+        <option key={org.id} value={org.id}>
+          {org.name}
+        </option>
+      ))}
+    </select>
+
+    {/* Department Dropdown - Only show if mode is department */}
+    {mode === "department" && (
+      <>
+        <label>Department</label>
+        <select
+          name="dept_id"
+          value={formData.dept_id}
+          onChange={handleChange}
+          required
+        >
+          <option value="">Select Department</option>
+          {departments.map((dept) => (
+            <option key={dept.id} value={dept.id}>
+              {dept.name}
+            </option>
+          ))}
+        </select>
+      </>
+    )}
+
+    {/* Service Dropdown */}
+    <label>Service</label>
+    <select
+      name="service_id"
+      value={formData.service_id}
+      onChange={handleChange}
+      required
+    >
+      <option value="">Select Service</option>
+      {services.map((service) => (
+        <option key={service.id} value={service.id}>
+          {service.name}
+        </option>
+      ))}
+    </select>
+  </div>
+)}
+
 
         {/* Step 2 */}
         {step === 2 && (
