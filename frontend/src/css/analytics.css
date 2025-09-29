@@ -1,0 +1,162 @@
+/* Filters container */
+.filters {
+  display: flex;               /* horizontal layout */
+  justify-content: flex-start; /* start from left */
+  align-items: center;         /* vertical alignment */
+  gap: 40px;                   /* more space between filters */
+  flex-wrap: wrap;             /* wrap if screen is very small */
+  margin-bottom: 20px;         /* space below filters */
+}
+
+/* Each label + select pair */
+.filters label {
+  display: flex;
+  align-items: center;
+  font-size: 14px;
+  color: #333;
+  gap: 8px; /* space between label text and select */
+}
+
+/* Layout */
+.admin-layout {
+  display: flex;
+  min-height: 100vh;
+  background-color: #f4f6f9;
+  font-family: "Segoe UI", sans-serif;
+}
+
+/* Sidebar */
+.sidebar {
+  width: 240px;
+  background: #1f3a60;
+  color: #fff;
+  padding: 20px;
+}
+
+.sidebar .logo {
+  font-size: 18px;
+  font-weight: bold;
+  margin-bottom: 30px;
+}
+
+.sidebar ul {
+  list-style: none;
+  padding: 0;
+}
+
+.sidebar ul li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 18px 0;
+  font-size: 15px;
+  cursor: pointer;
+}
+
+/* Make sidebar links white */
+.sidebar ul li a {
+  color: white; /* white text */
+  text-decoration: none; /* remove underline */
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  transition: color 0.2s;
+}
+
+.sidebar ul li a:hover {
+  color: #4e73df; /* light blue on hover */
+}
+
+/* Main Section */
+.main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Topbar */
+.topbar {
+  background: #fff;
+  padding: 15px 25px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #e1e1e1;
+}
+
+.top-actions {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.logout-btn {
+  background: #dc3545;
+  color: #fff;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.logout-btn:hover {
+  background: #b02a37;
+}
+
+/* Dashboard */
+.dashboard {
+  flex: 1;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 30px;
+}
+
+/* Cards */
+.cards {
+  display: flex;
+  justify-content: space-between;  /* spread cards evenly */
+  gap: 20px;                        /* space between cards */
+  margin-bottom: 30px;              /* space below cards */
+  flex-wrap: wrap;                   /* wrap on smaller screens */
+}
+
+.card {
+  flex: 1;                           /* equal width */
+  min-width: 200px;                  /* prevent too small on small screens */
+  background: #fff;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0px 2px 6px rgba(0,0,0,0.1);
+  text-align: center;
+  font-size: 16px;
+  font-weight: 500;
+}
+
+
+/* Charts */
+.charts {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+/* Make the last chart full width */
+.charts .chart:last-child {
+  grid-column: 1 / -1; /* spans all columns */
+}
+
+@media (max-width: 900px) {
+  .charts {
+    grid-template-columns: 1fr;
+  }
+
+  .cards, .filters {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .card {
+    width: 100%;
+  }
+}
