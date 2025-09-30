@@ -1,0 +1,132 @@
+.slot-holiday-page {
+  font-family: 'Segoe UI', sans-serif;
+  padding: 24px;
+  background-color: #f9fafb;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.header h1 {
+  font-size: 28px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.header button {
+  padding: 8px 16px;
+  border-radius: 6px;
+  border: none;
+  color: #fff;
+  font-weight: 500;
+  cursor: pointer;
+  margin-left: 8px;
+}
+
+.add-slot {
+  background-color: #2563eb;
+}
+
+.add-holiday {
+  background-color: #16a34a;
+}
+
+.search-bar input {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 6px;
+  border: 1px solid #d1d5db;
+  outline: none;
+  margin-bottom: 24px;
+}
+
+.search-bar input:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2);
+}
+
+.stats-cards {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.stats-card {
+  flex: 1;
+  background-color: #ffffff;
+  padding: 16px;
+  border-radius: 8px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+  text-align: center;
+}
+
+.stats-card h2 {
+  font-size: 22px;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.stats-card p {
+  color: #6b7280;
+  font-size: 14px;
+}
+
+.table-container {
+  margin-bottom: 32px;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+thead tr {
+  background-color: #e5e7eb;
+}
+
+th, td {
+  padding: 12px 16px;
+  text-align: left;
+  border: 1px solid #d1d5db;
+}
+
+tbody tr:hover {
+  background-color: #f3f4f6;
+}
+
+td .icon {
+  margin-right: 6px;
+  vertical-align: middle;
+}
+
+.actions button {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  margin-right: 8px;
+  font-size: 16px;
+}
+
+.actions button.edit {
+  color: #3b82f6;
+}
+
+.actions button.delete {
+  color: #ef4444;
+}
+
+@media (max-width: 768px) {
+  .stats-cards {
+    flex-direction: column;
+  }
+  
+  th, td {
+    padding: 10px 8px;
+  }
+}

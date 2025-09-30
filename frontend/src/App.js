@@ -81,8 +81,8 @@ function App() {
           }
         />
 
-        {/* Admin Route */}
-        <Route path="/admin" element={<Dashboard />} />
+        {/* Admin Route with Nested Pages */}
+        <Route path="/admin/*" element={<Dashboard />} />
       </Routes>
     </Router>
   );
