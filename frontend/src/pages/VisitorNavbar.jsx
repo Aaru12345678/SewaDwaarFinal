@@ -10,7 +10,7 @@ const userName = "Ravi Tambe";
     <nav className="navbar">
       <ul className="nav-links">
         <li>
-          <Link to="/"><FaHome /> Home</Link>
+          <Link to="/dashboard"><FaHome /> Home</Link>
         </li>
         <li>
           <Link to="/appointment-wizard"><FaCalendarAlt /> Appointments Booking</Link>

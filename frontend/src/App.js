@@ -1,5 +1,8 @@
 import React from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+// login pages
+import Login from "./Components/Login";
+import SignUp from "./Components/SignUp";
 
 // Visitor pages
 import VisitorDashboard from "./pages/VisitorDashboard";
@@ -13,13 +16,18 @@ import AppointmentDetails from "./pages/AppointmentDetails";
 // Admin pages
 import Dashboard from "./pages/admin"; // Admin dashboard (includes sidebar now)
 
+
 function App() {
   return (
     <Router>
       <Routes>
+
+         <Route path="/signup" element={<SignUp />} />
+        <Route path="/" element={<Login />} /> 
+
         {/* Visitor Routes with Navbar */}
         <Route
-          path="/"
+          path="/dashboard"
           element={
             <>
               <VisitorNavbar />

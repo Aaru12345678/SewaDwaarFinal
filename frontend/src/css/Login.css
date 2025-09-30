@@ -1,0 +1,140 @@
+/* Full page background */
+/* html, body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  font-family: Arial, sans-serif;
+  background-color: #0047ab; 
+  } */
+
+/* Centering container */
+.container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center; /* vertically center */
+  min-height: 100vh;       /* full height */
+  padding: 20px;
+}
+
+.header {
+  width: 100%;
+  max-width: 400px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.logo-group {
+  display: flex;
+  align-items: center;
+}
+
+.logo {
+  width: 35px;
+  height: 35px;
+  margin-right: 8px;
+}
+
+.gov-text {
+  font-size: 12px;
+}
+
+.hindi {
+  font-weight: bold;
+}
+
+.right-controls .lang,
+.right-controls .access {
+  margin-left: 10px;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.login-box {
+  background-color: #ffffff;
+  border: 1px solid #ff884d;
+  border-radius: 15px;
+  padding: 25px;
+  width: 100%;
+  max-width: 400px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.login-title {
+  text-align: center;
+  color: #ff6600;
+  margin-bottom: 20px;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+}
+
+.form label {
+  margin-top: 10px;
+  margin-bottom: 5px;
+  font-size: 14px;
+  color: #003366;
+}
+
+.required {
+  color: red;
+}
+
+input {
+  padding: 10px;
+  border: 1px solid #ffcccc;
+  border-radius: 20px;
+  outline: none;
+}
+
+input:focus {
+  border-color: #ff6600;
+}
+
+.forgot {
+  font-size: 12px;
+  text-align: right;
+  color: #0047ab;
+  margin-top: 5px;
+  text-decoration: none;
+}
+
+.submit-btn {
+  background-color: #ff6600;
+  color: white;
+  padding: 10px;
+  border: none;
+  border-radius: 20px;
+  margin-top: 20px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.submit-btn:hover {
+  background-color: #e65c00;
+}
+
+.footer {
+  margin-top: 40px;
+  text-align: center;
+  color: #cc0000;
+}
+
+.footer h3 {
+  margin-top: 5px;
+}
+
+.chakra {
+  margin-top: 10px;
+  width: 150px;
+}
+.select{
+  padding: 10px;
+  border: 1px solid #ffcccc;
+  border-radius: 20px;
+  outline: none;
+}
