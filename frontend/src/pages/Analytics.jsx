@@ -114,6 +114,7 @@ const Analytics = () => {
         </div>
 
         {/* Charts */}
+        <div className="analytics-page">
         <div className="charts">
           {/* 1. Appointments Trend */}
           <div className="chart">
@@ -198,6 +199,7 @@ const Analytics = () => {
           </div>
         </div>
       </div>
+    </div>
     </div>
   );
 };

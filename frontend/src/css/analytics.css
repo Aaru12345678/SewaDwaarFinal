@@ -142,7 +142,7 @@
 }
 
 /* Make the last chart full width */
-.charts .chart:last-child {
+.analytics-page .charts .chart:last-child {
   grid-column: 1 / -1; /* spans all columns */
 }
 
