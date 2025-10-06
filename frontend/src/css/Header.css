@@ -1,0 +1,81 @@
+/* Header container — relative so we can absolutely position the logo */
+.govt-header {
+  position: relative;         /* required for absolute child */
+  display: flex;              /* keeps left content nicely aligned */
+  align-items: center;
+  gap: 16px;
+  padding: 12px 20px;
+  min-height: 100px;
+  border-bottom: 2px solid #d3d3d3;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+  background: #fff;
+  overflow: visible;
+}
+
+/* Left block: emblem + stacked text */
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+/* emblem image */
+.govt-icon {
+  height: 100px;      /* adjust as needed */
+  width: auto;
+  display: block;
+  margin: 0;
+  vertical-align: middle;
+}
+
+/* force black for svg/png with transparency */
+.black-emblem {
+  filter: brightness(0) saturate(100%);
+}
+
+/* English + Marathi side by side */
+.govt-text-inline {
+  display: flex;
+  flex-direction: row;   /* side by side */
+  align-items: baseline; /* align text baselines */
+  gap: 8px;
+  line-height: 1.4;
+}
+
+.eng-text {
+  font-size: 18px;
+  font-weight: 700;
+  color: #000;
+}
+
+.mar-text {
+  font-size: 16px;
+  font-weight: 700;
+  font-family: 'Lohit-Marathi', 'Noto Sans Devanagari', sans-serif;
+  color: #000;
+  margin-top: 2px; /* adjust until it aligns perfectly */
+}
+
+
+/* APP LOGO pinned to top-right corner of the header */
+/* APP LOGO pinned to right & vertically centered */
+.app-icon {
+  position: absolute;
+  top: 50%;              /* push to vertical middle of header */
+  right: 50px;          /* keep same right spacing */
+  transform: translateY(-50%); /* true centering */
+  height: 120px;         /* adjust size */
+  width: 150px;
+  object-fit: contain;
+  z-index: 20;
+  pointer-events: auto;
+}
+
+
+/* Responsive: shrink header elements on small screens */
+@media (max-width: 600px) {
+  .govt-icon { height: 56px; }
+  .app-icon  { height: 44px; top: 6px; right: 12px; }
+  .eng-text  { font-size: 14px; }
+  .mar-text  { font-size: 11px; }
+}

@@ -1,0 +1,99 @@
+.onboarding-container {
+  padding: 40px 20px;
+  text-align: center;
+  background-color: #e6e6fa;
+}
+
+.onboarding-title {
+  font-size: 32px;
+  font-weight: 600;
+  margin-bottom: 40px;
+  color: black;
+}
+
+.onboarding-title span {
+  color: black;
+}
+
+.steps-wrapper {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  gap: 40px;
+  flex-wrap: wrap;
+}
+
+/* .step-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+  max-width: 150px;
+} */
+
+.step-number {
+  font-size: 14px;
+  color: #333;
+  margin-bottom: 10px;
+}
+
+.circle-icon {
+  border: 3px solid #007bff;
+  border-radius: 50%;
+  padding: 20px;
+  width: 80px;
+  height: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.circle-icon img {
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
+}
+
+.step-label {
+  color: #007bff;
+  font-weight: 500;
+  margin-top: 10px;
+  font-size: 16px;
+}
+.step-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+  max-width: 150px;
+}
+
+/* Left curved line */
+.step-card::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: -75px;
+  width: 75px;
+  height: 40px;
+  border-top: 2px solid #007bff;
+  border-right: 2px solid #007bff;
+  border-top-right-radius: 50px;
+  transform: translateY(-50%);
+  z-index: -1;
+}
+
+/* Right curved line */
+.step-card::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  right: -75px;
+  width: 75px;
+  height: 40px;
+  border-top: 2px solid #007bff;
+  border-left: 2px solid #007bff;
+  border-top-left-radius: 50px;
+  transform: translateY(-50%);
+  z-index: -1;
+}

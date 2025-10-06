@@ -35,4 +35,4 @@ export const submitSignup = (payload) =>
   safeRequest(api.post("/signup", payload));
 
 export const login = (payload) =>
-  safeRequest(api.post("/", payload));
+  safeRequest(api.post("/login", payload));

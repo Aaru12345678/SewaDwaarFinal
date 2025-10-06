@@ -1,0 +1,112 @@
+/* Wrapper centers the hero block but doesn't force the image to stretch */
+.about-section {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  padding: 40px 16px;
+  /* background-color: #e6e6fa; gentle fallback */
+}
+
+/* Container holds the img and the overlay text; shrinkwrap to image */
+.about-image-container {
+  position: relative;
+  display: inline-block;
+  line-height: 0;
+}
+
+/* Natural-size image but responsive down to viewport */
+.about-image {
+  display: block;
+  width: auto;         /* natural width on large screens */
+  max-width: 100%;     /* scales down when viewport is smaller */
+  height: auto;
+  /* border-radius: 6px; */
+  vertical-align: top;
+  /* box-shadow: 0 8px 24px rgba(3, 9, 23, 0.08); */
+}
+
+/* Overlay spans most of the image width but has no background box or tint */
+.about-overlay {
+  position: absolute;
+  top: 12px;        /* distance from top edge of image */
+  left: 12px;       /* distance from left edge of image */
+  right: 12px;      /* allow overlay to stretch so title can center across image */
+  z-index: 2;
+  pointer-events: none;
+  /* color: #fff;      default white text; change if image is very light */
+}
+
+.about-title {
+  margin: 0;
+  padding: 0 12px;
+  text-align: center;
+  font-weight: 800;         /* bolder */
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: #000;              /* pure black text */
+  font-size: clamp(28px, 5vw, 54px);
+  line-height: 1;
+  position: relative;
+  display: inline-block;
+  width: 100%;
+  -webkit-font-smoothing: antialiased;
+  text-shadow: 0 2px 6px rgba(255,255,255,0.6); /* subtle white glow for brightness */
+}
+
+.about-text {
+  margin-left: 140px;
+  margin-top: 55px;
+  max-width: 70%;
+  text-align: justify;
+  font-size: 20px;
+  line-height: 1.85;
+  color: #000;               /* pure black text */
+  font-weight: 500;          /* slightly bolder */
+  text-shadow: 0 1px 3px rgba(255,255,255,0.5); /* soft glow to improve visibility */
+  pointer-events: none;
+}
+
+.about-text p {
+  margin: 0 0 18px 0;
+}
+
+/* On small screens, flow the overlay below the image so nothing clips */
+@media (max-width: 900px) {
+  .about-text { max-width: 62%; font-size: 15px; }
+  .about-title::after { width: 68%; height: 10px; bottom: -8px; }
+}
+
+@media (max-width: 600px) {
+  /* make text flow under the image (accessible/readable on phones) */
+  .about-overlay {
+    position: relative;
+    top: auto;
+    left: auto;
+    right: auto;
+    margin-top: 14px;
+    pointer-events: auto;
+    color: black;            /* dark text for small screens where image scales */
+  }
+
+  .about-title {
+    font-size: 22px;
+    text-shadow: none;
+    color: #111;
+    display: block;
+  }
+
+  .about-title::after {
+    display: none; /* remove highlight on very small screens for clarity */
+  }
+
+  .about-text {
+    max-width: 100%;
+    text-align: left;
+    color: #111;
+    text-shadow: none;
+    font-size: 15px;
+    line-height: 1.6;
+  }
+
+  .about-image { width: 100%; border-radius: 0; }
+}

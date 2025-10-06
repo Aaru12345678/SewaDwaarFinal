@@ -20,19 +20,19 @@ export default function Login() {
   const [showPass, setShowPass] = useState(false);
   const [loading, setLoading] = useState(false);
   const [progress, setProgress] = useState(false);
-
+  const[user_id,setUser_id]=useState("");
   const [superUserMode, setSuperUserMode] = useState(false);
   const [missingFields, setMissingFields] = useState({});
   const [userCode, setUserCode] = useState(null);
 
   const isDisabled = useMemo(
     () =>
-      !emailOrMobile.trim() ||
+      !user_id.trim() ||
       !password.trim() ||
       loading ||
       (superUserMode &&
         Object.values(missingFields).some((v) => !v || !v.trim())),
-    [emailOrMobile, password, loading, superUserMode, missingFields]
+    [user_id, password, loading, superUserMode, missingFields]
   );
 
   // const handleSubmit = useCallback(
@@ -132,8 +132,8 @@ export default function Login() {
 const handleSubmit = async (e) => {
   e.preventDefault();
 
-  if (!emailOrMobile || !password) {
-    toast.error("Please enter email/mobile and password");
+  if (!user_id || !password) {
+    toast.error("Please enter user ID and password");
     return;
   }
 
@@ -141,16 +141,17 @@ const handleSubmit = async (e) => {
   setProgress(true);
 
   try {
+    // Payload matches backend expectation
     const payload = {
-      email_id: emailOrMobile.includes("@") ? emailOrMobile : null,
-      mobile_no: !emailOrMobile.includes("@") ? emailOrMobile : null,
-      password: password, // send raw password
+      user_id,  // This is the login identifier
+      password,
     };
 
-    const { data, error } = await login(payload);
+    const { data } = await login(payload); // your API call function
 
-    if (error || !data.success) {
-      toast.error(error?.message || data?.message || "Invalid credentials");
+    if (!data.success) {
+      toast.error(data.message || "Invalid credentials");
+
       if (boxRef.current) {
         boxRef.current.classList.add("shake");
         setTimeout(() => boxRef.current.classList.remove("shake"), 300);
@@ -159,13 +160,11 @@ const handleSubmit = async (e) => {
     }
 
     // Save user info
-    localStorage.setItem("user_id", data.user.user_id);
-    localStorage.setItem("email_id", data.user.email_id || "");
-    localStorage.setItem("mobile_no", data.user.mobile_no || "");
-    localStorage.setItem("role_code", data.user.role_code || "");
+    localStorage.setItem("user_id", data.user_id);
+    localStorage.setItem("role_code", data.role || "");
 
     toast.success("Login successful 🎉");
-    navigate("/dashboard");
+    navigate("/dashboard1");
 
   } catch (err) {
     console.error("Login error:", err);
@@ -175,7 +174,6 @@ const handleSubmit = async (e) => {
     setTimeout(() => setProgress(false), 400);
   }
 };
-
 
 
   return (
@@ -213,13 +211,13 @@ const handleSubmit = async (e) => {
           {!superUserMode && (
             <>
               <label>
-                Username<span className="required">*</span>
+                UserId<span className="required">*</span>
               </label>
               <input
                 type="text"
-                placeholder="Enter email or mobile number"
-                value={emailOrMobile}
-                onChange={(e) => setEmailOrMobile(e.target.value)}
+                placeholder="Enter User Id"
+                value={user_id}
+                onChange={(e) => setUser_id(e.target.value)}
                 required
               />
 

@@ -1,8 +1,13 @@
-const express = require('express');
+const express = require("express");
 const router = express.Router();
-const {insertVisitorSignup,login}=require('../controllers/signupController');
+const { insertVisitorSignup, login} = require("../controllers/signupController");
+const multer = require("multer");
 
-router.post('/signup',insertVisitorSignup);
-router.post('/',login);
+const upload = multer({ dest: "uploads/" });
 
-module.exports=router;
+router.post("/signup", upload.single("photo"), insertVisitorSignup);
+router.post("/login", login);
+
+
+
+module.exports = router;

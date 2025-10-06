@@ -1,0 +1,17 @@
+/* Make the page take full height */
+html, body, #root {
+  height: 100%;
+  margin: 0;
+}
+
+.main-layout {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh; /* Full viewport height */
+  background:#e6e6fa ;
+}
+
+.content-below {
+  flex: 1; /* Push footer down */
+  padding: 20px;
+}

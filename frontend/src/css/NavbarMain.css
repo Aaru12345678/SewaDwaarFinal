@@ -1,0 +1,74 @@
+.navbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color:#595a96;
+  padding: 10px 20px;
+  border-bottom: 2px solid #d3d3d3;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  color: white;
+}
+.nav-extra-icon {
+  height: 55px;
+  width: auto;
+  margin-left: 10px;
+}
+
+
+.nav-left {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.nav-emblem {
+  height: 55px;
+  width: auto;
+}
+
+.nav-links {
+  display: flex;
+  list-style: none;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  /* border-radius: 2px; */
+}
+
+.nav-links li a {
+  color:white;
+  text-decoration: none;
+  font-weight: 500;
+  padding: 6px 12px;           /* Add padding to create shape */
+  border-radius: 20px;         /* Rounded edges (pill shape) */
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+
+.nav-links li a:hover {
+  background-color:#595a96;  /* Background on hover */
+  color: #fdbc08;             /* Text color on hover */
+}
+
+
+.nav-right {
+  display: flex;
+  align-items: center;
+  gap: 100px;
+}
+
+.nav-image {
+  height: 50px;
+  width: auto;
+}
+.button1 {
+  background-color: #595a96; /* Green */
+
+  transition-duration: 0.4s;
+  border-radius: 12px;
+  font-size: 16px;
+}
+
+.button1:hover {
+  color: white;
+}

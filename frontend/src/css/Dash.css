@@ -1,0 +1,22 @@
+.paddingall{
+    padding: 10px 10px 10px 10px;
+}
+.title{
+    font-weight: 600px;
+}
+.users{
+    font-size: 14px;
+}
+.icon{
+    margin-top:20px;
+    margin-left:20px;
+}
+.gradient {
+  background: linear-gradient(135deg, #1e88e5, #42a5f5);
+  color: white;
+}
+
+.gradientLight {
+  background: linear-gradient(135deg, #81c784, #a5d6a7);
+  color: white;
+}

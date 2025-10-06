@@ -1,0 +1,124 @@
+.footer {
+  background-color: #111;
+  color: #fff;
+  font-family: "Segoe UI", Arial, sans-serif;
+  padding: 25px 10px 0;  /* reduced padding on sides */
+}
+
+.footer-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  max-width: 1150px;
+  margin: 0 auto;
+  border-bottom: 1px solid #222;
+  padding-bottom: 18px;   /* tighter spacing */
+}
+
+.footer-section {
+  flex: 1 1 220px;
+  margin: 8px 10px;
+  padding: 0 15px;
+  text-align: left;
+  border-right: 1px solid #333;  /* vertical divider */
+}
+
+.footer-section:last-child {
+  border-right: none; /* remove divider on last column */
+}
+
+.footer-logo {
+  max-width: 220px;
+  text-align: left;
+}
+
+.footer-logo p {
+  margin-top: 8px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: #ccc;
+}
+
+.darshan-img {
+  max-width: 150px;
+  height: auto;
+  display: block;
+}
+
+.footer-section h3 {
+  font-size: 15px;
+  margin-bottom: 8px;
+  color: #f1f1f1;
+  border-bottom: 1px solid #444;
+  padding-bottom: 3px;
+  font-weight: 500;
+}
+
+.footer-section ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.footer-section ul li {
+  margin: 4px 0;  /* tighter list spacing */
+}
+
+.footer-section ul li a {
+  color: #bbb;
+  text-decoration: none;
+  font-size: 13px;
+  transition: color 0.3s ease;
+}
+
+.footer-section ul li a:hover {
+  color: #fff;
+}
+
+.footer-middle {
+  font-size: 0.78rem;
+  color: #ccc;
+  max-width: 850px;
+  margin: 12px auto;
+  line-height: 1.4;
+  text-align: center;
+}
+
+.footer-middle a {
+  color: #00aaff;
+  text-decoration: none;
+}
+
+.footer-middle a:hover {
+  text-decoration: underline;
+}
+
+.footer-bottom {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 5px;
+  background-color: #0d0d0d;
+  text-align: center;
+}
+
+.footer-logos {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  align-items: center;
+}
+
+.footer-logos img {
+  height: 30px;   /* compact logos */
+  object-fit: contain;
+}
+
+.footer-bottom p {
+  font-size: 12px;
+  color: #aaa;
+  margin: 0;
+}
