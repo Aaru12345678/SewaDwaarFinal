@@ -48,3 +48,50 @@ exports.getTalukas = async (req, res) => {
   }
 };
 
+//a 
+
+exports.getOrganization = async(req,res)=>{
+  try{
+    const result=await pool.query('SELECT * FROM get_organizations();');
+    res.json(result.rows);
+  }
+  catch(err){
+    console.error('Error fetching organizations:',err);
+    res.status(500).json({error:'Failed'});
+  }
+};
+
+
+exports.getDepartment=async(req,res)=>{
+  const {organization_id} = req.params;
+  try{
+    const result=await pool.query('SELECT * FROM get_departments($1);',[organization_id]);
+    res.json(result.rows);
+  }
+  catch(err){
+    console.error('Error fetching department:', err);
+    res.status(500).json({ error: 'Failed to fetch department'});
+  }
+};
+
+exports.getServices=async(req,res)=>{
+  const {organization_id,department_id}=req.params;
+  try {
+    const result= await pool.query('SELECT * FROM get_services($1,$2);',[organization_id,department_id]);
+    res.json(result.rows);
+  } catch (error) {
+    console.error('Error fetching services:', err);
+    res.status(500).json({ error: 'Failed to fetch services'});
+  }
+}
+
+exports.getDesignations = async (req, res) => {
+  try {
+    const result = await pool.query("SELECT * FROM get_designations();");
+    res.json(result.rows);
+  } catch (err) {
+    console.error("Error fetching designations:", err);
+    res.status(500).json({ error: "Failed to fetch designations" });
+  }
+};
+// 

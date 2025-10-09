@@ -360,7 +360,6 @@ const upload = multer({
 
 exports.insertVisitorSignup = async (req, res) => {
   try {
-    // Extract fields from frontend
     const {
       full_name,
       email_id,
@@ -388,31 +387,30 @@ exports.insertVisitorSignup = async (req, res) => {
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Call PostgreSQL function
+    // ✅ Call PostgreSQL function (12 params)
     const result = await pool.query(
       `SELECT * FROM public.register_visitor(
-        $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13
+        $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12
       );`,
       [
-        full_name?.trim().slice(0, 100),   // p_username
-        hashedPassword,                     // p_password_hash
+        hashedPassword,                    // p_password_hash
         full_name?.trim().slice(0, 255),   // p_full_name
         gender?.charAt(0) || null,         // p_gender
-        dob || null,                        // p_dob
-        mobile_no?.trim() || null,          // p_mobile_no
-        email_id?.trim() || null,           // p_email_id
-        state?.trim() || null,              // p_state_code
-        division?.trim() || null,           // p_division_code
-        district?.trim() || null,           // p_district_code
-        taluka?.trim() || null,             // p_taluka_code
-        pincode?.trim() || null,            // p_pincode
-        photo?.trim() || null               // p_photo
+        dob || null,                       // p_dob
+        mobile_no?.trim() || null,         // p_mobile_no
+        email_id?.trim() || null,          // p_email_id
+        state?.trim() || null,             // p_state_code
+        division?.trim() || null,          // p_division_code
+        district?.trim() || null,          // p_district_code
+        taluka?.trim() || null,            // p_taluka_code
+        pincode?.trim() || null,           // p_pincode
+        photo?.trim() || null              // p_photo
       ]
     );
 
     const row = result.rows[0];
 
-    // Handle DB function result
+    // Handle DB result
     if (!row || row.message !== "Registration successful") {
       return res.status(400).json({
         success: false,
@@ -420,7 +418,7 @@ exports.insertVisitorSignup = async (req, res) => {
       });
     }
 
-    // Success response
+    // ✅ Success response
     res.status(201).json({
       success: true,
       message: row.message,
@@ -438,20 +436,20 @@ exports.insertVisitorSignup = async (req, res) => {
   }
 };
 
+
 exports.login = async (req, res) => {
-  const { user_id, password } = req.body;
+  const { username, password } = req.body;
 
   try {
-    // 1️⃣ Fetch user details by user_id
-    const result = await pool.query("SELECT * FROM get_user_by_id($1);", [user_id]);
-    console.log(result,"result")
+    // 1️⃣ Fetch user details by username
+    const result = await pool.query("SELECT * FROM get_user_by_username($1);", [username]);
     const user = result.rows[0];
-    //console.log(user)
+
     // 2️⃣ Check if user exists
     if (!user) {
       return res.status(404).json({
         success: false,
-        message: "User ID not found",
+        message: "Username not found",
       });
     }
 
@@ -477,6 +475,7 @@ exports.login = async (req, res) => {
       success: true,
       message: "Login successful",
       user_id: user.out_user_id,
+      username: user.out_username,
       role: user.out_role_code,
     });
   } catch (error) {

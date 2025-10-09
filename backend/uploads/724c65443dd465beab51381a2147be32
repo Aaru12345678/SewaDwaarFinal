@@ -1,0 +1,657 @@
+
+import os, sys, re, csv, subprocess, tempfile, shutil, time, traceback
+from collections import defaultdict, OrderedDict
+
+CONN_STR = (
+    "Driver={ODBC Driver 17 for SQL Server};"
+    "Server=JAIMISHRA;"
+    "Database=VoterRegistration;"
+    "Trusted_Connection=Yes;"
+    "TrustServerCertificate=Yes;"
+)
+
+TABLE_NAME = "dbo.VoterInfo"
+
+TESS_CMD_DEFAULT = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
+TESS_LANG_DEFAULT = "mar+eng"
+DEFAULT_DPI = 450
+VOTERID_MIN_DIGITS = 6
+MIN_AGE = 18
+MAX_AGE = 120
+
+Y_CLUSTER_TOLERANCE = 14
+MIN_WORDS_PER_ROW = 2
+HEADER_KEYWORDS = ['मतदार', 'यादी', 'भाग', 'विधानसभा', 'पान', 'पृष्ठ', 'अ.क्र', 'अ. क्र', 'अक्रमांक', 'मतदारांची']
+
+DEVA_DIGITS = str.maketrans('०१२३४५६७८९', '0123456789')
+DEVANAGARI_RE = re.compile(r'[\u0900-\u097F\uA8E0-\uA8FF]')
+
+# ---------- helpers ----------
+def normalize_deva_digits(s):
+    if s is None: return s
+    return str(s).translate(DEVA_DIGITS)
+
+def contains_devanagari(s, min_count=1):
+    if not s: return False
+    return len(DEVANAGARI_RE.findall(s)) >= min_count
+
+def is_mostly_digits(s):
+    if s is None: return False
+    s2 = re.sub(r'\D', '', str(s))
+    return len(s2) >= 1 and len(s2) >= (len(str(s).strip()) * 0.4)
+
+def extract_serial_token(word_text):
+    if not word_text: return None
+    s = normalize_deva_digits(str(word_text)).strip()
+    m = re.match(r'^(\d{1,6})$', s)
+    if m: return int(m.group(1))
+    m = re.match(r'^(\d{1,6})[\.\,\)\:]+$', s)
+    if m: return int(m.group(1))
+    m = re.match(r'^(\d{1,6})\D+$', s)
+    if m: return int(m.group(1))
+    m = re.match(r'^(\d{1,6})', s)
+    if m: return int(m.group(1))
+    return None
+
+def extract_long_numeric(s, min_digits=VOTERID_MIN_DIGITS):
+    if not s: return None
+    s2 = normalize_deva_digits(str(s))
+    m = re.search(r'(\d{%d,})' % min_digits, s2)
+    return m.group(1) if m else None
+
+def extract_age_from_text(s):
+    if not s: return None
+    s2 = normalize_deva_digits(str(s))
+    for m in re.finditer(r'\b(\d{1,3})\b', s2):
+        val = int(m.group(1))
+        if MIN_AGE <= val <= MAX_AGE:
+            return val
+    return None
+
+REL_MARKERS = ["व", "व.", "प", "प.", "व्", "प्", "पत्नी", "पु", "पति"]
+GENDERS_MALE = ["पु","पु.","पुरुष"]
+GENDERS_FEMALE = ["स्त्री","स्त्री.","महिला"]
+def detect_gender_from_text(s):
+    if not s: return None
+    for w in GENDERS_MALE:
+        if w in s: return "male"
+    for w in GENDERS_FEMALE:
+        if w in s: return "female"
+    return None
+
+def clean_leading_number_from_text(s):
+    """
+    If text starts with a number (house/serial artifact), extract it and return (number, remainder).
+    """
+    if not s: return (None, s)
+    s = str(s).strip()
+    m = re.match(r'^\s*([0-9०-९]{1,5})[\.\)\-\:\,\s]+\s*(.*)$', s)
+    if m:
+        num = normalize_deva_digits(m.group(1))
+        return (num.strip(), m.group(2).strip())
+    m2 = re.match(r'^\s*([0-9०-९]{1,5})\s*(.*)$', s)
+    if m2 and m2.group(2):
+        num = normalize_deva_digits(m2.group(1))
+        return (num.strip(), m2.group(2).strip())
+    return (None, s)
+
+def normalize_relation_marker(s):
+    if not s: return None
+    s = str(s).strip()
+    for rm in REL_MARKERS:
+        if rm in s:
+            return rm
+    if re.search(r'\b[वप]\b', s):
+        return re.search(r'\b([वप])\b', s).group(1)
+    return None
+
+def run_tesseract_tsv(image_path, out_base, lang):
+    cmd = [TESS_CMD, image_path, out_base, '-l', lang, 'tsv']
+    proc = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    if proc.returncode != 0:
+        raise RuntimeError(f"Tesseract failed (rc={proc.returncode}): {proc.stderr.decode(errors='ignore')}")
+    return out_base + '.tsv'
+
+def parse_tsv_to_words(tsv_path):
+    pages = defaultdict(list)
+    with open(tsv_path, 'r', encoding='utf-8') as fh:
+        reader = csv.DictReader(fh, delimiter='\t')
+        for row in reader:
+            text = (row.get('text') or '').strip()
+            if not text:
+                continue
+            try:
+                page_num = int(row.get('page_num') or 0)
+                left = int(row.get('left') or 0)
+                top = int(row.get('top') or 0)
+                width = int(row.get('width') or 0)
+                height = int(row.get('height') or 0)
+                conf = float(row.get('conf') or -1)
+            except:
+                continue
+            pages[page_num].append({'text': text, 'left': left, 'top': top, 'w': width, 'h': height, 'conf': conf})
+    for p in pages:
+        pages[p].sort(key=lambda w: (w['top'], w['left']))
+    return pages
+
+def build_serial_index_from_words(words, page_width):
+    serial_candidates = []
+    if not words: return serial_candidates
+    page_height = max([w['top'] + w['h'] for w in words]) if words else None
+    for idx, w in enumerate(words):
+        s = extract_serial_token(w['text'])
+        if s is None:
+            continue
+        band_tol = max(7, int(w['h'] * 1.1))
+        band_words = [ww for ww in words if abs((ww['top'] + ww['h']/2.0) - (w['top'] + w['h']/2.0)) <= band_tol]
+        band_text = " ".join([bw['text'] for bw in band_words])
+        if any(k in band_text for k in HEADER_KEYWORDS):
+            continue
+        if w['left'] > page_width * 0.6:
+            continue
+        if page_height and w['top'] < page_height * 0.03:
+            continue
+        serial_candidates.append((s, w['top'] + w['h']/2.0, w['left'], idx))
+    bys = {}
+    for s, y, left, idx in serial_candidates:
+        if s not in bys or y < bys[s][0]:
+            bys[s] = (y, left, idx)
+    result = [(s, bys[s][0], bys[s][1], bys[s][2]) for s in sorted(bys.keys())]
+    result.sort(key=lambda x: x[1])
+    return result
+
+def relaxed_numeric_tokens(words, existing_serials, start_serial, end_serial):
+    found = []
+    if not words: return found
+    seen = set(existing_serials)
+    for idx,w in enumerate(words):
+        txt = normalize_deva_digits(w['text']).strip()
+        m = re.match(r'(\d{1,6})', txt)
+        if not m: continue
+        s = int(m.group(1))
+        if s < start_serial or s > end_serial: continue
+        if s in seen: continue
+        band_tol = max(7, int(w['h'] * 1.2))
+        band_words = [ww for ww in words if abs((ww['top'] + ww['h']/2.0) - (w['top'] + w['h']/2.0)) <= band_tol]
+        band_text = " ".join([bw['text'] for bw in band_words])
+        if any(k in band_text for k in HEADER_KEYWORDS):
+            continue
+        found.append((s, w['top'] + w['h']/2.0, w['left'], idx))
+        seen.add(s)
+    return found
+
+def group_words_between_serials(words, serial_index):
+    if not serial_index:
+        return []
+    word_centers = [w['top'] + w['h']/2.0 for w in words]
+    heights = [w['h'] for w in words] or [10]
+    median_h = sorted(heights)[len(heights)//2]
+    records = []
+    for i, (s, ymid, left, idx) in enumerate(serial_index):
+        next_ymid = serial_index[i+1][1] if i+1 < len(serial_index) else None
+        if next_ymid:
+            tol = max(int((next_ymid - ymid) * 0.45), int(median_h * 0.8), 6)
+        else:
+            tol = max(int(median_h * 1.0), 10)
+        group = [w for j,w in enumerate(words) if abs(word_centers[j] - ymid) <= tol]
+        if len(group) < MIN_WORDS_PER_ROW:
+            upper = [w for j,w in enumerate(words) if (word_centers[j] >= ymid - tol*2 and word_centers[j] <= ymid + tol*2)]
+            if len(upper) > len(group):
+                group = upper
+        if not group:
+            low = ymid - tol
+            high = next_ymid - tol if next_ymid else ymid + tol
+            group = [w for j,w in enumerate(words) if (word_centers[j] >= low and word_centers[j] < high)]
+        if not group:
+            start = max(0, idx-6); end = min(len(words), idx+8)
+            group = words[start:end]
+        group = sorted(group, key=lambda w: w['left'])
+        records.append((s, group))
+    return records
+
+def assign_columns_from_group(group_words, page_width, expected_columns=9):
+    ncol = expected_columns
+    if page_width and page_width > 0:
+        step = page_width / float(ncol)
+    else:
+        step = 120.0
+    boundaries = [(i*step, (i+1)*step) for i in range(ncol)]
+    cols = [''] * len(boundaries)
+    for w in group_words:
+        center = w['left'] + w['w']/2.0
+        idx = None
+        for i,(x0,x1) in enumerate(boundaries):
+            if center >= x0 and center <= x1:
+                idx = i; break
+        if idx is None:
+            dists = [abs((x0+x1)/2.0 - center) for (x0,x1) in boundaries]
+            idx = min(range(len(boundaries)), key=lambda i: dists[i])
+        cols[idx] = (cols[idx] + ' ' + w['text']).strip() if cols[idx] else w['text']
+    cols = [re.sub(r'\s{2,}', ' ', (c or '').strip()) for c in cols]
+    return cols
+
+def parse_group_record(serial, group_words, page_width, debug=False):
+    """
+    Improved parsing:
+      - HouseNumber extraction improved
+      - VoterName cleaned & merged across adjacent Devanagari columns
+      - RelationType normalized to marker, RelativeName chosen robustly
+      - Validation/fallback on fields
+    """
+    cols = assign_columns_from_group(group_words, page_width, expected_columns=9)
+    rec = {'SerialNumber': serial, 'HouseNumber': None, 'VoterName': None, 'RelationType': None,
+           'RelativeName': None, 'Gender': None, 'Age': None, 'VoterID_Number': None, 'PageNumber': None, 'RawCols': cols}
+
+    for c in reversed(cols):
+        v = extract_long_numeric(c)
+        if v:
+            rec['VoterID_Number'] = v; break
+
+    for c in cols:
+        a = extract_age_from_text(c)
+        if a:
+            rec['Age'] = a; break
+
+    for c in cols:
+        g = detect_gender_from_text(c)
+        if g:
+            rec['Gender'] = g; break
+
+    house = None
+    if len(cols) > 1 and cols[1] and is_mostly_digits(cols[1]):
+        val = re.sub(r'\D', '', cols[1])
+        if val and int(val) != serial:
+            house = val
+    if not house:
+        for i,c in enumerate(cols[:6]):
+            if c and is_mostly_digits(c):
+                val = re.sub(r'\D', '', c)
+                if val and int(val) != serial:
+                    house = val; break
+    voter_candidate_idx = None
+    for idx_try in (2,3,1,4,5,6):
+        if idx_try < len(cols) and cols[idx_try] and contains_devanagari(cols[idx_try]):
+            voter_candidate_idx = idx_try; break
+    if voter_candidate_idx is None:
+        best=None; bl=0; bi=None
+        for i,c in enumerate(cols):
+            if contains_devanagari(c):
+                if len(c) > bl:
+                    best = c; bl = len(c); bi = i
+        voter_candidate_idx = bi
+
+    votername = None
+    if voter_candidate_idx is not None:
+        vn = cols[voter_candidate_idx] or ""
+        num, remainder = clean_leading_number_from_text(vn)
+        if num and not house:
+            house = num
+        if remainder:
+            vn = remainder
+      
+        for j in range(voter_candidate_idx+1, min(len(cols), voter_candidate_idx+3)):
+            neigh = cols[j] or ""
+            if not neigh: break
+            if normalize_relation_marker(neigh):
+                break
+            if contains_devanagari(neigh) and not extract_long_numeric(neigh) and not extract_age_from_text(neigh):
+                vn = (vn + " " + neigh).strip()
+            else:
+                break
+        for j in range(voter_candidate_idx-1, max(-1, voter_candidate_idx-3), -1):
+            neigh = cols[j] or ""
+            if not neigh: continue
+            if normalize_relation_marker(neigh): break
+            if contains_devanagari(neigh) and not extract_long_numeric(neigh) and not extract_age_from_text(neigh):
+                vn = (neigh + " " + vn).strip()
+        votername = vn.strip() if vn.strip() else None
+
+    if not votername:
+        parts = []
+        for c in cols:
+            if contains_devanagari(c):
+                if normalize_relation_marker(c): continue
+                parts.append(c.strip())
+        if parts:
+            votername = " ".join(parts).strip()
+
+    rel_type = None
+    rel_name = None
+    marker_idx = None
+    for i,c in enumerate(cols):
+        if not c: continue
+        norm = normalize_relation_marker(c)
+        if norm:
+            marker_idx = i
+            rel_type = norm
+            break
+    if marker_idx is not None:
+        if marker_idx+1 < len(cols) and contains_devanagari(cols[marker_idx+1]):
+            rel_name = cols[marker_idx+1].strip()
+        else:
+            rest = re.sub(r'^[वव\.पप\.\s:,-]+', '', cols[marker_idx]).strip()
+            if contains_devanagari(rest):
+                rel_name = rest
+    else:
+        candidates = []
+        vname_text = votername or ""
+        for i,c in enumerate(cols):
+            if not c: continue
+            if contains_devanagari(c):
+                text = c.strip()
+                if vname_text and text in vname_text: continue
+                if extract_long_numeric(text) or extract_age_from_text(text): continue
+                candidates.append((len(text), i, text))
+        if candidates:
+            candidates.sort(reverse=True)
+            rel_name = candidates[0][2]
+
+    if rel_type:
+        rt = normalize_relation_marker(rel_type)
+        if rt:
+            rel_type = rt
+
+    rec['HouseNumber'] = house
+    rec['VoterName'] = votername
+    rec['RelationType'] = rel_type
+    rec['RelativeName'] = rel_name
+
+    if debug:
+        print(f"[PARSE] serial={serial} chosen_idx={voter_candidate_idx} votername={rec['VoterName']} house={rec['HouseNumber']} rel_type={rec['RelationType']} rel_name={rec['RelativeName']} age={rec['Age']} epic={rec['VoterID_Number']}")
+
+    return rec
+
+def score_record(rec):
+    score = 0.0
+    if rec.get('VoterName') and contains_devanagari(rec['VoterName'], min_count=1):
+        score += 0.6
+    if rec.get('VoterID_Number'):
+        score += 0.25
+    if rec.get('Age'):
+        score += 0.12
+    if rec.get('Gender'):
+        score += 0.05
+    return min(score, 1.0)
+
+def init_db_table(conn):
+    """
+    Drop and re-create the VoterInfo table.
+    Use NVARCHAR(MAX) to avoid truncation errors.
+    """
+    create_sql = f"""
+    IF OBJECT_ID(N'{TABLE_NAME}', 'U') IS NOT NULL
+        DROP TABLE {TABLE_NAME};
+    CREATE TABLE {TABLE_NAME} (
+        SerialNumber INT PRIMARY KEY,
+        HouseNumber NVARCHAR(MAX),
+        VoterName NVARCHAR(MAX),
+        RelationType NVARCHAR(MAX),
+        RelativeName NVARCHAR(MAX),
+        Gender NVARCHAR(MAX),
+        Age INT,
+        VoterID_Number NVARCHAR(MAX),
+        PageNumber INT,
+        RawCols NVARCHAR(MAX),
+        Score FLOAT
+    );
+    """
+    cur = conn.cursor()
+    cur.execute(create_sql)
+    conn.commit()
+    cur.close()
+
+def batch_insert_records(rows, debug=False):
+    """
+    Insert rows into the DB table. Use fast_executemany. If batch fails, fall back to row-by-row.
+    """
+    try:
+        import pyodbc
+    except Exception as e:
+        print("[DB] pyodbc is required for DB insert. Install: pip install pyodbc")
+        raise
+
+    conn = pyodbc.connect(CONN_STR, autocommit=False)
+    try:
+        print("[DB] Initializing DB table...")
+        init_db_table(conn)
+    except Exception as e:
+        print("[DB] Database operation failed during init:", e)
+        conn.close()
+        raise
+
+    insert_sql = f"""
+    INSERT INTO {TABLE_NAME}
+      (SerialNumber, HouseNumber, VoterName, RelationType, RelativeName, Gender, Age, VoterID_Number, PageNumber, RawCols, Score)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    """
+    params = []
+    for r in rows:
+        serial = r.get('SerialNumber')
+        hn = r.get('HouseNumber') or None
+        name = r.get('VoterName') or None
+        rel = r.get('RelationType') or None
+        rname = r.get('RelativeName') or None
+        gender = r.get('Gender') or None
+        age = r.get('Age') if isinstance(r.get('Age'), int) else (int(r.get('Age')) if r.get('Age') and str(r.get('Age')).isdigit() else None)
+        epic = r.get('VoterID_Number') or None
+        page = r.get('PageNumber') or None
+        rawcols = None
+        try:
+            rc = r.get('RawCols')
+            if isinstance(rc, (list,tuple)):
+                rawcols = " ||| ".join([str(x) for x in rc])
+            else:
+                rawcols = str(rc) if rc is not None else None
+        except:
+            rawcols = None
+        score = r.get('__score') if r.get('__score') is not None else None
+
+        if not name and rawcols:
+            tokens = []
+            for token in rawcols.split("|||"):
+                token = token.strip()
+                if contains_devanagari(token):
+                    tokens.append(token)
+            if tokens:
+                name = " ".join(tokens).strip()
+
+        if not hn and rawcols:
+            for t in rawcols.split("|||"):
+                t = t.strip()
+                if is_mostly_digits(t):
+                    val = re.sub(r'\D', '', t)
+                    if val and int(val) != serial:
+                        hn = val
+                        break
+
+        params.append((serial, hn, name, rel, rname, gender, age, epic, page, rawcols, score))
+
+    cur = conn.cursor()
+    try:
+        conn.autocommit = False
+        conn.fast_executemany = True
+        cur.executemany(insert_sql, params)
+        conn.commit()
+        inserted = cur.rowcount if cur.rowcount != -1 else len(params)
+        print(f"[DB] Inserted {inserted} rows into {TABLE_NAME}.")
+    except Exception as e:
+        print("[DB] Database operation failed during batch insert:", e)
+        print("[DB] Falling back to single-row inserts (will skip problem rows).")
+        conn.rollback()
+        inserted = 0
+        for p in params:
+            try:
+                cur.execute(insert_sql, p)
+                inserted += 1
+            except Exception as e2:
+                print("[DB] Failed to insert row SerialNumber=%s: %s" % (p[0], e2))
+                conn.rollback()
+            else:
+                conn.commit()
+        print(f"[DB] Single-row insert complete. Inserted {inserted} rows.")
+    finally:
+        cur.close()
+        conn.close()
+    return inserted
+
+def process_file(pdf_or_image_path, start_serial, end_serial, dpi, debug, tess_cmd, tess_lang, second_pass=True):
+    global TESS_CMD
+    TESS_CMD = tess_cmd
+    tmpdir = tempfile.mkdtemp(prefix="serial_tess_refined_")
+    page_to_words = {}
+    try:
+        image_files = []
+        ext = os.path.splitext(pdf_or_image_path)[1].lower()
+        if ext in ('.png', '.jpg', '.jpeg', '.tif', '.tiff'):
+            image_files = [pdf_or_image_path]
+        else:
+            try:
+                import pdfplumber
+            except Exception as e:
+                raise RuntimeError("pdfplumber required for PDF input. pip install pdfplumber pillow") from e
+            pdf = pdfplumber.open(pdf_or_image_path)
+            for i, page in enumerate(pdf.pages):
+                page_num = i+1
+                pil = page.to_image(resolution=dpi).original
+                p = os.path.join(tmpdir, f"page_{page_num:03d}.png")
+                pil.save(p)
+                image_files.append(p)
+            pdf.close()
+        # run tesseract TSV per page
+        for page_index, img_path in enumerate(image_files):
+            page_num = page_index + 1
+            out_base = os.path.join(tmpdir, f"page_{page_num:03d}_ocr")
+            if debug: print(f"[DEBUG] Running tesseract for page {page_num} -> {out_base}.tsv")
+            tsv_path = run_tesseract_tsv(img_path, out_base, lang=tess_lang)
+            words_by_page = parse_tsv_to_words(tsv_path)
+            words = words_by_page.get(1, []) if len(words_by_page)==1 else words_by_page.get(page_num, [])
+            if not words and words_by_page:
+                words = []
+                for k in sorted(words_by_page.keys()):
+                    words.extend(words_by_page[k])
+            page_to_words[page_num] = {'words': words, 'image': img_path, 'tsv': tsv_path}
+        # extract serial-first groups
+        serial_map = {}
+        partials = {}
+        for page_num, data in page_to_words.items():
+            words = data['words']
+            if not words:
+                if debug: print(f"[DEBUG] no words on page {page_num}")
+                continue
+            page_width = max([w['left'] + w['w'] for w in words]) if words else 1000
+            serial_index = build_serial_index_from_words(words, page_width)
+            if debug: print(f"[DEBUG] page {page_num}: primary serials {len(serial_index)}")
+            if second_pass:
+                existing = [s for s,_,_,_ in serial_index]
+                relax = relaxed_numeric_tokens(words, existing, start_serial, end_serial)
+                if relax:
+                    for tup in relax:
+                        serial_index.append(tup)
+                    bys={}
+                    for s,y,left,idx in serial_index:
+                        if s not in bys or y < bys[s][0]:
+                            bys[s] = (y,left,idx)
+                    serial_index = [(s,bys[s][0],bys[s][1],bys[s][2]) for s in sorted(bys.keys())]
+                    serial_index.sort(key=lambda x: x[1])
+                    if debug: print(f"[DEBUG] page {page_num}: after relax serials {len(serial_index)}")
+            groups = group_words_between_serials(words, serial_index)
+            if debug: print(f"[DEBUG] page {page_num}: grouped into {len(groups)} serial groups")
+            for (s, group_words) in groups:
+                if s < start_serial or s > end_serial: continue
+                rec = parse_group_record(s, group_words, page_width, debug=debug)
+                rec['PageNumber'] = page_num
+                rec['RawWordsCount'] = len(group_words)
+                sc = score_record(rec)
+                rec['__score'] = sc
+                valid_name = bool(rec.get('VoterName') and contains_devanagari(rec.get('VoterName'), min_count=1))
+                has_epic = bool(rec.get('VoterID_Number'))
+                has_age = bool(rec.get('Age'))
+                if valid_name and (has_epic or has_age):
+                    if s not in serial_map or (rec['__score'] > serial_map[s].get('__score',0)):
+                        serial_map[s] = rec
+                else:
+                    if s not in partials or rec['__score'] > partials[s].get('__score',0):
+                        partials[s] = rec
+        for s in range(start_serial, end_serial+1):
+            if s not in serial_map and s in partials:
+                serial_map[s] = partials[s]
+        ordered = [serial_map[s] for s in range(start_serial, end_serial+1) if s in serial_map]
+        missing = [s for s in range(start_serial, end_serial+1) if s not in serial_map]
+        return ordered, missing, tmpdir
+    finally:
+        if not debug:
+            try:
+                shutil.rmtree(tmpdir, ignore_errors=True)
+            except:
+                pass
+
+def main():
+    if len(sys.argv) < 4:
+        print("Usage: python extract_with_db.py /path/to/file.pdf START END [--no-db] [--dpi=N] [--debug] [--tess=PATH] [--lang=mar+eng] [--no-second-pass]")
+        return 1
+    path = sys.argv[1]
+    start = int(sys.argv[2])
+    end = int(sys.argv[3])
+    use_db = True
+    dpi = DEFAULT_DPI
+    debug = False
+    tess_cmd = TESS_CMD_DEFAULT
+    tess_lang = TESS_LANG_DEFAULT
+    second_pass = True
+    for a in sys.argv[4:]:
+        if a == '--no-db': use_db = False
+        elif a.startswith('--dpi='):
+            try: dpi = int(a.split('=',1)[1])
+            except: pass
+        elif a == '--debug':
+            debug = True
+        elif a.startswith('--tess='):
+            tess_cmd = a.split('=',1)[1].strip('"').strip("'")
+        elif a.startswith('--lang='):
+            tess_lang = a.split('=',1)[1]
+        elif a == '--no-second-pass':
+            second_pass = False
+    print("Starting serial-first refined extraction:", path, "range", start, "-", end, "dpi", dpi, "debug", debug, "second_pass", second_pass)
+    t0 = time.time()
+    try:
+        rows, missing, tmpdir = process_file(path, start, end, dpi, debug, tess_cmd, tess_lang, second_pass=second_pass)
+    except Exception as e:
+        print("Processing failed:", e)
+        traceback.print_exc()
+        return 2
+    t1 = time.time()
+    print("Done. time:", round(t1-t0,2), "s. Parsed rows:", len(rows), "Missing:", len(missing))
+    if missing:
+        print("Missing sample (first 542):", missing[:542])
+
+    for r in rows[:200]:
+        serial = r.get('SerialNumber')
+        name = r.get('VoterName')
+        age = r.get('Age')
+        epic = r.get('VoterID_Number')
+        page = r.get('PageNumber')
+        print(f"Serial: {serial} Page: {page} Name: {name} Age: {age} EPIC: {epic}")
+        if debug:
+            print("  RawCols:", r.get('RawCols'))
+            print("  RawWordsCount:", r.get('RawWordsCount'), "Score:", r.get('__score'))
+
+    # DB insert (unless disabled)
+    if use_db:
+        try:
+            inserted = batch_insert_records(rows, debug=debug)
+            print(f"[DB] Completed: inserted {inserted} rows.")
+        except Exception as e:
+            print("[DB] Insert failed:", e)
+            traceback.print_exc()
+    else:
+        print("[DB] Skipped (use --no-db to skip)")
+
+    if debug:
+        print("Temp files kept at:", tmpdir)
+    else:
+        try: shutil.rmtree(tmpdir, ignore_errors=True)
+        except: pass
+    return 0
+
+if __name__ == '__main__':
+    sys.exit(main())

@@ -28,7 +28,14 @@ export const getTalukas = (stateCode, divisionCode, districtCode) =>
   safeRequest(api.get(`/talukas`, {
     params: { state_code: stateCode, division_code: divisionCode, district_code: districtCode },
   }));
+  export const getDesignations=()=> safeRequest(api.get("/designations"));
 
+
+
+  export const getOrganization=()=> safeRequest(api.get("/organization"));
+  export const getDepartment=(organization_id)=> safeRequest(api.get(`/department/${organization_id}`));
+  export const getServices=(organization_id,department_id)=>safeRequest(api.get(`/services/${organization_id}/${department_id}`));
+  
   // ==================================================
 
 export const submitSignup = (payload) =>
@@ -36,3 +43,12 @@ export const submitSignup = (payload) =>
 
 export const login = (payload) =>
   safeRequest(api.post("/login", payload));
+
+export const submitAppointment=(payload)=> 
+  safeRequest(api.post("/appointments",payload));
+
+export const registerOfficer = (payload) =>
+  safeRequest(api.post("/officers_signup",payload));
+
+export const Officerlogin = (payload) =>
+  safeRequest(api.post("/officers_login", payload));

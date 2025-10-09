@@ -40,7 +40,7 @@ import AppointmentAction from "./pages/AppointmentAction";
 import History from "./pages/History";
 import { ToastContainer, toast } from 'react-toastify';
 import { useLocation, Navigate } from 'react-router-dom';
-
+import OfficerForm from "./Components/OfficerForm";
 
 // 
 
@@ -80,6 +80,11 @@ const loggedIn = !!localStorage.getItem("token");
 
          <Route path="/signup" element={<SignUp />} />
         <Route path="/login/visitorlogin" element={<Login />} /> 
+
+{/* Officers Signup */}
+         <Route path="/officers_signup" element={<OfficerForm />} />
+
+
 
         {/* Visitor Routes with Navbar */}
         <Route

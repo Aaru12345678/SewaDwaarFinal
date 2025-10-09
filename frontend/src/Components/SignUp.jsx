@@ -133,8 +133,6 @@ const navigate = useNavigate();
     fetchDivisions(value);   // ✅ trigger divisions API
   }
 }
-
-
       if (name === "division") {
         updated.district = updated.taluka = "";
         setDistricts([]);
@@ -165,91 +163,7 @@ const navigate = useNavigate();
     return !!full_name && !!email && !!password && !!confirmPassword && passwordMatch && passwordStrength && !submitting;
   }, [formData, passwordMatch, passwordStrength, submitting]);
 
-  // const handleSubmit = async (e) => {
-  //   e.preventDefault();
-  //   if (!isFormValid) return toast.error("Please fill all required fields correctly.");
-
-  //   // if (onboardMode === "department" && !formData.department.trim()) {
-  //   //   return toast.error("Please enter Department name.");
-  //   // }
-  //   if (onboardMode === "location" && stateOption === "division" && (!formData.division || !formData.district || !formData.taluka)) {
-  //     return toast.error("Please select Division, District, and Taluka.");
-  //   }
-
-  //   setSubmitting(true);
-  //   try {
-  //     const { confirmPassword, ...rest } = formData;
-  //     const payload = { ...rest, password: SHA256(formData.password).toString() };
-  //     const { data, error } = await submitSignup(payload);
-  //     if (error) toast.error(error.response?.data?.error || "Signup failed.");
-  //     else toast.success("Signup request submitted! Awaiting admin approval.");
-  //   } catch {
-  //     toast.error("Signup failed. Try again.");
-  //   } finally {
-  //     setSubmitting(false);
-  //   }
-  // };
-
-
-// const handleSubmit = async (e) => {
-//   e.preventDefault();
-
-//   if (!formData.full_name || !formData.email_id || !formData.password) {
-//     return toast.error("Please fill all required fields.");
-//   }
-
-//   setSubmitting(true);
-
-//   try {
-//     const { confirmPassword, ...rest } = formData;
-//     const payload = new FormData();
-
-//     // Append all fields
-//     Object.keys(rest).forEach((key) => {
-//       if (rest[key] !== null && rest[key] !== undefined) {
-//         payload.append(key, rest[key]);
-//       }
-//     });
-
-//     // For file upload
-//     if (rest.photo) {
-//       payload.append("photo", rest.photo);
-//     }
-
-//     const response = await submitSignup(payload, {
-//       headers: { "Content-Type": "multipart/form-data" },
-//     });
-
-//     if (response.error) {
-//       toast.error(response.error.response?.data?.error || "Signup failed.");
-//     } else {
-//       toast.success("Signup successful! Redirecting to login...", { autoClose: 2000 });
-//       setTimeout(() => navigate("/"), 2000);
-//       setFormData({
-//         full_name: "",
-//         email_id: "",
-//         mobile_no: "",
-//         gender: "",
-//         dob: "",
-//         address: "",
-//         pincode: "",
-//         password: "",
-//         confirmPassword: "",
-//         photo: "",
-//         state: "",
-//         division: "",
-//         district: "",
-//         taluka: "",
-//       });
-//     }
-//   } catch (err) {
-//     console.error("Signup error:", err);
-//     toast.error("Signup failed. Please try again.");
-//   } finally {
-//     setSubmitting(false);
-//   }
-// };
-
+ 
 const handleSubmit = async (e) => {
   e.preventDefault();
 
@@ -288,7 +202,7 @@ if (formData.photo) {
     } else {
       toast.success("Signup successful! Redirecting to login...", { autoClose: 2000 });
 
-      setTimeout(() => navigate("/visitorlogin"), 2000);
+      setTimeout(() => navigate("/login/visitorlogin"), 2000);
 
       // Reset form
       setFormData({

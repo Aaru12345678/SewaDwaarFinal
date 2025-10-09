@@ -24,16 +24,15 @@ export default function Login() {
   const [superUserMode, setSuperUserMode] = useState(false);
   const [missingFields, setMissingFields] = useState({});
   const [userCode, setUserCode] = useState(null);
+  const [username, setUsername] = useState("");
+
 
   const isDisabled = useMemo(
-    () =>
-      !user_id.trim() ||
-      !password.trim() ||
-      loading ||
-      (superUserMode &&
-        Object.values(missingFields).some((v) => !v || !v.trim())),
-    [user_id, password, loading, superUserMode, missingFields]
-  );
+  () =>
+    !username.trim() || !password.trim() || loading,
+  [username, password, loading]
+);
+
 
   // const handleSubmit = useCallback(
   //   async (e) => {
@@ -132,8 +131,8 @@ export default function Login() {
 const handleSubmit = async (e) => {
   e.preventDefault();
 
-  if (!user_id || !password) {
-    toast.error("Please enter user ID and password");
+  if (!username || !password) {
+    toast.error("Please enter username and password");
     return;
   }
 
@@ -141,13 +140,9 @@ const handleSubmit = async (e) => {
   setProgress(true);
 
   try {
-    // Payload matches backend expectation
-    const payload = {
-      user_id,  // This is the login identifier
-      password,
-    };
+    const payload = { username, password }; // send username
 
-    const { data } = await login(payload); // your API call function
+    const { data } = await login(payload);
 
     if (!data.success) {
       toast.error(data.message || "Invalid credentials");
@@ -160,7 +155,9 @@ const handleSubmit = async (e) => {
     }
 
     // Save user info
+    localStorage.setItem("visitor_id", data.visitor_id);
     localStorage.setItem("user_id", data.user_id);
+    localStorage.setItem("username", data.username);
     localStorage.setItem("role_code", data.role || "");
 
     toast.success("Login successful 🎉");
@@ -211,15 +208,16 @@ const handleSubmit = async (e) => {
           {!superUserMode && (
             <>
               <label>
-                UserId<span className="required">*</span>
-              </label>
-              <input
-                type="text"
-                placeholder="Enter User Id"
-                value={user_id}
-                onChange={(e) => setUser_id(e.target.value)}
-                required
-              />
+  Username<span className="required">*</span>
+</label>
+<input
+  type="text"
+  placeholder="Enter Username"
+  value={username}
+  onChange={(e) => setUsername(e.target.value)}
+  required
+/>
+
 
               <label>
                 Password<span className="required">*</span>

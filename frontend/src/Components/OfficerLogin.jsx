@@ -1,8 +1,7 @@
-import React, { useState, useCallback, useRef } from "react";
+import React, { useState, useRef, useMemo } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { toast } from "react-toastify";
-import { loginUser } from "../services/api1"; // only login needed
-import CryptoJS from "crypto-js";
+import { Officerlogin } from "../services/api.jsx"; // ✅ Officer API
 import { AiOutlineEye, AiOutlineEyeInvisible } from "react-icons/ai";
 import "../css/OfficersLogin.css";
 import logo from "../assets/emblem2.png";
@@ -16,46 +15,64 @@ export default function OfficerLogin() {
   const [showPass, setShowPass] = useState(false);
   const [loading, setLoading] = useState(false);
   const [progress, setProgress] = useState(false);
+  const [username, setUsername] = useState("");
 
-  const isDisabled = !officerId.trim() || !password.trim() || loading;
+  const isDisabled = useMemo(
+    () =>
+      !username.trim() || !password.trim() || loading,
+    [username, password, loading]
+  );
 
-  const handleSubmit = useCallback(
-    async (e) => {
-      e.preventDefault();
-      setLoading(true);
-      setProgress(true);
+  const handleOfficerLogin = async (e) => {
+  e.preventDefault();
 
-      try {
-        const hashedPassword = CryptoJS.SHA256(password).toString();
-        const credentials = { user_name: officerId, password: hashedPassword };
+  if (!username || !password) {
+    toast.error("Please enter officer ID and password");
+    return;
+  }
 
-        const { data, error } = await loginUser(credentials);
+  setLoading(true);
+  setProgress(true);
 
-        if (error) {
-          toast.error(error.message || "Invalid credentials");
+  try {
+    const payload = {
+  username, // ← backend expects username
+  password,            // ← backend expects password
+};
+
+
+    const { data } = await Officerlogin(payload);
+
+    // const row = data[0]; // first row of returned table
+
+    if (!data.success) {
+          toast.error(data.message || "Invalid credentials");
+    
           if (boxRef.current) {
             boxRef.current.classList.add("shake");
             setTimeout(() => boxRef.current.classList.remove("shake"), 300);
           }
           return;
         }
+    
+    // Save officer info
+   // storing response
+localStorage.setItem("user_id", data.user_id);
+localStorage.setItem("officer_id", data.officer_id);
+localStorage.setItem("role_code", data.role || "");
+localStorage.setItem("username", data.username);
 
-        // Save token & session details
-        localStorage.setItem("token", data.token);
-        localStorage.setItem("officer_id", officerId);
-
-        toast.success("Login successful 🎉");
-        setTimeout(() => navigate("/officer/dashboard"), 800);
-      } catch (err) {
-        console.error(err);
-        toast.error("Something went wrong, try again.");
-      } finally {
-        setLoading(false);
-        setTimeout(() => setProgress(false), 400);
-      }
-    },
-    [officerId, password, navigate]
-  );
+    toast.success("Login successful 🎉");
+    navigate("/dashboard");
+  } catch (err) {
+    console.error("Officer login error:", err);
+    toast.error("Something went wrong, try again.");
+  } finally {
+    setLoading(false);
+    setTimeout(() => setProgress(false), 400);
+  }
+};
+  console.log(username,password);
 
   return (
     <div className="container">
@@ -76,15 +93,15 @@ export default function OfficerLogin() {
       <div ref={boxRef} className="login-box">
         <h2 className="login-title">Officer's Login</h2>
 
-        <form className="form" onSubmit={handleSubmit}>
+        <form className="form" onSubmit={handleOfficerLogin}>
           <label>
             Officer ID<span className="required">*</span>
           </label>
           <input
             type="text"
             placeholder="Enter Officer ID"
-            value={officerId}
-            onChange={(e) => setOfficerId(e.target.value)}
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
             required
           />
 
@@ -122,19 +139,13 @@ export default function OfficerLogin() {
             Forgot your password?
           </Link>
 
-          <button
-            type="submit"
-            className="submit-btn"
-            disabled={isDisabled}
-          >
+          <button type="submit" className="submit-btn" disabled={isDisabled}>
             {loading ? "Processing..." : "Login"}
           </button>
         </form>
       </div>
 
-      <div className="footer">
-        {/* <img src="/ashok-chakra.png" alt="Ashok Chakra" className="chakra" /> */}
-      </div>
+      <div className="footer"></div>
     </div>
   );
 }
