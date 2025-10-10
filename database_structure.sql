@@ -399,3 +399,130 @@ CREATE TABLE feedback (
     FOREIGN KEY (walkin_id) REFERENCES walkins(walkin_id)
 );
 
+Select * from get_visitor_dashboard_by_username('VIS001')
+
+-- Insert dummy appointments
+INSERT INTO appointments (
+    visitor_id, organization_id, department_id, officer_id, service_id,
+    purpose, appointment_date, slot_time, status, reschedule_reason, qr_code_path, insert_by, insert_ip
+)
+VALUES
+('VIS001', 'ORG001', 'DEP001', 'OFF001', 'SRV001',
+ 'Discuss new digital service implementation', '2025-10-12', '10:30', 'approved', NULL, '/qrcodes/apt001.png', 'system', '127.0.0.1'),
+
+('VIS002', 'ORG001', 'DEP001', 'OFF002', 'SRV001',
+ 'Submit official documents for verification', '2025-10-13', '11:15', 'pending', NULL, '/qrcodes/apt002.png', 'system', '127.0.0.1'),
+
+('VIS001', 'ORG001', 'DEP001', 'OFF001', 'SRV001',
+ 'Follow-up on service request', '2025-10-09', '15:00', 'completed', NULL, '/qrcodes/apt003.png', 'system', '127.0.0.1'),
+
+('VIS002', 'ORG001', 'DEP001', 'OFF002', 'SRV001',
+ 'Request clarification on rejected application', '2025-10-08', '09:45', 'rejected', 'Officer unavailable', '/qrcodes/apt004.png', 'system', '127.0.0.1');
+
+CREATE SEQUENCE notifications_id_seq START 1 INCREMENT 1;
+
+CREATE TABLE notifications (
+    notification_id VARCHAR(20) PRIMARY KEY DEFAULT ('NOT' || LPAD(nextval('notifications_id_seq')::TEXT, 5, '0')),
+    username VARCHAR(20) NOT NULL,              -- VIS001 / OFF001 / HLP001 etc.
+    title VARCHAR(255) NOT NULL,
+    message TEXT NOT NULL,
+    type VARCHAR(50) DEFAULT 'info',            -- e.g. success, warning, info, error
+    is_read BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (username) REFERENCES m_users(username)
+);
+
+
+INSERT INTO notifications (username, title, message, type, is_read)
+VALUES
+('VIS003', 'Appointment Approved', 'Your appointment APT001 has been approved by Officer OFF001 for 2025-10-12 at 10:30 AM.', 'success', FALSE),
+('VIS003', 'Appointment Pending', 'Your appointment APT002 is pending approval by Officer OFF002.', 'info', FALSE),
+('VIS001', 'Appointment Completed', 'Your appointment APT003 was completed successfully. Please provide feedback.', 'success', TRUE),
+('VIS002', 'Appointment Rejected', 'Your appointment APT004 was rejected due to officer unavailability.', 'warning', TRUE),
+('OFF001', 'New Appointment Assigned', 'A new appointment (APT001) has been scheduled with visitor VIS001.', 'info', FALSE),
+('OFF002', 'Pending Appointment', 'Visitor VIS002 has requested a new appointment (APT002).', 'info', FALSE);
+
+CREATE OR REPLACE FUNCTION get_visitor_dashboard_by_username(p_username VARCHAR)
+RETURNS JSON AS $$
+DECLARE
+    appointment_data JSON;
+    notification_data JSON;
+    visitor_name VARCHAR;
+BEGIN
+    -- Get the full name of the visitor
+    SELECT vs.full_name
+    INTO visitor_name
+    FROM m_visitors_signup vs
+    JOIN m_users u ON u.user_id = vs.user_id
+    WHERE u.username = p_username
+    LIMIT 1;
+
+    -- Fetch all appointments for this visitor
+    SELECT json_agg(
+        json_build_object(
+            'appointment_id', a.appointment_id,
+            'organization_name', o.organization_name,
+            'department_name', d.department_name,
+            'officer_name', off.full_name,
+            'service_name', s.service_name,
+            'appointment_date', a.appointment_date,
+            'slot_time', a.slot_time,
+            'status', a.status,
+            'purpose', a.purpose
+        )
+        ORDER BY a.insert_date DESC
+    )
+    INTO appointment_data
+    FROM appointments a
+    JOIN m_organization o ON o.organization_id = a.organization_id
+    JOIN m_department d ON d.department_id = a.department_id
+    JOIN m_officers off ON off.officer_id = a.officer_id
+    JOIN m_services s ON s.service_id = a.service_id
+    JOIN m_visitors_signup vs ON vs.visitor_id = a.visitor_id
+    JOIN m_users u ON u.user_id = vs.user_id
+    WHERE u.username = p_username;
+
+    -- Notifications based on appointments
+    SELECT json_agg(
+        json_build_object(
+            'message', 
+            CASE 
+                WHEN a.status = 'approved' THEN 'Your appointment ' || a.appointment_id || ' has been approved.'
+                WHEN a.status = 'rejected' THEN 'Your appointment ' || a.appointment_id || ' was rejected.'
+                WHEN a.status = 'completed' THEN 'Your appointment ' || a.appointment_id || ' is completed.'
+                ELSE 'Your appointment ' || a.appointment_id || ' is pending.'
+            END,
+            'status', a.status,
+            'appointment_id', a.appointment_id
+        )
+        ORDER BY a.insert_date DESC
+    )
+    INTO notification_data
+    FROM appointments a
+    JOIN m_visitors_signup vs ON vs.visitor_id = a.visitor_id
+    JOIN m_users u ON u.user_id = vs.user_id
+    WHERE u.username = p_username;
+
+    RETURN json_build_object(
+        'full_name', visitor_name,
+        'appointments', COALESCE(appointment_data, '[]'::json),
+        'notifications', COALESCE(notification_data, '[]'::json)
+    );
+END;
+$$ LANGUAGE plpgsql;
+
+
+
+-- Insert dummy appointments
+INSERT INTO appointments (
+    visitor_id, organization_id, department_id, officer_id, service_id,
+    purpose, appointment_date, slot_time, status, reschedule_reason, qr_code_path, insert_by, insert_ip
+)
+VALUES
+('VIS003', 'ORG001', 'DEP001', 'OFF001', 'SER001',
+ 'Discuss new digital service implementation', '2025-10-12', '10:30', 'approved', NULL, '/qrcodes/apt001.png', 'system', '127.0.0.1'),
+
+('VIS003', 'ORG001', 'DEP001', 'OFF002', 'SER001',
+ 'Submit official documents for verification', '2025-10-13', '11:15', 'pending', NULL, '/qrcodes/apt002.png', 'system', '127.0.0.1');
+
+ Select * from m_officers

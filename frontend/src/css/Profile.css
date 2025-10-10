@@ -1,0 +1,141 @@
+.profile-page {
+  background-color: #f4f6fa;
+  min-height: 100vh;
+  font-family: "Segoe UI", sans-serif;
+  color: #1f3a60;
+  padding: 30px 20px;
+}
+
+.profile-header-banner {
+  text-align: center;
+  background: #4875b5;
+  color: #fff;
+  padding: 2px;
+  border-radius: 8px;
+  margin-bottom: 30px;
+}
+
+.profile-card {
+  display: flex;
+  flex-wrap: wrap;
+  background: #fff;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.profile-left {
+  flex: 1;
+  min-width: 280px;
+  background: #e8eef6;
+  padding: 10px;
+  text-align: center;
+  border-right: 1px solid #d0d7e2;
+}
+
+.profile-pic {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 3px solid #1f3a60;
+}
+
+.profile-name {
+  margin-top: 10px;
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.profile-role {
+  font-size: 14px;
+  color: #334e77;
+}
+
+.status-tag {
+  display: inline-block;
+  margin-top: 10px;
+  padding: 5px 12px;
+  border-radius: 16px;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.status-tag.verified {
+  background: #d9f5e6;
+  color: #168c4c;
+}
+
+.status-tag.pending {
+  background: #fff3cd;
+  color: #856404;
+}
+
+.status-tag.rejected {
+  background: #f8d7da;
+  color: #721c24;
+}
+
+.profile-actions {
+  margin-top: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.btn {
+  padding: 10px 14px;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.btn.primary {
+  background: #1f3a60;
+  color: white;
+}
+
+.btn.secondary {
+  background: #dee3eb;
+  color: #1f3a60;
+}
+
+.profile-right {
+  flex: 2;
+  padding: 30px;
+}
+
+.section-title {
+  font-size: 18px;
+  color: #1f3a60;
+  margin-bottom: 10px;
+  border-bottom: 2px solid #d9e1ed;
+  padding-bottom: 4px;
+}
+
+.info-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.info-box {
+  background: #f7f9fc;
+  padding: 12px 14px;
+  border-radius: 8px;
+  border: 1px solid #e1e6ef;
+}
+
+.info-box strong {
+  display: block;
+  font-size: 13px;
+  color: #334e77;
+}
+
+.info-box p {
+  margin: 4px 0 0;
+  color: #000;
+  font-size: 14px;
+}

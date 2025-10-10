@@ -3,30 +3,22 @@ import { Link } from "react-router-dom";
 import { FaHome, FaCalendarAlt, FaHistory, FaBell, FaUserCircle } from "react-icons/fa";
 import "../css/VisitorNavbar.css";
 
-function VisitorNavbar() {
+function VisitorNavbar({ fullName }) {
   const [dropdownOpen, setDropdownOpen] = useState(false);
-const userName = "Ravi Tambe";
+
   return (
     <nav className="navbar">
       <ul className="nav-links">
-        <li>
-          <Link to="/dashboard"><FaHome /> Home</Link>
-        </li>
-        <li>
-          <Link to="/appointment-wizard"><FaCalendarAlt /> Appointments Booking</Link>
-        </li>
-        <li>
-          <Link to="/appointments"><FaHistory /> Appointment History</Link>
-        </li>
-        <li>
-          <Link to="/notifications"><FaBell /> Notifications</Link>
-        </li>
+        <li><Link to="/dashboard1"><FaHome /> Home</Link></li>
+        <li><Link to="/appointment-wizard"><FaCalendarAlt /> Appointments Booking</Link></li>
+        <li><Link to="/appointments"><FaHistory /> Appointment History</Link></li>
+        <li><Link to="/notifications"><FaBell /> Notifications</Link></li>
       </ul>
 
       <div className="navbar-right">
         <div className="profile" onClick={() => setDropdownOpen(!dropdownOpen)}>
           <FaUserCircle className="profile-icon" />
-          <span className="profile-name">{userName}</span>
+          <span className="profile-name">{fullName || "Guest"}</span>
         </div>
         {dropdownOpen && (
           <div className="dropdown">
