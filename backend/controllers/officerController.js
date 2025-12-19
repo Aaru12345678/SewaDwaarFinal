@@ -1,8 +1,26 @@
 const pool = require("../db"); // PostgreSQL pool
 const bcrypt = require("bcrypt");
+const { sendMail } = require('../helpers/sendMail');
+const jwt = require("jsonwebtoken");
+
+const generateToken = (user) => {
+  return jwt.sign(
+    {
+      user_id: user.out_user_id,
+      username: user.out_username,
+      role: user.out_role_code,
+    },
+    process.env.JWT_SECRET,
+    { expiresIn: process.env.JWT_EXPIRES_IN || "1d" }
+  );
+};
 
 exports.insertOfficerSignup = async (req, res) => {
   try {
+    // ✅ 1️⃣ First log — check raw incoming data from frontend
+    console.log("📩 Incoming signup request body:", req.body);
+    console.log("📸 Uploaded file info:", req.file);
+
     const {
       full_name,
       mobile_no,
@@ -15,9 +33,10 @@ exports.insertOfficerSignup = async (req, res) => {
       division_code,
       district_code,
       taluka_code,
+      role_code, // Admin / Officer / Helpdesk
     } = req.body;
 
-    // Basic validation
+    // ✅ Basic validation
     if (!full_name || !password) {
       return res.status(400).json({
         success: false,
@@ -25,16 +44,52 @@ exports.insertOfficerSignup = async (req, res) => {
       });
     }
 
-    // Handle uploaded photo (via multer)
+    // ✅ 2️⃣ Log what role is being used for registration
+    console.log("🧩 Role being used:", role_code);
+
+    // ✅ Validate role_code
+    const roleCheck = await pool.query(
+      "SELECT 1 FROM m_role WHERE role_code = $1 AND is_active = TRUE",
+      [role_code || "OF"]
+    );
+    if (roleCheck.rowCount === 0) {
+      console.warn("⚠️ Invalid or inactive role:", role_code);
+      return res.status(400).json({
+        success: false,
+        message: "Invalid or inactive role code",
+      });
+    }
+
+    // ✅ Handle uploaded photo
     const photo = req.file ? req.file.filename : null;
 
-    // Hash password
+    // ✅ 3️⃣ Log before password hashing
+    console.log("🔐 Preparing to hash password for user:", email_id || mobile_no);
+
+    // ✅ Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Call PostgreSQL function (12 params)
+    // ✅ 4️⃣ Log the final payload to be passed into your DB function
+    console.log("📦 Final parameters for DB function:", {
+      hashedPassword,
+      full_name,
+      mobile_no,
+      email_id,
+      designation_code,
+      department_id,
+      organization_id,
+      state_code,
+      division_code,
+      district_code,
+      taluka_code,
+      photo,
+      role_code,
+    });
+
+    // ✅ Call generic user registration function
     const result = await pool.query(
-      `SELECT * FROM public.register_officer(
-        $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12
+      `SELECT * FROM public.register_user_by_role(
+        $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13
       );`,
       [
         hashedPassword,                    // p_password_hash
@@ -48,87 +103,203 @@ exports.insertOfficerSignup = async (req, res) => {
         division_code?.trim() || null,     // p_division_code
         district_code?.trim() || null,     // p_district_code
         taluka_code?.trim() || null,       // p_taluka_code
-        photo?.trim() || null              // p_photo
+        photo?.trim() || null,             // p_photo
+        role_code?.trim() || "OF",         // p_role_code
       ]
     );
 
-     const row = result.rows[0];
+    // ✅ 5️⃣ Log result coming back from PostgreSQL
+    console.log("🧾 DB function result:", result.rows);
 
-    // ✅ Accept success message from DB properly
+    const row = result.rows[0];
+    console.log(row,"row results")
+    const email=row.out_email_id
+    const officer_id=row.out_entity_id
+    const name=row.full_name
+    let entityId;
+    if (role_code === "OF") entityId = row.out_entity_id;
+    else if (role_code === "HD") entityId = row.out_entity_id;
+    else if (role_code === "AD") entityId = row.out_entity_id;
+
+try {
+      sendMail(email,"Welcome to SevaDwaar",`Hi, ${name} Thank you registering your officer id is ${officer_id}`)
+      
+    } catch (emailError) {
+      console.error("Email sending failed:", emailError);
+    }
+
+    // ✅ Success response
     if (row?.message?.toLowerCase().includes("success")) {
+      console.log("✅ Registration successful:", row);
       return res.status(201).json({
         success: true,
         message: row.message,
-        user_id: row.user_id,
-        officer_id: row.officer_id,
+        user_id: row.out_user_id,
+        entity_id: entityId,
+        role: role_code?.trim() || "OF",
       });
     }
 
-    // ❌ Handle DB rejection (duplicate, etc.)
+    // ❌ Failure response from DB
+    console.warn("❌ Registration failed from DB:", row?.message);
     return res.status(400).json({
       success: false,
-      message: row?.message || "Failed to register officer",
+      message: row?.message || "Failed to register user",
     });
 
   } catch (error) {
-    console.error("❌ Error in insertOfficerSignup:", error);
-    res.status(500).json({
+    console.error("💥 Error in insertOfficerSignup:", error);
+    return res.status(500).json({
       success: false,
-      message: "Failed to register officer",
+      message: "Failed to register user",
       error: error.message,
     });
   }
 };
+
+
+
 
 
 exports.loginOfficer = async (req, res) => {
   const { username, password } = req.body;
+  console.log("🟢 Received username:", username);
 
   try {
-    const result = await pool.query("SELECT * FROM get_user_by_username($1);", [username]);
-    const officer = result.rows[0]; // use officer
- console.log(officer,"OFF003")
-    // 1️⃣ Check if officer exists
+    // ✅ Explicit schema + correct function name
+    const result = await pool.query("SELECT * FROM public.get_user_by_username2($1);", [username]);
+    console.log("🟢 Query result:", result.rows);
+
+    const officer = result.rows[0];
     if (!officer) {
-      return res.status(404).json({
-        success: false,
-        message: "Officer username not found",
-      });
+      return res.status(404).json({ success: false, message: "Officer username not found" });
     }
 
-    // 2️⃣ Check if account is active
     if (!officer.out_is_active) {
-      return res.status(403).json({
-        success: false,
-        message: "Account is inactive",
-      });
+      return res.status(403).json({ success: false, message: "Account is inactive" });
     }
 
-    // 3️⃣ Verify password (plain text)
     const isMatch = await bcrypt.compare(password, officer.out_password_hash);
-    console.log(isMatch)  
     if (!isMatch) {
-          return res.status(401).json({
-            success: false,
-            message: "Invalid password",
-          });
-        }
+      return res.status(401).json({ success: false, message: "Invalid password" });
+    }
 
-    // ✅ Success
+    const token = generateToken(officer);
+
+
     res.status(200).json({
       success: true,
       message: "Login successful",
+      token,
       user_id: officer.out_user_id,
-      officer_id: officer.out_officer_id, // make sure this column exists in DB
-      // username: officer.out_username,
+      officer_id: officer.out_officer_id,
+      username: officer.out_username,
       role: officer.out_role_code,
     });
   } catch (error) {
     console.error("❌ Officer login error:", error);
-    res.status(500).json({
+    res.status(500).json({ success: false, message: "Server error", error: error.message });
+  }
+};
+
+
+
+
+// exports.loginOfficer = async (req, res) => {
+//   const { username, password } = req.body;
+
+//   try {
+//     const result = await pool.query("SELECT * FROM get_user_by_username2($1);", [username]);
+//     const officer = result.rows[0];
+//     // 1️⃣ Check if officer exists
+//     if (!officer) {
+//       return res.status(404).json({
+//         success: false,
+//         message: "Officer username not found",
+//       });
+//     }
+
+//     // 2️⃣ Check if account is active
+//     if (!officer.out_is_active) {
+//       return res.status(403).json({
+//         success: false,
+//         message: "Account is inactive",
+//       });
+//     }
+
+//     // 3️⃣ Verify password (plain text)
+//     const isMatch = await bcrypt.compare(password, officer.out_password_hash);
+//     console.log(isMatch)  
+//     if (!isMatch) {
+//           return res.status(401).json({
+//             success: false,
+//             message: "Invalid password",
+//           });
+//         }
+
+//     // ✅ Success
+//     res.status(200).json({
+//       success: true,
+//       message: "Login successful",
+//       user_id: officer.out_user_id,
+//       officer_id: officer.out_officer_id, // make sure this column exists in DB
+//       // username: officer.out_username,
+//       role: officer.out_role_code,
+//     });
+//   } catch (error) {
+//     console.error("❌ Officer login error:", error);
+//     res.status(500).json({
+//       success: false,
+//       message: "Server error",
+//       error: error.message,
+//     });
+//   }
+// };
+// 
+
+exports.getOfficersByLocation = async (req, res) => {
+  try {
+    let { state_code, division_code, district_code, taluka_code, organization_id, department_id } = req.body;
+
+    // Convert empty or undefined to NULL
+    if (!department_id) {
+      department_id = null;
+    }
+
+    const query = `
+      SELECT * FROM get_officers_same_location($1, $2, $3, $4, $5, $6);
+    `;
+
+    const values = [
+      state_code,
+      division_code,
+      district_code,
+      taluka_code,
+      organization_id,
+      department_id
+    ];
+
+    const result = await pool.query(query, values);
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "No officers found for this location",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Officers fetched successfully",
+      data: result.rows,
+    });
+  } catch (error) {
+    console.error("❌ Error fetching officers by location:", error);
+    return res.status(500).json({
       success: false,
-      message: "Server error",
+      message: "Server error while fetching officers",
       error: error.message,
     });
   }
 };
+

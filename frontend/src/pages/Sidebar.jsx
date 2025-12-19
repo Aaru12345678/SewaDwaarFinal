@@ -8,7 +8,7 @@ const Sidebar = () => {
       <ul>
         <li><FaClipboardList /> Departments</li>
         <li><FaCalendarAlt /> Slot & Holiday Config</li>
-        <li><FaClipboardList /> Appointments & Walk-in Logs</li>
+        <li><FaClipboardList /> Appointments Summary</li>
         <li><FaChartBar /> Analytics & Reports</li>
         <li><FaUsersCog /> User Roles & Access</li>
       </ul>

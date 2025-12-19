@@ -1,7 +1,7 @@
 import React, { useState, useRef, useMemo } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { toast } from "react-toastify";
-import { Officerlogin } from "../services/api.jsx"; // ✅ Officer API
+import { officerLogin } from "../services/api.jsx"; // ✅ Officer API
 import { AiOutlineEye, AiOutlineEyeInvisible } from "react-icons/ai";
 import "../css/OfficersLogin.css";
 import logo from "../assets/emblem2.png";
@@ -41,7 +41,7 @@ export default function OfficerLogin() {
 };
 
 
-    const { data } = await Officerlogin(payload);
+    const { data } = await officerLogin(payload);
 
     // const row = data[0]; // first row of returned table
 
@@ -57,6 +57,7 @@ export default function OfficerLogin() {
     
     // Save officer info
    // storing response
+localStorage.setItem("token", data.token);
 localStorage.setItem("user_id", data.user_id);
 localStorage.setItem("officer_id", data.officer_id);
 localStorage.setItem("role_code", data.role || "");
@@ -145,7 +146,7 @@ localStorage.setItem("username", data.username);
         </form>
       </div>
 
-      <div className="footer"></div>
+      {/* <div className="footer"></div> */}
     </div>
   );
 }

@@ -1,0 +1,243 @@
+/* --- Page Layout --- */
+.gov-edit-wrapper {
+  background: #eef7fc;
+  min-height: 100vh;
+  padding: 40px 0;
+  display: flex;
+  justify-content: center;
+}
+
+.gov-edit-container {
+  width: 95%;
+  max-width: 980px;
+  background: #ffffff;
+  padding: 28px 30px;
+  border-radius: 12px;
+  box-shadow: 0 6px 22px rgba(79, 163, 227, 0.18);
+  border-top: 6px solid #4fa3e3; /* Light Blue */
+}
+
+/* --- Titles --- */
+.gov-title {
+  font-size: 26px;
+  font-weight: 700;
+  color: #3a8fd1; /* Mid Light Blue */
+  text-align: left;
+  margin: 0;
+}
+
+.gov-subtitle {
+  text-align: left;
+  font-size: 14px;
+  color: #555;
+  margin-top: 6px;
+  margin-bottom: 18px;
+}
+
+/* layout of header + image */
+.image-card {
+  width: 160px;
+  text-align: center;
+  font-size: 13px;
+  color: #333;
+}
+
+/* image preview */
+.image-preview-wrap {
+  width: 120px;
+  height: 120px;
+  border-radius: 8px;
+  overflow: hidden;
+  margin-bottom: 8px;
+  border: 1px dashed #c9d9e8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #fbfeff;
+}
+
+.image-preview {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* placeholder when no image */
+.image-placeholder {
+  color: #8aa9c9;
+}
+
+/* upload button */
+.image-upload-label {
+  display: inline-block;
+  cursor: pointer;
+  margin-bottom: 6px;
+}
+
+.hidden-file-input {
+  display: none;
+}
+
+.image-upload-btn {
+  display: inline-block;
+  background: #4fa3e3;
+  color: #fff;
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-size: 13px;
+  transition: background 0.15s ease;
+}
+
+.image-upload-btn:hover {
+  background: #358fcc;
+}
+
+/* remove button */
+.image-remove-btn {
+  display: inline-block;
+  margin-top: 6px;
+  background: transparent;
+  border: 1px solid #e0e6ef;
+  color: #333;
+  padding: 6px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.image-hint {
+  margin-top: 6px;
+  font-size: 12px;
+  color: #6b7f90;
+}
+
+/* --- Section --- */
+.gov-section {
+  margin-bottom: 22px;
+}
+
+.gov-section-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #4fa3e3; /* Light Blue */
+  margin-bottom: 12px;
+  border-left: 4px solid #4fa3e3;
+  padding-left: 10px;
+}
+
+/* --- Form Grid --- */
+.gov-form {
+  margin-top: 6px;
+}
+
+.gov-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 18px;
+}
+
+/* full width row */
+.gov-form-group.gov-fullwidth {
+  grid-column: 1 / -1;
+}
+
+/* --- Inputs --- */
+.gov-form-group label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 6px;
+  display: block;
+}
+
+.gov-form-group input,
+.gov-form-group select {
+  width: 100%;
+  padding: 10px 12px;
+  font-size: 14px;
+  border: 1px solid #c9d9e8;
+  border-radius: 6px;
+  background: #fefefe;
+  box-sizing: border-box;
+}
+
+.gov-form-group input[readonly] {
+  background: #f4f7fb;
+  color: #5a6b7d;
+}
+
+.gov-form-group input:focus,
+.gov-form-group select:focus {
+  border-color: #4fa3e3;
+  outline: none;
+  box-shadow: 0 0 6px rgba(79, 163, 227, 0.35);
+}
+
+/* --- Error text --- */
+.field-error {
+  display: block;
+  margin-top: 6px;
+  font-size: 12px;
+  color: #d04545;
+}
+
+/* --- Buttons --- */
+.gov-btn-row {
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+  margin-top: 18px;
+  padding-bottom: 8px;
+}
+
+.gov-btn-primary {
+  background: #4fa3e3; /* Light Blue */
+  color: white;
+  padding: 10px 26px;
+  border: none;
+  border-radius: 6px;
+  font-size: 15px;
+  cursor: pointer;
+  transition: 0.15s;
+}
+
+.gov-btn-primary:hover {
+  background: #358fcc; /* Hover */
+}
+
+.gov-btn-primary:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  filter: grayscale(0.1);
+}
+
+.gov-btn-secondary {
+  background: #e6f1fa;
+  color: #333;
+  padding: 10px 26px;
+  border: none;
+  border-radius: 6px;
+  font-size: 15px;
+  cursor: pointer;
+  transition: 0.15s;
+}
+
+.gov-btn-secondary:hover {
+  background: #d3e7f6;
+}
+
+/* Responsive tweaks */
+@media (max-width: 720px) {
+  .gov-edit-container {
+    padding: 20px;
+  }
+
+  .image-card {
+    width: 120px;
+  }
+
+  .image-preview-wrap {
+    width: 100px;
+    height: 100px;
+  }
+}

@@ -1,0 +1,188 @@
+/* === PAGE SCROLL CONTAINER === */
+/* FULL PAGE WRAPPER */
+.page-scroll {
+  width: 100%;
+  min-height: calc(100vh - 60px);
+  overflow-y: auto;
+  display: flex;
+  justify-content: center;   /* Only horizontal center */
+  align-items: flex-start;   /* Do NOT vertical center */
+  background: #f5f7fa;
+  padding: 40px 0;
+}
+.center-wrapper {
+  width: 100%;
+  display: flex;
+  justify-content: center;   /* Centers horizontally */
+}
+/* FIX CENTERING */
+.dept-page {
+  width: 100%;
+  max-width: 900px;   /* Prevents full width stretching */
+  display: flex;
+  justify-content: center;
+}
+
+/* Card itself */
+.dept-card {
+  width: 100%;
+  max-width: 780px;
+  background: white;
+  padding: 32px;
+  border-radius: 12px;
+  box-shadow: 0 3px 8px rgba(0,0,0,0.1);
+}
+
+
+/* === TITLE & BREADCRUMB === */
+.dept-breadcrumb {
+  font-size: 0.9rem;
+  color: #6c757d;
+  margin-bottom: 8px;
+}
+
+.dept-title {
+  color: #2b3a67;
+  font-size: 1.4rem;
+  font-weight: bold;
+  margin-bottom: 18px;
+}
+
+/* === LABELS === */
+.section-label {
+  font-weight: 600;
+  color: #003366;
+  margin-top: 20px;
+  margin-bottom: 6px;
+}
+
+/* === FORM INPUTS === */
+input,
+select {
+  width: 100%;
+  padding: 10px;
+  margin-top: 4px;
+  margin-bottom: 18px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 0.95rem;
+}
+
+input:focus,
+select:focus {
+  border-color: #2b3a67;
+  outline: none;
+}
+
+/* === SWITCH ROW === */
+.toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 10px;
+}
+
+/* === SWITCH BUTTON === */
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 44px;
+  height: 22px;
+}
+
+.switch input {
+  display: none;
+}
+
+.slider {
+  position: absolute;
+  cursor: pointer;
+  background: #ccc;
+  border-radius: 22px;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  transition: .3s;
+}
+
+.slider:before {
+  content: "";
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  left: 2px;
+  bottom: 2px;
+  background: #fff;
+  border-radius: 50%;
+  transition: .3s;
+}
+
+input:checked + .slider {
+  background: #28a745;
+}
+
+input:checked + .slider:before {
+  transform: translateX(22px);
+}
+
+/* === BUTTON ROW === */
+.button-row {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 25px;
+  padding-bottom: 20px;
+}
+
+.cancel-btn,
+.submit-btn {
+  cursor: pointer;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 6px;
+  font-size: 0.95rem;
+  font-weight: 500;
+  transition: 0.2s;
+}
+
+.cancel-btn {
+  background: #6c757d;
+  color: white;
+}
+
+.submit-btn {
+  background: #2b3a67;
+  color: white;
+}
+
+.cancel-btn:hover {
+  background: #5a6268;
+}
+
+.submit-btn:hover {
+  background: #1d2747;
+}
+
+/* ✅ SCROLL ALWAYS */
+body {
+  overflow-y: auto !important;
+}
+
+/* Override admin dashboard centering force */
+.dashboard {
+  display: block !important;
+}
+
+/* Change table heading text color */
+.table-container h2 {
+    color: #333; /* dark grey/black */
+    font-weight: 600; /* optional: make it bolder */
+    margin-bottom: 0.5rem;
+}
+
+.table-container table th {
+    color: white;
+    background-color: #1f3a60;
+    font-weight: 600;
+}

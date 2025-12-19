@@ -7,7 +7,8 @@ import Login from "./Components/Login";
 import SignUp from "./Components/SignUp";
 import LoginEntry from "./Components/LoginEntry";
 import OfficerForm from "./Components/OfficerForm";
-
+import OfficerLogin from "./Components/OfficerLogin";
+import AdminLogin from "./Components/AdminLogin";
 // Visitor pages
 import VisitorDashboard from "./pages/VisitorDashboard";
 import AppointmentWizard from "./pages/AppointmentWizard";
@@ -41,6 +42,14 @@ import TodayAppointments from "./pages/TodayAppointments";
 import AppointmentAction from "./pages/AppointmentAction";
 import History from "./pages/History";
 
+import AddTypeEntry from "./Components/AddTypeEntry";
+import AddOrganization from "./pages/AddOrganization";
+import AddDepartment from "./pages/AddDepartment";
+import AddServices from "./pages/AddServices";
+import AddHoliday from "./pages/AddHoliday";
+import EditProfile from "./pages/EditProfile";
+import AppointmentWizard2 from "./pages/AppointmentWizard2";
+
 function App() {
   const loggedIn = !!localStorage.getItem("token");
 
@@ -65,9 +74,15 @@ function App() {
         {/* Auth Routes */}
         <Route path="/signup" element={<SignUp />} />
         <Route path="/login/visitorlogin" element={<Login />} />
-        <Route path="/officers_signup" element={<OfficerForm />} />
+        <Route path="/register-officer" element={<OfficerForm />} />
         <Route path="/login" element={<LoginEntry />} />
+        
+        {/* Officer login */}
+        <Route path="/login/officerlogin" element={<OfficerLogin />} />
 
+        {/* Admin login */}
+        <Route path="/login/adminlogin" element={<AdminLogin />} />
+        
         {/* Forgot Password Flow */}
         <Route path="/forgot" element={<ForgotPassword />} />
         <Route path="/reset" element={<ResetPassword />} />
@@ -75,18 +90,30 @@ function App() {
         {/* Visitor Routes */}
         <Route path="/dashboard1" element={<VisitorDashboard />} />
         <Route path="/appointment-wizard" element={<AppointmentWizard />} />
+        <Route path="/appointment-wizard2" element={<AppointmentWizard2 />} />
         <Route path="/appointment-pass/:id" element={<AppointmentPass />} />
         <Route path="/appointments" element={<AppointmentList />} />
         <Route path="/appointment/:id" element={<AppointmentDetails />} />
         <Route path="/notifications" element={<Notifications />} />
         <Route path="/profile" element={<Profile />} />
         <Route path="/logout" element={<Logout />} />
+        <Route path="/edit-profile" element ={<EditProfile/>}/>
 
         {/* Admin Dashboard (nested) */}
         <Route path="/admin/*" element={<Dashboard1 />} />
 
+        {/* Add Type Modal */}
+        <Route path="/addtype" element={<AddTypeEntry />} />
+
+        {/* Add Organization / Department / Services */}
+        <Route path="/add/organization" element={<AddOrganization />} />
+        <Route path="/add/department" element={<AddDepartment />} />
+        <Route path="/add/services" element={<AddServices />} />
+
+        <Route path="/add/holiday" element={<AddHoliday/>}/>
+        
         {/* Officer Routes */}
-        <Route path="/officer" element={<Dashboard />} />
+        <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/officer/today" element={<TodayAppointments />} />
         <Route path="/officer/action/:id" element={<AppointmentAction />} />
         <Route path="/officer/notifications" element={<Notifications />} />
@@ -99,7 +126,7 @@ function App() {
           <Route path="contact" element={<Contact />} />
           <Route path="help" element={<Help />} />
           <Route
-            path="dashboard"
+            path="/dashboard"
             element={loggedIn ? <Navigate to="/admindash" replace /> : <Dashboard />}
           />
           {protectedRoutes.map(({ path, element }) => (

@@ -1,0 +1,161 @@
+html, body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  background: #f4f8fc;
+  overflow-y: auto;
+  font-family: sans-serif;
+}
+
+.services-wrapper {
+  width: 100%;
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center; /* Center vertically */
+  padding: 40px 0;
+}
+
+.services-card {
+  width: 850px;
+  max-height: 90vh;        /* LIMIT screen height */
+  overflow-y: auto;        /* ✅ scroll inside */
+  background: #ffffff;
+  padding: 40px 45px;
+  border-radius: 12px;
+  box-shadow: 0 0 18px rgba(0,0,0,0.12);
+}
+
+.services-card::-webkit-scrollbar {
+  width: 8px;
+}
+
+.services-card::-webkit-scrollbar-thumb {
+  background: #cbd6e0;
+  border-radius: 10px;
+}
+
+.breadcrumb {
+  font-size: 14px;
+  color: #6b7c8a;
+  margin-bottom: 10px;
+  text-align: left;
+}
+
+.title {
+  text-align: center;
+  color: #003366;
+  font-weight: 700;
+  margin-bottom: 25px;
+  margin-top: 0;
+}
+
+.services-form {
+  display: flex;
+  flex-direction: column;
+}
+
+.services-form label {
+  margin-top: 14px;
+  font-weight: 600;
+  color: #003366;
+}
+
+.services-form input,
+.services-form select,
+.services-form textarea {
+  width: 100%;
+  padding: 12px;
+  margin-top: 5px;
+  font-size: 15px;
+  border-radius: 8px;
+  border: 1px solid #c4ccd7;
+  box-sizing: border-box;
+}
+
+textarea {
+  height: 80px;
+  resize: none;
+}
+
+/* Toggle */
+.toggle-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.switch {
+  position: relative;
+  width: 46px;
+  height: 24px;
+}
+
+.switch input {
+  opacity: 0;
+  width: 0;
+}
+
+.slider {
+  position: absolute;
+  inset: 0;
+  background: #ccc;
+  border-radius: 24px;
+  transition: 0.3s;
+}
+
+.slider:before {
+  content: "";
+  position: absolute;
+  height: 18px;
+  width: 18px;
+  left: 3px;
+  bottom: 3px;
+  background: white;
+  border-radius: 50%;
+  transition: 0.3s;
+}
+
+input:checked + .slider {
+  background: #0b4c74;
+}
+
+input:checked + .slider:before {
+  transform: translateX(22px);
+}
+
+/* Buttons */
+.btn-row {
+  display: flex;
+  justify-content: flex-end;
+  gap: 14px;
+  margin-top: 35px;
+}
+
+.cancel-btn,
+.submit-btn {
+  padding: 10px 26px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.cancel-btn {
+  background: #bbbbbb;
+  border: none;
+}
+
+.submit-btn {
+  background: #0066cc;
+  color: white;
+  border: none;
+}
+
+.cancel-btn:hover {
+  background: #a4a4a4;
+}
+
+.submit-btn:hover {
+  background: #004c99;
+}

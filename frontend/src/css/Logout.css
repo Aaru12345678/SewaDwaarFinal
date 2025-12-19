@@ -1,87 +1,92 @@
-.govt-logout-page {
+.logout-page {
   background-color: #f2f6fa;
   min-height: 100vh;
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: space-between;
+  justify-content: center;
   font-family: "Segoe UI", sans-serif;
   color: #1f3a60;
   text-align: center;
-  padding: 30px 20px;
+  padding: 20px;
 }
 
 /* Header Section */
-.govt-header {
-  margin-top: 20px;
-}
-.govt-logo {
-  height: 100px;
-  width: auto;
-  display: block;
-  margin: 0 auto 15px;
-  filter: brightness(0) invert(0.3); /* darkens a light/white logo */
+.logout-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  margin-bottom: 40px;
 }
 
+.emblem {
+  width: 120px;
+  height: auto;
+  margin-bottom: 10px;
 
+  /* Optional: make white logos look darker (black) */
+  filter: invert(1) brightness(0.2) contrast(2)
+          drop-shadow(0 2px 4px rgba(91, 90, 90, 0.3));
+}
 
-.govt-header h2 {
+.header-text h2 {
   font-size: 24px;
-  font-weight: bold;
-  color: #1f3a60;
-  margin-bottom: 4px;
+  font-weight: 700;
+  color: #0b2950;
+  margin-bottom: 5px;
 }
 
-.govt-header p {
+.header-text p {
   font-size: 16px;
-  color: #666;
+  color: #444;
 }
 
 /* Logout Box */
 .logout-box {
-  background: #ffffff;
-  padding: 40px 60px;
-  border-radius: 12px;
-  box-shadow: 0 6px 25px rgba(0, 0, 0, 0.1);
+  background: #fff;
+  padding: 40px 30px;
+  border-radius: 16px;
+  box-shadow: 0 4px 25px rgba(0, 0, 0, 0.08);
   max-width: 600px;
-  width: 90%;
-  animation: fadeIn 0.8s ease-in-out;
+  width: 100%;
+  text-align: center;
 }
 
-.logout-box h1 {
-  font-size: 26px;
-  color: #003366;
-  margin-bottom: 10px;
+.logout-box h3 {
+  font-size: 20px;
+  font-weight: 700;
+  color: #0b2950;
+  margin-bottom: 15px;
+}
+
+.lock-icon {
+  margin-right: 8px;
 }
 
 .logout-box p {
-  color: #444;
   font-size: 16px;
-  margin-bottom: 25px;
-  line-height: 1.5;
+  color: #444;
+  margin-bottom: 30px;
+  line-height: 1.6;
 }
 
 /* Button */
 .return-btn {
-  background-color: #003366;
-  color: #fff;
+  background-color: #0b2950;
+  color: white;
   border: none;
-  padding: 10px 24px;
-  border-radius: 6px;
-  font-size: 15px;
+  padding: 12px 28px;
+  border-radius: 8px;
   cursor: pointer;
-  transition: 0.3s;
+  font-size: 16px;
+  font-weight: 500;
+  transition: all 0.3s ease;
 }
 
 .return-btn:hover {
-  background-color: #00509e;
-}
-
-/* Footer */
-.govt-footer {
-  font-size: 13px;
-  color: #555;
-  margin-bottom: 10px;
+  background-color: #183c73;
+  box-shadow: 0 4px 10px rgba(24, 60, 115, 0.3);
 }
 
 /* Animation */
@@ -91,7 +96,7 @@
     transform: translateY(10px);
   }
   to {
-    opacity: 1;
+    opacity: 2;
     transform: translateY(0);
   }
 }

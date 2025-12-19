@@ -1,12 +1,15 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+
 import "../css/userRoles.css";
 import { FaUsers } from "react-icons/fa";
+import { getRolesSummary } from "../services/api";
+// const sampleRoles = [
+//   { role: "Super Admin", users: 2, permissions: "All Access" },
+//   { role: "Admin", users: 5, permissions: "Limited Access" },
+//   { role: "Viewer", users: 12, permissions: "Read Only" },
+// ];
 
-const sampleRoles = [
-  { role: "Super Admin", users: 2, permissions: "All Access" },
-  { role: "Admin", users: 5, permissions: "Limited Access" },
-  { role: "Viewer", users: 12, permissions: "Read Only" },
-];
+
 
 const sampleUsers = [
   { id: 1, name: "Alice", role: "Super Admin" },
@@ -32,13 +35,13 @@ const UserRoles = () => {
   const [editRoleName, setEditRoleName] = useState("");
   const [editPermissions, setEditPermissions] = useState("");
 
-  const filteredRoles =
-    roleFilter === "All"
-      ? sampleRoles
-      : sampleRoles.filter((r) => r.role === roleFilter);
+  
 
   // View modal
   const handleView = (role) => setViewRole(role);
+  const [roles, setRoles] = useState([]);
+const [totalRoles, setTotalRoles] = useState(0);
+
 
   // Edit modal
   const handleEdit = (role) => {
@@ -47,14 +50,36 @@ const UserRoles = () => {
     setEditPermissions(role.permissions);
   };
 
-  const handleSaveEdit = () => {
-    const idx = sampleRoles.findIndex((r) => r.role === editRole.role);
-    if (idx > -1) {
-      sampleRoles[idx].role = editRoleName;
-      sampleRoles[idx].permissions = editPermissions;
+  // const handleSaveEdit = () => {
+  //   const idx = sampleRoles.findIndex((r) => r.role === editRole.role);
+  //   if (idx > -1) {
+  //     sampleRoles[idx].role = editRoleName;
+  //     sampleRoles[idx].permissions = editPermissions;
+  //   }
+  //   setEditRole(null);
+  // };
+
+  
+const fetchRoles = async () => {
+  try {
+    const res = await getRolesSummary();
+    if (res.data.success) {
+      setRoles(res.data.data.roles);
+      setTotalRoles(res.data.data.total_roles);
     }
-    setEditRole(null);
-  };
+  } catch (error) {
+    console.error("Failed to fetch roles", error);
+  }
+};
+useEffect(() => {
+  fetchRoles();
+}, []);
+console.log(fetchRoles)
+const filteredRoles =
+  roleFilter === "All"
+    ? roles
+    : roles.filter((r) => r.role_name === roleFilter);
+
 
   return (
     <div className="user-roles-page">
@@ -70,24 +95,26 @@ const UserRoles = () => {
           <label>
             Role:
             <select
-              value={roleFilter}
-              onChange={(e) => setRoleFilter(e.target.value)}
-            >
-              <option value="All">All</option>
-              {sampleRoles.map((r, idx) => (
-                <option key={idx} value={r.role}>{r.role}</option>
-              ))}
-            </select>
+  value={roleFilter}
+  onChange={(e) => setRoleFilter(e.target.value)}
+>
+  <option value="All">All</option>
+  {roles.map((r) => (
+    <option key={r.role_code} value={r.role_name}>
+      {r.role_name}
+    </option>
+  ))}
+</select>
           </label>
         </div>
 
         {/* Cards */}
-        <div className="cards">
+        {/* <div className="cards">
           <div className="card">Total Roles: {filteredRoles.length}</div>
           <div className="card">
             Total Users: {filteredRoles.reduce((acc, r) => acc + r.users, 0)}
           </div>
-        </div>
+        </div> */}
 
         {/* Roles Table */}
         <div className="chart roles-table">
@@ -102,29 +129,30 @@ const UserRoles = () => {
               </tr>
             </thead>
             <tbody>
-              {filteredRoles.map((r, idx) => (
-                <tr key={idx}>
-                  <td>{r.role}</td>
-                  <td>{r.users}</td>
-                  <td>{r.permissions}</td>
-                  <td>
-                    <button
-                      className="btn btn-view"
-                      onClick={() => handleView(r.role)}
-                    >
-                      View
-                    </button>
-                    <button
-                      className="btn btn-edit"
-                      onClick={() => handleEdit(r)}
-                    >
-                      Edit
-                    </button>
-                    <button className="btn btn-delete">Delete</button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
+  {filteredRoles.map((r) => (
+    <tr key={r.role_code}>
+      <td>{r.role_name}</td>
+      <td>{r.role_name_ll}</td>
+      <td>{r.is_active ? "Active" : "Inactive"}</td>
+      <td>
+        <button
+          className="btn btn-view"
+          onClick={() => handleView(r.role_name)}
+        >
+          View
+        </button>
+        <button
+          className="btn btn-edit"
+          onClick={() => handleEdit(r)}
+        >
+          Edit
+        </button>
+        <button className="btn btn-delete">Delete</button>
+      </td>
+    </tr>
+  ))}
+</tbody>
+
           </table>
         </div>
 
@@ -167,9 +195,9 @@ const UserRoles = () => {
                 placeholder="Permissions"
               />
               <div className="modal-buttons">
-                <button className="btn btn-edit" onClick={handleSaveEdit}>
+                {/* <button className="btn btn-edit" onClick={handleSaveEdit}>
                   Save
-                </button>
+                </button> */}
                 <button className="btn btn-view" onClick={() => setEditRole(null)}>
                   Cancel
                 </button>

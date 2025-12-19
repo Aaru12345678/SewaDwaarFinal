@@ -22,12 +22,13 @@ const Notifications = () => {
         setFullName(data.data.full_name || username);
         // Map notifications to include type for CSS
         setNotifications(
-          (data.data.notifications || []).map((n) => ({
-            ...n,
-            type: n.status.toLowerCase(),
-            created_at: n.created_at || new Date(),
-          }))
-        );
+  (data.data.notifications || []).map((n) => ({
+    ...n,
+    type: n.status?.toLowerCase() || "default",  // <-- safe fix
+    created_at: n.created_at || new Date(),
+  }))
+);
+
       }
       setLoading(false);
     };

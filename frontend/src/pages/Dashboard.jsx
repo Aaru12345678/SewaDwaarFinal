@@ -1,15 +1,56 @@
 import React, { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link,useNavigate } from "react-router-dom";
 import "../css/Dashboard.css";
+import { getVisitorDashboard } from "../services/api";
+import VisitorNavbar from "./VisitorNavbar"; // ✅ import navbar
+import { toast } from "react-toastify";
 
 function OfficerDashboard() {
+    const navigate = useNavigate();
+  
   const [stats, setStats] = useState({
     today: 3,
     pending: 5,
     completed: 12,
   });
+   const [fullName, setFullName] = useState("");
+   const [notifications, setNotifications] = useState([]);
+     const [loading, setLoading] = useState(true);
+     const username = localStorage.getItem("username"); 
+useEffect(() => {
+  if (!username) {
+    toast.error("Please log in first");
+    navigate("/login");
+    return;
+  }
+
+    const fetchNotifications = async () => {
+      setLoading(true);
+      const { data, error } = await getVisitorDashboard(username);
+
+      if (error) {
+        alert("Failed to fetch notifications");
+      } else if (data && data.success) {
+        setFullName(data.data.full_name || username);
+        // Map notifications to include type for CSS
+        setNotifications(
+          (data.data.notifications || []).map((n) => ({
+            ...n,
+            type: n.status.toLowerCase(),
+            created_at: n.created_at || new Date(),
+          }))
+        );
+      }
+      setLoading(false);
+    };
+
+    fetchNotifications();
+  }, [username]);
 
   return (
+    <>
+        <VisitorNavbar fullName={fullName} />
+
     <div className="dashboard-container">
       <div className="dashboard-inner">
         <h1 className="welcome">Welcome Officer</h1>
@@ -44,6 +85,7 @@ function OfficerDashboard() {
         </div>
       </div>
     </div>
+    </>
   );
 }
 

@@ -1,146 +1,138 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import logo from "../assets/emblem.png";
+
+import bannerImg from "../assets/banner.jpg";
+import sewadwaarEng from "../assets/sewadwaar-eng.png";
+import sewadwaarMain from "../assets/SewadwaarLogo1.png";
+import govLogo from "../assets/emblem.png";
+import loginBg from "../assets/loginimage.png";
+
 import "../css/LoginEntry.css";
-import officer from './OfficerLogin';
 
 export default function LoginEntry() {
   const [showModal, setShowModal] = useState(false);
+  const [selectedRole, setSelectedRole] = useState(null);
+
   const navigate = useNavigate();
-  const firstRoleRef = useRef(null);
 
-  const openRole = (role) => {
+  // Set login background
+  useEffect(() => {
+    document.body.style.background = `url(${loginBg}) no-repeat center center fixed`;
+    document.body.style.backgroundSize = "cover";
+    return () => (document.body.style.background = "");
+  }, []);
+
+  const openContinue = () => {
+    if (!selectedRole) return;
+    navigate(`/login/${selectedRole}`);
     setShowModal(false);
-    navigate(`/login/${role}`);
   };
-
-  // open modal & set focus to first button
-  useEffect(() => {
-    if (showModal) {
-      // prevent background scroll
-      document.body.style.overflow = "hidden";
-      setTimeout(() => {
-        firstRoleRef.current?.focus();
-      }, 50);
-    } else {
-      document.body.style.overflow = "";
-    }
-    return () => {
-      document.body.style.overflow = "";
-    };
-  }, [showModal]);
-
-  // close on ESC
-  useEffect(() => {
-    const onKey = (e) => {
-      if (e.key === "Escape" && showModal) setShowModal(false);
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [showModal]);
-
-  const OfficerLogin = () => {
-    navigate("/OfficerLogin");
-  };
-
-
 
   return (
-    <div className="login-page">
-      <header className="le-header">
-        <div className="le-header-inner">
-          <img src={logo} alt="Emblem" className="le-logo" />
-          <div className="le-gov-text">
-            <div className="le-hindi">महाराष्ट्र शासन</div>
-            <div className="le-english">Government of Maharashtra</div>
+    <>
+      {/* HEADER */}
+      <header className="gov-header">
+        <div className="gov-left">
+          <img src={govLogo} className="gov-emblem" alt="Emblem" />
+          <div className="gov-text">
+            <div className="gov-mh">महाराष्ट्र शासन</div>
+            <div className="gov-en">Government of Maharashtra</div>
           </div>
+        </div>
+
+        <div className="gov-right">
+          <span className="gov-font">A/A</span>
+          <span className="gov-access">🛗</span>
         </div>
       </header>
 
-      <main className="le-main">
-        <section className="le-card">
-          <h1 className="le-title">Welcome to SewaDwaar</h1>
-          <p className="le-sub">
-            A single gateway to connect citizens with government services.
-          </p>
+      {/* MAIN SPLIT WRAPPER */}
+      <div className="split-wrapper">
+        <div className="left-banner">
+          <img src={bannerImg} className="banner-img" alt="" />
+        </div>
 
-          <div className="le-actions">
-            <button
-              className="le-primary"
-              onClick={() => setShowModal(true)}
-              aria-haspopup="dialog"
-              aria-controls="role-modal"
-            >
-              Login
-            </button>
-
-            <button
-              className="le-secondary"
-              onClick={() => navigate("/about")}
-              title="Learn more about SewaDwaar"
-            >
-              Learn more
-            </button>
-          </div>
-        </section>
-      </main>
-
-      {showModal && (
-        <div
-          className="role-modal"
-          role="dialog"
-          aria-modal="true"
-          id="role-modal"
-          onClick={() => setShowModal(false)}
-        >
-          <div
-            className="role-modal-content"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h2 className="role-heading">Select Login Type</h2>
-
-            <div className="role-grid" role="group" aria-label="Login types">
-              <button
-                ref={firstRoleRef}
-                className="role-btn"
-                onClick={(OfficerLogin)}
-              >
-                Officer
-                <span className="role-desc">Employee / Staff Login</span>
-              </button>
-
-              <button
-                className="role-btn"
-                onClick={() => openRole("admin")}
-              >
-                Admin
-                <span className="role-desc">Admin & Management</span>
-              </button>
-
-              <button
-                className="role-btn"
-                onClick={() => openRole("visitorlogin")}
-              >
-                Visitor
-                <span className="role-desc">Citizen / Visitor Login</span>
-              </button>
+        <div className="right-panel">
+          <div className="form-card">
+            <div className="brand-block">
+              <img src={sewadwaarEng} className="sd-eng-logo" alt="" />
+              <img src={sewadwaarMain} className="sd-marathi-logo" alt="" />
             </div>
 
-            <div className="role-actions">
-              <button
-                className="role-cancel"
-                onClick={() => setShowModal(false)}
+            <h2 className="form-title">Welcome to SewaDwaar</h2>
+            <p className="form-sub">A single gateway to government services</p>
+
+            <div className="action-row">
+              <button className="btn-primary" onClick={() => setShowModal(true)}>
+                Login
+              </button>
+              <button className="btn-secondary" onClick={() => navigate("/about")}>
+                Learn More
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* MODAL */}
+      {showModal && (
+        <div className="modal-backdrop" onClick={() => setShowModal(false)}>
+          <div className="modal-box" onClick={(e) => e.stopPropagation()}>
+            <h2 className="modal-title">Select Login Type</h2>
+
+            <div className="modal-grid">
+              {/* Officer */}
+              <div
+                className={`modal-tile ${selectedRole === "officerlogin" ? "active" : ""}`}
+                onClick={() => setSelectedRole("officerlogin")}
               >
+                <div className="tile-title">Employee / Staff Login</div>
+                <div className="tile-sub">For Govt Employees</div>
+              </div>
+
+              {/* Admin */}
+              <div
+                className={`modal-tile ${selectedRole === "adminlogin" ? "active" : ""}`}
+                onClick={() => setSelectedRole("adminlogin")}
+              >
+                <div className="tile-title">Admin</div>
+                <div className="tile-sub">Admin & Management</div>
+              </div>
+
+              {/* Visitor */}
+              <div
+                className={`modal-tile ${selectedRole === "visitorlogin" ? "active" : ""}`}
+                onClick={() => setSelectedRole("visitorlogin")}
+              >
+                <div className="tile-title">Citizen / Visitor Login</div>
+                <div className="tile-sub">For Citizens & Visitors</div>
+              </div>
+
+              {/* Helpdesk */}
+              <div
+                className={`modal-tile ${selectedRole === "helpdesklogin" ? "active" : ""}`}
+                onClick={() => setSelectedRole("helpdesklogin")}
+              >
+                <div className="tile-title">Helpdesk Support Login</div>
+                <div className="tile-sub">Support & Assistance</div>
+              </div>
+            </div>
+
+            <div className="modal-actions">
+              <button className="modal-cancel" onClick={() => setShowModal(false)}>
                 Cancel
+              </button>
+
+              <button
+                className={`modal-continue ${selectedRole ? "enabled" : ""}`}
+                onClick={openContinue}
+              >
+                Continue
               </button>
             </div>
           </div>
         </div>
       )}
-
-      <footer className="le-footer">
-        <small>© {new Date().getFullYear()} SewaDwaar — All rights reserved</small>
-      </footer>
-    </div>
+    </>
   );
 }

@@ -1,59 +1,61 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import "../css/VisitorDashboard.css";
 import { toast } from "react-toastify";
 import { getVisitorDashboard } from "../services/api";
-import VisitorNavbar from "./VisitorNavbar"; // ✅ Import navbar
+import VisitorNavbar from "./VisitorNavbar";
 
 const VisitorDashboard = () => {
   const navigate = useNavigate();
-  const username = localStorage.getItem("username"); // visitor_id and username are the same
+  const username = localStorage.getItem("username");
   const [fullName, setFullName] = useState("");
   const [appointments, setAppointments] = useState([]);
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-  if (!username) {
-    toast.error("Please log in first");
-    navigate("/login");
-    return;
-  }
-
-  const fetchDashboard = async () => {
-    try {
-      setLoading(true);
-      const { data, error } = await getVisitorDashboard(username);
-
-      if (error) {
-        toast.error("Unable to fetch dashboard data");
-        console.error(error);
-        return;
-      }
-
-      if (data && data.success) {
-  setFullName(data.data.full_name || username); // already done
-  setAppointments(data.data.appointments || []);
-  setNotifications(
-    data.data.notifications.map((n) => ({
-      ...n,
-      type: n.status.toLowerCase(),
-      created_at: n.created_at || new Date(),
-    }))
-  );
-} else {
-        toast.error("Failed to load dashboard data");
-      }
-    } catch (err) {
-      console.error("Dashboard fetch error:", err);
-      toast.error("Unable to fetch dashboard data");
-    } finally {
-      setLoading(false);
+    if (!username) {
+      toast.error("Please log in first");
+      navigate("/login");
+      return;
     }
-  };
 
-  fetchDashboard();
-}, [username, navigate]);
+    const fetchDashboard = async () => {
+      try {
+        setLoading(true);
+        const { data, error } = await getVisitorDashboard(username);
+
+        if (error) {
+          toast.error("Unable to fetch dashboard data");
+          console.error(error);
+          return;
+        }
+
+        if (data && data.success) {
+          setFullName(data.data.full_name || username);
+          setAppointments(data.data.appointments || []);
+
+          // Use notifications directly from the notifications table
+          setNotifications(
+            (data.data.notifications || []).map((n) => ({
+              ...n,
+              type: n.status ? n.status.toLowerCase() : "info",
+              created_at: n.created_at ? new Date(n.created_at) : new Date(),
+            }))
+          );
+        } else {
+          toast.error("Failed to load dashboard data");
+        }
+      } catch (err) {
+        console.error("Dashboard fetch error:", err);
+        toast.error("Unable to fetch dashboard data");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchDashboard();
+  }, [username, navigate]);
 
   const handleView = (id) => navigate(`/appointment/${id}`);
 
@@ -64,14 +66,12 @@ const VisitorDashboard = () => {
   const upcomingCount = appointments.filter((a) => a.status.toLowerCase() === "approved").length;
   const pendingCount = appointments.filter((a) => a.status.toLowerCase() === "pending").length;
   const completedCount = appointments.filter((a) => a.status.toLowerCase() === "completed").length;
-  const cancelledCount = appointments.filter((a) => a.status.toLowerCase() === "rejected").length;
+  const cancelledCount = appointments.filter((a) => a.status.toLowerCase() === "rejected" || a.status.toLowerCase() === "cancelled").length;
   const unreadNotifications = notifications.length;
 
   return (
     <div>
-      {/* ✅ Add VisitorNavbar at the top */}
       <VisitorNavbar fullName={fullName} />
-
 
       <div className="dashboard-container">
         <div className="dashboard-inner">
@@ -140,12 +140,14 @@ const VisitorDashboard = () => {
                       <td>{appt.officer_name}</td>
                       <td>{appt.department_name}</td>
                       <td>{appt.service_name}</td>
-                      <td>
-                        {appt.appointment_date} {appt.slot_time}
-                      </td>
+                      <td>{appt.appointment_date} {appt.slot_time}</td>
                       <td className={`status ${appt.status.toLowerCase()}`}>{appt.status}</td>
                       <td>
-                        <button className="view-btn" onClick={() => handleView(appt.appointment_id)}>
+                        <button
+                          className="view-btn"
+                          onClick={() => handleView(appt.appointment_id)}
+                          disabled={appt.status.toLowerCase() === "cancelled" || appt.status.toLowerCase() === "rejected"}
+                        >
                           View
                         </button>
                       </td>
@@ -167,7 +169,7 @@ const VisitorDashboard = () => {
                   <li key={index} className={`notification ${note.type}`}>
                     <p>{note.message}</p>
                     <span className="notif-time">
-                      {new Date(note.created_at).toLocaleString()}
+                      {note.created_at.toLocaleString()}
                     </span>
                   </li>
                 ))}

@@ -1,148 +1,64 @@
-/* Appointments Page Styles */
-
-.appointments-page {
+.appointment-list-container {
   padding: 20px;
-  font-family: Arial, sans-serif;
-  background: #f9f9f9;
-  min-height: 100vh;
 }
 
-/* Header */
-.appointments-page .header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20px;
-}
-
-.appointments-page .header h1 {
-  font-size: 22px;
-  font-weight: bold;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  color: #333;
-}
-
-.appointments-page .header button {
-  padding: 8px 14px;
-  border: none;
-  border-radius: 5px;
-  color: white;
-  cursor: pointer;
-  margin-left: 8px;
-  font-size: 14px;
-}
-
-.add-appointment {
-  background: #007bff;
-}
-
-.add-walkin {
-  background: #28a745;
-}
-
-/* Search Bar */
-.search-bar {
-  margin-bottom: 20px;
-}
-
-.search-bar input {
-  width: 100%;
-  padding: 10px;
-  border: 1px solid #ccc;
-  border-radius: 6px;
-}
-
-/* Stats Cards */
-.stats-cards {
-  display: flex;
-  gap: 20px;
-  margin-bottom: 25px;
-  flex-wrap: wrap;
-}
-
-.stats-card {
-  flex: 1;
-  min-width: 180px;
-  background: #ffffff;
-  padding: 15px;
-  border-radius: 8px;
-  text-align: center;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-}
-
-.stats-card h2 {
-  font-size: 22px;
-  color: #007bff;
-  margin-bottom: 5px;
-}
-
-.stats-card p {
-  font-size: 14px;
-  color: #555;
-}
-
-/* Tables */
-.table-container {
-  background: #fff;
-  padding: 15px;
-  border-radius: 8px;
-  margin-bottom: 25px;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-}
-
-.table-container h2 {
-  font-size: 18px;
-  margin-bottom: 12px;
-  color: #333;
-}
-
-.table-container table {
+.appointment-table {
   width: 100%;
   border-collapse: collapse;
+  margin-top: 20px;
 }
 
-.table-container th,
-.table-container td {
+.appointment-table th,
+.appointment-table td {
   border: 1px solid #ddd;
   padding: 10px;
-  font-size: 14px;
+  text-align: center;
+}
+
+.appointment-table thead th {
+  background-color: #595a96;
+  color: #ffffff; /* white text */
   text-align: left;
 }
 
-.table-container th {
-  background: #f0f0f0;
+
+button {
+  margin: 0 5px;
+  padding: 6px 12px;
+  border: none;
+  background: #007bff;
+  color: white;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+button:hover {
+  background: #0056b3;
+}
+
+.status.pending {
+  color: orange;
   font-weight: bold;
 }
 
-.table-container tr:hover {
-  background: #f9f9f9;
+.status.accepted {
+  color: green;
+  font-weight: bold;
 }
 
-/* Icons inside cells */
-.table-container .icon {
-  margin-right: 6px;
-  color: #555;
+.status.completed {
+  color: blue;
+  font-weight: bold;
 }
 
-/* Actions */
-.actions {
-  display: flex;
-  gap: 10px;
+.status.cancelled {
+  color: red;
+  font-weight: bold;
 }
 
-.actions button {
-  background: none;
-  border: none;
-  cursor: pointer;
-  font-size: 16px;
-}
 
-.actions .edit {
-  color: #007bff;
-}
 
-.actions .delete {
-  color: #dc3545;
+.appointment-table th {
+  padding: 10px;
+  font-weight: bold;
 }

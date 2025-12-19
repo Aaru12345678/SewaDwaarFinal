@@ -1,102 +1,177 @@
 import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { getVisitorProfile } from "../services/api";
 import "../css/Profile.css";
 
 function Profile() {
-  const [visitorData, setVisitorData] = useState({
-    visitorId: "VIS2025-1034",
-    name: "Ravi Tambe",
-    email: "ravi.tambe@example.com",
-    phone: "+91 9876543210",
-    gender: "Male",
-    dob: "1992-07-15",
-    address: "Flat No. 204, Pristine Residency, Pune, Maharashtra, 411001",
-    state: "Maharashtra",
-    division: "Pune Division",
-    district: "Pune",
-    taluka: "Haveli",
-    pincode: "411001",
-    idProofType: "Aadhaar Card",
-    idProofNo: "XXXX-XXXX-4567",
-    purpose: "Meeting with Regional Officer for Project Clearance",
-    visitDate: "2025-10-08",
-    timeSlot: "10:30 AM – 11:15 AM",
-    department: "Urban Development Department",
-    organization: "Government of Maharashtra",
-    status: "Verified",
-    joinedDate: "2025-01-15",
-    profilePic: "https://i.pravatar.cc/150?img=12",
-    lastLogin: null,
-  });
+  const navigate = useNavigate();
+  const [visitorData, setVisitorData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  const username = localStorage.getItem("username");
+console.log("Username from localStorage:", username);
+
+
+// const getPhotoUrl = (photo) => {
+//   if (!photo) return "https://i.pravatar.cc/150";
+
+//   if (photo.startsWith("http://") || photo.startsWith("https://")) {
+//     return photo;
+//   }
+
+//   return `${process.env.REACT_APP_API_BASE_URL}/uploads/${photo}`;
+// };
+
+// const photoSrc = getPhotoUrl(visitorData.photo);
+
+
+
+  // Build full photo URL
+  // const getPhotoUrl = (photo, photoUrlFromApi) => {
+  //   if (photoUrlFromApi) return photoUrlFromApi;
+  //   if (!photo) return "https://i.pravatar.cc/150";
+  //   if (photo.startsWith("http://") || photo.startsWith("https://")) return photo;
+  //   if (photo.startsWith("data:")) return photo;
+  //   const fileName = photo.includes(".") ? photo : `${photo}.jpg`;
+  //   return `http://localhost:5000/uploads/${fileName}`;
+  // };
+
+  const formatDate = (dateStr) => {
+    if (!dateStr) return "";
+    const d = new Date(dateStr);
+    if (Number.isNaN(d.getTime())) return dateStr;
+    return d.toLocaleDateString();
+  };
 
   useEffect(() => {
-    // Fetch or simulate last login time
-    const lastLogin = localStorage.getItem("visitorLastLogin") || new Date().toLocaleString();
-    setVisitorData((prev) => ({ ...prev, lastLogin }));
-    localStorage.setItem("visitorLastLogin", new Date().toLocaleString());
-  }, []);
+    if (!username) {
+      setError("Username not found, please login again.");
+      setLoading(false);
+      return;
+    }
+
+    let isMounted = true;
+
+    async function fetchProfile() {
+      try {
+        const response = await getVisitorProfile(username);
+        console.log(response,"resssss")
+        if (!isMounted) return;
+
+        if (response.data.success) {
+          let profile = response.data.data || {};
+
+          // Map backend names to frontend-friendly fields
+          profile.state = profile.state_name || profile.state_code;
+          profile.division = profile.division_name || profile.division_code;
+          profile.district = profile.district_name || profile.district_code;
+          profile.taluka = profile.taluka_name || profile.taluka_code;
+
+          // Last login handling
+          const lastLoginStored = localStorage.getItem("visitorLastLogin");
+          const nowStr = new Date().toLocaleString();
+          profile.lastLogin = lastLoginStored || nowStr;
+          localStorage.setItem("visitorLastLogin", nowStr);
+
+          // Cache profile for EditProfile page
+          localStorage.setItem("visitorData", JSON.stringify(profile));
+
+          setVisitorData(profile);
+        } else {
+          setError(response.data.message || "Profile not found");
+        }
+      } catch (err) {
+        console.error("Error fetching profile:", err);
+
+        if (err.response && (err.response.status === 401 || err.response.status === 403)) {
+          setError("Session expired. Please login again.");
+          localStorage.removeItem("token");
+          localStorage.removeItem("username");
+          navigate("/login");
+        } else {
+          setError("Server error while fetching profile");
+        }
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    }
+
+    fetchProfile();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [username, navigate]);
+
+  const handleEditProfile = () => {
+    if (!visitorData) return;
+    navigate("/edit-profile", { state: visitorData });
+  };
+
+  if (loading) return <h2 className="loading">Loading profile...</h2>;
+  if (error) return <h2 className="error">{error}</h2>;
+  if (!visitorData) return null;
+
+  // const photoSrc = getPhotoUrl(visitorData.photo, visitorData.photo_url);
 
   return (
     <div className="profile-page">
-      {/* Header */}
       <div className="profile-header-banner">
         <h1>Visitor Profile</h1>
         <p>Government of India — Digital Visitor Management System (DVMS)</p>
       </div>
 
-      {/* Profile Card */}
       <div className="profile-card">
-        {/* Left Column */}
+        {/* LEFT SIDE */}
         <div className="profile-left">
-          <img
-            src={visitorData.profilePic}
-            alt="Profile"
-            className="profile-pic"
-          />
-          <h2 className="profile-name">{visitorData.name}</h2>
-          <p className="profile-role">Visitor ID: {visitorData.visitorId}</p>
-          <p className={`status-tag ${visitorData.status.toLowerCase()}`}>
-            {visitorData.status}
-          </p>
-
-          {/* Last Login */}
-          <p className="last-login">
-            Last Login: {visitorData.lastLogin || "N/A"}
-          </p>
+          <img src={`http://localhost:5000/uploads/${visitorData.photo}`} alt="Profile" className="profile-pic" />
+          <h2 className="profile-name">{visitorData.full_name}</h2>
+          <p className="profile-role">Visitor ID: {visitorData.visitor_id}</p>
+          <p className="status-tag verified">Verified</p>
+          <p className="last-login">Last Login: {visitorData.lastLogin}</p>
 
           <div className="profile-actions">
-            <button className="btn primary">Edit Profile</button>
-            <button className="btn secondary">Change Password</button>
+            <button className="btn primary" onClick={handleEditProfile}>
+              Edit Profile
+            </button>
+            <button
+              className="btn secondary"
+              onClick={() => navigate("/change-password")}
+            >
+              Change Password
+            </button>
           </div>
         </div>
 
-        {/* Right Column */}
+        {/* RIGHT SIDE */}
         <div className="profile-right">
           <h3 className="section-title">Personal Information</h3>
           <div className="info-grid">
-            <div className="info-box"><strong>Full Name</strong><p>{visitorData.name}</p></div>
-            <div className="info-box"><strong>Gender</strong><p>{visitorData.gender}</p></div>
-            <div className="info-box"><strong>Date of Birth</strong><p>{visitorData.dob}</p></div>
-            <div className="info-box"><strong>Mobile No</strong><p>{visitorData.phone}</p></div>
-            <div className="info-box"><strong>Email ID</strong><p>{visitorData.email}</p></div>
-            <div className="info-box"><strong>Address</strong><p>{visitorData.address}</p></div>
-            <div className="info-box"><strong>State</strong><p>{visitorData.state}</p></div>
-            <div className="info-box"><strong>Division</strong><p>{visitorData.division}</p></div>
-            <div className="info-box"><strong>District</strong><p>{visitorData.district}</p></div>
-            <div className="info-box"><strong>Taluka</strong><p>{visitorData.taluka}</p></div>
-            <div className="info-box"><strong>Pincode</strong><p>{visitorData.pincode}</p></div>
-              </div>
+            <Info label="Full Name" value={visitorData.full_name} />
+            <Info label="Gender" value={visitorData.gender} />
+            <Info label="Date of Birth" value={formatDate(visitorData.dob)} />
+            <Info label="Mobile No" value={visitorData.mobile_no} />
+            <Info label="Email ID" value={visitorData.email_id} />
 
-          <h3 className="section-title">Visit Information</h3>
-          <div className="info-grid">
-            <div className="info-box"><strong>Purpose of Visit</strong><p>{visitorData.purpose}</p></div>
-            <div className="info-box"><strong>Visit Date</strong><p>{visitorData.visitDate}</p></div>
-            <div className="info-box"><strong>Time Slot</strong><p>{visitorData.timeSlot}</p></div>
-            <div className="info-box"><strong>Joined Date</strong><p>{visitorData.joinedDate}</p></div>
-            <div className="info-box"><strong>Department</strong><p>{visitorData.department}</p></div>
-            <div className="info-box"><strong>Organization</strong><p>{visitorData.organization}</p></div>
+            <Info label="State" value={visitorData.state} />
+            <Info label="Division" value={visitorData.division} />
+            <Info label="District" value={visitorData.district} />
+            <Info label="Taluka" value={visitorData.taluka} />
+
+            <Info label="Pincode" value={visitorData.pincode} />
           </div>
         </div>
       </div>
+    </div>
+  );
+}
+
+function Info({ label, value }) {
+  return (
+    <div className="info-box">
+      <strong>{label}</strong>
+      <p>{value || "N/A"}</p>
     </div>
   );
 }

@@ -1,29 +1,190 @@
+/* ===============================
+   PASS CONTAINER
+================================ */
 .pass-container {
-  font-family: Arial, sans-serif;
-  max-width: 500px;
-  margin: 20px auto;
-  padding: 20px;
+  font-family: "Segoe UI", Roboto, Arial, sans-serif;
+  max-width: 650px; /* wider for horizontal layout */
+  margin: 30px auto;
+  padding: 20px 25px;
+  background-color: #f5f5f5;
+  border-radius: 8px;
+  border: 1px solid #ccc;
 }
 
+/* ===============================
+   HEADER
+================================ */
+.pass-container h2 {
+  text-align: center;
+  font-size: 1.5rem;
+  color: #595a96; /* match appointment list header color */
+  margin-bottom: 20px;
+  border-bottom: 2px solid #595a96;
+  padding-bottom: 8px;
+}
+
+/* ===============================
+   DETAILS CARD (HORIZONTAL)
+================================ */
 .details-card {
+  display: flex;
+  flex-wrap: wrap;
   background-color: #fff;
-  padding: 20px;
-  border-radius: 12px;
+  border-radius: 6px;
   box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+  padding: 10px; /* reduced from 15px */
+  gap: 10px;     /* reduced from 15px */
+}
+
+.details-card-row {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  width: calc(50% - 10px); /* fit two per row */
+  min-width: 180px;        /* reduced from 220px */
+  padding: 5px 8px;        /* reduced padding */
+}
+
+.details-card-row.full-width {
+  width: 100%;
+  justify-content: center;
+  margin-top: 10px; /* reduced from 15px */
   text-align: center;
 }
 
+.details-card p {
+  margin: 0;
+}
+
+.details-card-row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-start;
+  width: calc(50% - 15px); /* two items per row */
+  min-width: 220px;
+  padding: 8px 10px;
+  border-bottom: none;
+}
+
+.details-card-row strong {
+  color: #595a96;
+  margin-right: 8px;
+  min-width: 120px; /* keep labels aligned */
+  display: inline-block;
+}
+
+/* full-width rows (QR, cancelled msg, images) */
+.details-card-row.full-width {
+  width: 100%;
+  justify-content: center;
+  margin-top: 15px;
+  text-align: center;
+}
+
+/* ===============================
+   CANCELLED LABEL & MESSAGE
+================================ */
+.cancelled-label {
+  background: #f8d7da;
+  color: #842029;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.cancelled-msg {
+  color: #842029;
+  font-weight: 600;
+  font-size: 14px;
+  margin: 15px 0;
+  text-align: center;
+}
+
+/* ===============================
+   QR CODE
+================================ */
 .qr-code {
   margin: 20px 0;
+  text-align: center;
+}
+
+.qr-code svg {
+  width: 120px;
+  height: 120px;
+}
+
+.qr-code p {
+  margin-top: 8px;
+  font-size: 13px;
+  color: #333;
+}
+
+/* ===============================
+   IMAGE CAPTURE
+================================ */
+.image-capture {
+  margin-top: 10px;
+  text-align: center;
+}
+
+.image-capture p {
+  margin-bottom: 5px;
+  font-size: 13px;
+  color: #333;
 }
 
 .image-capture input {
-  margin-top: 10px;
+  margin-top: 5px;
 }
 
 .preview img {
   margin-top: 10px;
-  width: 150px;
-  border-radius: 10px;
+  width: 120px;
+  height: 120px;
+  object-fit: cover;
+  border-radius: 6px;
   border: 1px solid #ccc;
+}
+
+/* ===============================
+   CANCELLED CARD OPACITY
+================================ */
+.details-card.cancelled {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+/* ===============================
+   STATUS MESSAGE
+================================ */
+.status-msg {
+  font-size: 13px;
+  color: #555;
+  margin-top: 15px;
+  text-align: center;
+}
+
+/* ===============================
+   STATUS COLORS
+================================ */
+.status.pending {
+  color: orange;
+  font-weight: bold;
+}
+
+.status.approved {
+  color: green;
+  font-weight: bold;
+}
+
+.status.completed {
+  color: blue;
+  font-weight: bold;
+}
+
+.status.cancelled {
+  color: red;
+  font-weight: bold;
 }

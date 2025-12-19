@@ -1,14 +1,14 @@
-import React from "react";
-import { Routes, Route, Link } from "react-router-dom";
+import React, { useEffect } from "react";
+import { Routes, Route, Link, useNavigate } from "react-router-dom";
 import "../css/admin.css";
-import Cards from "../pages/Cards";
 
-// Placeholder pages (you should create these files under src/pages/)
+import Cards from "../pages/Cards";
 import Departments from "../pages/Departments";
 import SlotConfig from "../pages/SlotConfig";
 import Appointments from "../pages/Appointments";
 import Analytics from "../pages/Analytics";
 import UserRoles from "../pages/UserRoles";
+import { toast } from "react-toastify";
 
 import {
   ResponsiveContainer,
@@ -50,6 +50,28 @@ const pieData = [
 const COLORS = ["#4e73df", "#1cc88a", "#36b9cc"];
 
 const Admin = () => {
+  const navigate = useNavigate();
+     const username = localStorage.getItem("username"); 
+
+  // ✅ Logout function
+  const handleLogout = () => {
+    // Clear stored user data (adjust if you store tokens or admin info)
+    
+    localStorage.removeItem("token");
+    localStorage.removeItem("user_id", data.user_id);
+      localStorage.removeItem("officer_id", data.officer_id);
+      localStorage.removeItem("role_code", data.role || "");
+      localStorage.removeItem("username", data.username);
+    // Redirect to login page
+    navigate("/login");
+  };
+ 
+  useEffect(()=>{if (!username) {
+      toast.error("Please log in first");
+      navigate("/login");
+      return;}},[username])
+  
+
   return (
     <div className="admin-layout">
       {/* Sidebar */}
@@ -68,7 +90,7 @@ const Admin = () => {
           </li>
           <li>
             <Link to="appointments">
-              <FaUsers /> Appointments & Walk-in Logs
+              <FaUsers />  Appointments & Walk In Summary
             </Link>
           </li>
           <li>
@@ -91,7 +113,10 @@ const Admin = () => {
           <div></div>
           <div className="top-actions">
             <span>👤 Admin Profile</span>
-            <button className="logout-btn">Logout</button>
+            {/* ✅ Clickable Logout Button */}
+            <button className="logout-btn" onClick={handleLogout}>
+              Logout
+            </button>
           </div>
         </header>
 
@@ -160,6 +185,7 @@ const Admin = () => {
                 </>
               }
             />
+
             {/* Other Pages */}
             <Route path="departments" element={<Departments />} />
             <Route path="slot-config" element={<SlotConfig />} />

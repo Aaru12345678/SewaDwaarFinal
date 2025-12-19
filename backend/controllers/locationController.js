@@ -80,7 +80,18 @@ exports.getServices=async(req,res)=>{
     const result= await pool.query('SELECT * FROM get_services($1,$2);',[organization_id,department_id]);
     res.json(result.rows);
   } catch (error) {
-    console.error('Error fetching services:', err);
+    console.error('Error fetching services:', error);
+    res.status(500).json({ error: 'Failed to fetch services'});
+  }
+}
+
+exports.getServices2=async(req,res)=>{
+  const {organization_id}=req.params;
+  try {
+    const result= await pool.query('SELECT * FROM get_services2($1);',[organization_id]);
+    res.json(result.rows);
+  } catch (error) {
+    console.error('Error fetching services:', error);
     res.status(500).json({ error: 'Failed to fetch services'});
   }
 }

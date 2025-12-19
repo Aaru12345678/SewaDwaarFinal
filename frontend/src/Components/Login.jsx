@@ -42,7 +42,7 @@ const handleSubmit = async (e) => {
   try {
     const payload = { username, password };
     const { data } = await login(payload);
-
+console.log(data,"dataaa")
     if (!data.success) {
       toast.error(data.message || "Invalid credentials");
       return;
@@ -53,7 +53,11 @@ const handleSubmit = async (e) => {
     localStorage.setItem("user_id", data.user_id);
     localStorage.setItem("username", data.username);
     localStorage.setItem("role_code", data.role || "");
-
+    localStorage.setItem("userstate_code", data.userstate_code);
+    localStorage.setItem("userdivision_code", data.userdivision_code);
+    localStorage.setItem("userdistrict_code", data.userdistrict_code);
+    localStorage.setItem("usertaluka_code", data.usertaluka_code);
+    // localStorage.setItem("statecode",data.state_code)
     // ✅ Fetch full_name from backend using your DB function
     const dashboardRes = await getVisitorDashboard(data.username); // Call API endpoint that calls your DB function
     const fullName = dashboardRes.data.full_name || data.username;
@@ -196,9 +200,9 @@ const handleSubmit = async (e) => {
         </form>
       </div>
 
-      <div className="footer">
+      {/* <div className="footer">
         <img src="/ashok-chakra.png" alt="Ashok Chakra" className="chakra" />
-      </div>
+      </div> */}
     </div>
   );
 }

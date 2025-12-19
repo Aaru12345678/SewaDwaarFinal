@@ -8,7 +8,8 @@ const {
   getOrganization,
   getDepartment,
   getServices,
-  getDesignations
+  getDesignations,
+  getServices2
   
 } = require('../controllers/locationController');
 
@@ -21,6 +22,7 @@ router.get('/designations',getDesignations)
 router.get('/organization',getOrganization);
 router.get('/department/:organization_id',getDepartment);
 router.get('/services/:organization_id/:department_id',getServices);
+router.get('/services/:organization_id',getServices2);
 
 // 
 

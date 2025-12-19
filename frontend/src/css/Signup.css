@@ -1,177 +1,265 @@
-/* signup.css — wider form + improved style (header above signup; not sticky) */
-
-/* ---------- variables & reset ---------- */
-:root{
-  --bg-top: #ffffff;
-  --bg-mid: #ffefdc;
-  --bg-bottom: #e0f3e0;
-  --accent: #3b7a9b;
-  --accent-dark: #003366;
-  --muted: #9aa6b2;
-  --text: #003366;
-  --danger: #cc0000;
-  --card-border: rgba(255,136,77,0.18);
-  --radius: 14px;
-  --max-sm: 720px;   /* increased width for the form/header */
-  --max-lg: 980px;   /* for very wide screens */
-  --page-padding: 40px;
-  --gap: 14px;
+/* ==============================
+   DESIGN TOKENS
+============================== */
+:root {
+  --bg-page: #eef3f8;
+  --card-bg: #ffffff;
+  --card-border: #c8d6e5;
+  --accent: #0a3d62;
+  --accent-bright: #1aa6b7;
+  --muted: #6c7a89;
+  --danger: #c0392b;
+  --radius-card: 16px;
+  --radius-input: 10px;
+  --page-padding: 24px;
 }
 
-/* base */
+/* ==============================
+   BASE
+============================== */
 *,
 *::before,
-*::after { box-sizing: border-box; }
-html, body {
-  height: 100%;
-  margin: 0;
-  font-family: Arial, sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  color: var(--text);
-  background-color: #d3d3ff;
-  /* background: linear-gradient(to bottom, var(--bg-top), var(--bg-mid), var(--bg-bottom)); */
-  overflow-x: hidden;
-  overflow-y: auto;
+*::after {
+  box-sizing: border-box;
 }
 
-/* Defensive: cancel transforms on ancestors that break stacking/flow */
-html, body, .container { transform: none !important; -webkit-transform: none !important; }
+html,
+body {
+  margin: 0;
+  height: 100%;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    sans-serif;
+  background: var(--bg-page);
+  color: var(--accent);
+  -webkit-font-smoothing: antialiased;
+}
 
-/* container */
-.container {
+.signup-page {
+  min-height: 100vh;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  padding: var(--page-padding);
-  gap: 22px;
-  min-height: 100vh;
-}
 
-/* header (non-sticky) */
-/* header and login-box share the same max width so they align */
-.header {
-  width: 100%;
-  max-width: var(--max-sm);
+ /* 🔹 New background image */
+  background-image: url("../assets/signup-bg.jpg");  /* 👈 path to your file */
+  background-repeat: no-repeat;
+  background-position: center top;
+  background-size: cover;
+
+}
+/* ==============================
+   GOV HEADER (same as login page)
+============================== */
+.gov-header {
+  width: 50%;
+  max-width: 1020px;
+  margin: 20px auto 0;
+  padding: 10px 60px 0;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 12px;
-  padding: 10px 14px;
-  border-radius: 10px;
-  background: rgba(255,255,255,0.92);
-  box-shadow: 0 8px 24px rgba(0,0,0,0.04);
-  margin-left: auto;
-  margin-right: auto;
+  color: #0a3d62;
 }
 
-/* logo group */
-.logo-group { display:flex; align-items:center; gap:12px; }
-.logo { width:44px; height:44px; object-fit:contain; cursor:pointer; border-radius:8px; }
-.gov-text { font-size: 14px; line-height:1; }
-.hindi { font-weight: 700; display:block; }
-.gov-text .english { color: var(--muted); font-size: 13px; }
-
-/* header controls */
-.right-controls { display:flex; gap:8px; align-items:center; }
-.right-controls .lang, .right-controls .access {
-  font-size: 16px; cursor: pointer; padding:6px; border-radius:6px;
-}
-.right-controls .lang:hover, .right-controls .access:hover { background: rgba(0,0,0,0.03); }
-
-/* login box (card) */
-.login-box {
-  background-color: #ffffff;
-  border: 1px solid var(--card-border);
-  border-radius: var(--radius);
-  padding: 28px;
-  width: 100%;
-  max-width: var(--max-sm);
-  box-shadow: 0 14px 40px rgba(10,20,30,0.06);
-  transition: transform .15s ease, box-shadow .15s ease;
-  margin-left: auto;
-  margin-right: auto;
-}
-
-@media (min-width: 1200px) {
-  .header, .login-box { max-width: var(--max-lg); }
-}
-
-/* title */
-.login-title {
-  text-align: left;
-  color: #003366;
-  margin: 0 0 16px;
-  font-weight: 700;
-  font-size: 1.3rem;
-}
-
-/* form layout */
-.form {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: var(--gap);
-}
-
-/* rows: grid becomes multi-column on wider screens */
-.form-row {
-  display: grid;
-  grid-template-columns: 1fr;
+.gov-left {
+  display: flex;
+  align-items: center;
   gap: 12px;
 }
 
-.name-row { grid-template-columns: 1fr; }
-.contact-row { grid-template-columns: 1fr; }
-.password-row { grid-template-columns: 1fr; }
-.location-row { grid-template-columns: 1fr; gap: 12px; }
+.gov-emblem {
+  width: 65px;
+  height: auto;
+  opacity: 0.9;
 
-@media (min-width: 700px) {
-  .form-row { grid-template-columns: repeat(2, 1fr); }
-  .name-row { grid-template-columns: repeat(3, 1fr); }
-  .location-row { grid-template-columns: repeat(3, 1fr); }
-  .password-row { grid-template-columns: repeat(2, 1fr); }
+  /* turn image to pure black */
+  filter: brightness(0) invert(0);
 }
 
-/* fields */
-.form-field { display:flex; flex-direction:column; min-width:0; }
-.form-field.full { grid-column: 1 / -1; }
+.gov-text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+}
 
-/* labels */
-label {
-  margin-bottom: 8px;
+.gov-hi {
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.gov-en {
   font-size: 14px;
-  color: var(--text);
+  font-weight: 600;
+  opacity: 0.8;
+}
+
+.gov-right {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  font-size: 18px;
   font-weight: 600;
 }
-.required { color: var(--danger); margin-left: 6px; }
 
-/* inputs / selects */
+.gov-font {
+  cursor: pointer;
+}
+
+.gov-access {
+  font-size: 20px;
+  cursor: pointer;
+}
+
+/* ==============================
+   MAIN CARD (FORM)
+============================== */
+/* keep your existing .login-box styles – it stays white */
+.login-box {
+  width: 100%;
+  max-width: 110px;
+  margin: 26px auto 0;
+  background: var(--card-bg);   /* white card on top of bg */
+  border-radius: var(--radius-card);
+  margin: 40px auto 60px;   /* TOP | left-right | bottom */
+  background: rgba(255, 255, 255, 0.88); /* optional slight blur */
+  backdrop-filter: blur(8px);
+  box-shadow: 0 14px 40px rgba(0, 0, 0, 0.08);
+}
+
+.login-box:hover {
+  border-color: var(--accent-bright);
+  box-shadow: 0 18px 45px rgba(26, 166, 183, 0.25);
+}
+
+/* header row inside card */
+.login-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 12px;
+}
+
+.login-title {
+  margin: 0 0 4px;
+  font-size: 1.8rem;
+  font-weight: 700;
+  /* color: #377ce4; */
+}
+
+.login-subtitle {
+  margin: 0;
+  font-size: 14px;
+  color: var(--muted);
+}
+
+.step-chip {
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: #e1faf2;
+  color: #1a936f;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+/* ==============================
+   FORM GRID
+============================== */
+.form {
+  display: grid;
+  grid-template-columns: 1fr;
+  row-gap: 14px;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr;
+  column-gap: 14px;
+  row-gap: 10px;
+}
+
+.form-field {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+.form-field.full {
+  grid-column: 1 / -1;
+}
+
+/* desktop layout */
+@media (min-width: 900px) {
+  .form-row.contact-row,
+  .form-row.password-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .form-row.location-row {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+/* ==============================
+   LABELS
+============================== */
+label {
+  font-size: 13px;
+  margin-bottom: 4px;
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.required {
+  color: var(--danger);
+  margin-left: 4px;
+}
+
+/* ==============================
+   INPUTS / SELECT / TEXTAREA
+============================== */
 input,
 select,
 textarea {
-  padding: 12px 14px;
-  border: 1px solid #003366;
-  border-radius: 12px;
-  outline: none;
   width: 100%;
-  font-size: 15px;
-  background: #fff;
-  transition: border-color .12s ease, box-shadow .12s ease, transform .06s ease;
-  height: 48px;
+  padding: 10px 12px;
+  font-size: 14px;
+  border-radius: var(--radius-input);
+  border: 1.5px solid #dfe6ec;
+  background: #f8fafc;
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease,
+    background-color 0.15s ease;
 }
 
-textarea { min-height: 110px; height: auto; padding-top: 12px; padding-bottom: 12px; }
+input,
+select {
+  height: 40px;
+}
+
+textarea#address {
+  min-height: 90px;
+  resize: vertical;
+}
 
 input:focus,
 select:focus,
 textarea:focus {
-  border-color: var(--accent);
-  box-shadow: 0 10px 30px rgba(255,102,0,0.08);
-  transform: translateY(-1px);
+  background-color: #ffffff;
+  border-color: var(--accent-bright);
+  box-shadow: 0 0 0 3px rgba(26, 166, 183, 0.18);
 }
 
-/* password eye button */
-.password-wrap { position: relative; }
+/* ==============================
+   PASSWORD EYE BUTTON
+============================== */
+.password-wrap {
+  position: relative;
+}
+
+.password-wrap input {
+  padding-right: 36px;
+}
+
 .eye-btn {
   position: absolute;
   right: 10px;
@@ -181,41 +269,171 @@ textarea:focus {
   border: none;
   cursor: pointer;
   font-size: 18px;
-  padding: 6px;
+  padding: 0;
 }
 
-/* radio group */
-.radio-wrap { display:flex; gap:12px; align-items:center; }
-.radio-wrap label { font-size: 14px; font-weight:500; color:var(--text); }
+/* ==============================
+   ERROR TEXT
+============================== */
+.error-text {
+  font-size: 12px;
+  color: var(--danger);
+  margin-top: 2px;
+}
 
-/* errors */
-.error-text { font-size: 13px; color: var(--danger); margin-top: 6px; }
+.error-text.full {
+  grid-column: 1 / -1;
+}
 
-/* submit */
+/* ==============================
+   SUBMIT BUTTON
+============================== */
 .submit-btn {
-  background:#673AB7 ;
-  color: #fff;
-  padding: 12px;
-  border-radius: 12px;
-  border: none;
-  cursor: pointer;
-  font-weight: 800;
-  font-size: 15px;
+  margin-top: 4px;
   width: 100%;
-  box-shadow: 0 12px 30px rgba(255,102,0,0.08);
-  transition: transform .12s ease, opacity .12s ease;
+  border-radius: 999px;
+  height: 44px;
+  border: none;
+  background: var(--accent-bright);
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease, transform 0.1s ease,
+    box-shadow 0.15s ease;
+  box-shadow: 0 10px 22px rgba(26, 166, 183, 0.3);
 }
-.submit-btn:hover:not(:disabled) { transform: translateY(-3px); }
-.submit-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
 
-/* footer */
-.footer { margin-top: 28px; text-align:center; color: var(--danger); }
-.chakra { width: 120px; margin-top: 10px; display:inline-block; }
+.submit-btn:hover:not(:disabled) {
+  background: #128a99;
+  transform: translateY(-2px);
+  box-shadow: 0 14px 26px rgba(26, 166, 183, 0.35);
+}
 
-/* small screens fine-tuning */
-@media (max-width: 600px) {
-  :root { --page-padding: 20px; }
-  .login-title { text-align:center; font-size: 1.15rem; }
-  .logo { width: 40px; height: 40px; }
-  .gov-text { font-size: 13px; }
+.submit-btn:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+/* ==============================
+   FOOTER
+============================== */
+/* ==============================
+   FULL GOV FOOTER (SEWADWAAR STYLE)
+============================== */
+.full-footer {
+  width: 100%;
+  background: #0d0d0d;
+  color: #ffffff;
+  padding: 40px 60px;
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr 1fr;
+  gap: 40px;
+  margin-top: 60px;
+  border-top: 1px solid #222;
+}
+
+.footer-section h4 {
+  margin-bottom: 12px;
+  font-size: 16px;
+  border-bottom: 1px solid #444;
+  padding-bottom: 4px;
+}
+
+.footer-section a {
+  display: block;
+  margin: 4px 0;
+  color: #d0d0d0;
+  text-decoration: none;
+  font-size: 14px;
+}
+
+.footer-section a:hover {
+  color: #ffffff;
+}
+
+.footer-logo {
+  height: 60px;           /* ⬆ increase height */
+  width: auto;            /* keep proportion */
+  margin-bottom: 16px;
+  object-fit: contain;
+}
+
+.footer-desc {
+  font-size: 14px;
+  line-height: 1.6;
+  color: #cccccc;
+}
+
+.footer-logos {
+  text-align: left;
+}
+
+.nic-logo {
+  width: 90px;
+  margin-bottom: 10px;
+}
+
+.digital-logo {
+  width: 90px;
+  margin-bottom: 10px;
+}
+
+.footer-section.footer-logos p {
+  font-size: 13px;
+  margin-top: 10px;
+  opacity: 0.8;
+}
+
+/* Responsive */
+@media(max-width: 800px) {
+  .full-footer {
+    grid-template-columns: 1fr 1fr;
+    text-align: center;
+  }
+
+  .footer-section {
+    align-items: center;
+  }
+}
+
+@media(max-width: 600px) {
+  .full-footer {
+    grid-template-columns: 1fr;
+    text-align: center;
+  }
+}
+/* ==============================
+   SMALL SCREENS
+============================== */
+@media (max-width: 640px) {
+  .hero-header {
+    padding: 12px 16px;
+  }
+
+  .hero-top {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  /* nav should stay left, not space-between */
+  .hero-nav {
+    justify-content: flex-start;
+  }
+
+  .login-box {
+    margin-top: 18px;
+    padding-inline: 16px;
+  }
+
+  .login-header-row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .login-header-row .login-title {
+  color: #1a4ed8 !important;
+}
 }

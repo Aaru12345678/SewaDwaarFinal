@@ -1,6 +1,15 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import {
+  fetchOrganizations,
+  fetchDepartmentsByOrg,
+  fetchServicesByDept,
+  fetchOfficers,
+} from "../services/api";
+import {getAppointmentsSummary} from '../services/api'
+
 import "../css/analytics.css";
 import { FaChartLine } from "react-icons/fa";
+import {getActiveDepartment} from "../services/api"
 import {
   ResponsiveContainer,
   LineChart,
@@ -47,8 +56,176 @@ const fullOfficerData = [
 const COLORS = ["#4e73df", "#1cc88a", "#36b9cc", "#f6c23e", "#e74a3b"];
 
 const Analytics = () => {
+  
   const [departmentFilter, setDepartmentFilter] = useState("All");
   const [officerFilter, setOfficerFilter] = useState("All");
+const [activeDepartmentCount, setActiveDepartmentCount] = useState(0);
+const [organizations, setOrganizations] = useState([]);
+  const [departments, setDepartments] = useState([]);
+  const [services, setServices] = useState([]);
+  const [officers, setOfficers] = useState([]);
+  const [appointments, setAppointments] = useState([]);
+  const [stats, setStats] = useState({
+    total: 0,
+    pending: 0,
+    approved: 0,
+    rejected: 0,
+    rescheduled: 0,
+    completed: 0
+  });
+  const [search, setSearch] = useState("");
+
+  // UI state
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [selectedOrg, setSelectedOrg] = useState(null);
+  const [selectedDept, setSelectedDept] = useState(null); // track expanded department
+  const [loading, setLoading] = useState(true);
+
+// useEffect(() => {
+//   const fetchActiveDepartments = async () => {
+//   try {
+//     const res = await getActiveDepartment();
+//     if (res.data.success) {
+//       setActiveDepartmentCount(res.data.data.active_departments);
+//     }
+//   } catch (err) {
+//     console.error("Failed to fetch active departments", err);
+//   }
+// };
+
+
+//   fetchActiveDepartments();
+// }, []);
+ useEffect(() => {
+    const loadDashboardData = async () => {
+      try {
+        // 1️⃣ Organizations
+        const { data: orgRes } = await fetchOrganizations();
+        const orgRows = Array.isArray(orgRes) ? orgRes : orgRes?.data || [];
+
+        const orgMapped = orgRows.map((o) => ({
+          id: o.organization_id ?? o.id,
+          name: o.organization_name ?? o.name,
+          status: o.is_active ? "Active" : "Inactive",
+        }));
+        setOrganizations(orgMapped);
+
+        // 2️⃣ Departments for each organization
+        let allDepartments = [];
+        let allServices = [];
+
+        const deptPromises = orgMapped.map((org) =>
+          fetchDepartmentsByOrg(org.id)
+        );
+        const deptResults = await Promise.all(deptPromises);
+
+        for (let i = 0; i < orgMapped.length; i++) {
+          const org = orgMapped[i];
+          const deptRes = deptResults[i];
+          const deptRows = Array.isArray(deptRes.data)
+            ? deptRes.data
+            : deptRes.data?.data || [];
+
+          const deptsForOrg = deptRows.map((d) => ({
+            id: d.department_id ?? d.id,
+            organizationId: org.id,
+            name: d.department_name ?? d.name,
+            status: d.is_active ? "Active" : "Inactive",
+          }));
+
+          allDepartments.push(...deptsForOrg);
+
+          // 3️⃣ Services for each department in this org
+          const srvPromises = deptsForOrg.map((dept) =>
+            fetchServicesByDept(org.id, dept.id)
+          );
+          const srvResults = await Promise.all(srvPromises);
+
+          srvResults.forEach((srvRes, idx) => {
+            const dept = deptsForOrg[idx];
+            const srvRows = Array.isArray(srvRes.data)
+              ? srvRes.data
+              : srvRes.data?.data || [];
+
+            const svcsForDept = srvRows.map((s) => ({
+              id: s.service_id ?? s.id,
+              organizationId: org.id,
+              departmentId: dept.id,
+              name: s.service_name ?? s.name,
+              status: s.is_active ? "Active" : "Inactive",
+            }));
+
+            allServices.push(...svcsForDept);
+          });
+        }
+
+        setDepartments(allDepartments);
+        setServices(allServices);
+
+        // 4️⃣ Officers (if your backend route exists)
+        try {
+          const { data: offRes } = await fetchOfficers();
+          const offRows = Array.isArray(offRes) ? offRes : offRes?.data || [];
+          console.log(offRows,"off")
+          const officersMapped = offRows.map((o) => ({
+            id: o.officer_id ?? o.id,
+            departmentId: o.department_id ?? o.departmentId ?? null,
+            name: o.full_name ?? o.name,
+            role: o.role ?? o.designation_name ?? "",
+            email: o.email ?? o.email_id,
+            status: o.is_active ? "Active" : "Inactive",
+          }));
+
+          setOfficers(officersMapped);
+        } catch (err) {
+          console.error("Error loading officers (optional):", err);
+          // if API not ready, keep officers empty instead of crashing
+        }
+      } catch (err) {
+        console.error("Error loading dashboard data:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadDashboardData();
+  }, []);
+
+
+
+  const filteredAppointments = appointments.filter((a) =>
+    a.visitor_name?.toLowerCase().includes(search.toLowerCase())
+  );
+  
+  
+    useEffect(() => {
+    fetchAppointments();
+  }, []);
+  
+  const fetchAppointments = async () => {
+    try {
+      const res = await getAppointmentsSummary();
+      console.log(res,"ress")
+      if (res.data.success) {
+        const data = res.data.data;
+  
+        // Stats
+        setStats({
+          total: data.total,
+          pending: data.pending,
+          approved: data.approved,
+          rejected: data.rejected,
+          rescheduled: data.rescheduled,
+          completed: data.completed
+        });
+  
+        // Appointment list
+        setAppointments(data.appointments || []);
+      }
+    } catch (error) {
+      console.error("Error fetching appointments", error);
+    }
+  };
 
   const trendData = fullTrendData;
   const deptData =
@@ -61,6 +238,9 @@ const Analytics = () => {
     officerFilter === "All"
       ? fullOfficerData
       : fullOfficerData.filter((d) => d.name === officerFilter);
+
+
+      
 
   return (
     <div className="analytics-roles-page">
@@ -102,14 +282,17 @@ const Analytics = () => {
         {/* Cards */}
         <div className="cards">
           <div className="card">
-            Total Appointments: {trendData.reduce((acc, cur) => acc + cur.value, 0)}
+            Total Appointments: {stats.total}
           </div>
           <div className="card">
             Walk-ins Today: {walkinData.find((d) => d.name === "Walk-in")?.value || 0}
           </div>
-          <div className="card">Active Departments: {deptData.length}</div>
           <div className="card">
-            Active Officers: {officerData.reduce((acc, cur) => acc + cur.value, 0)}
+  Active Departments: {departments.length}
+</div>
+
+          <div className="card">
+            Active Officers: {officers.length}
           </div>
         </div>
 

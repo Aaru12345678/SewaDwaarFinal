@@ -53,21 +53,20 @@ html, body {
 }
 
 .login-box {
-  background-color: #ffffff;
-  border: 1px solid #ff884d;
-  border-radius: 15px;
-  padding: 25px;
-  width: 100%;
-  max-width: 400px;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    background-color: #ffffff;
+    border: 1px solid cornflowerblue;
+    border-radius: 15px;
+    padding: 25px;
+    width: 100%;
+    max-width: 700px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
 .login-title {
-  text-align: center;
-  color: #ff6600;
-  margin-bottom: 20px;
+    text-align: center;
+    color: cornflowerblue;
+    margin-bottom: 20px;
 }
-
 .form {
   display: flex;
   flex-direction: column;

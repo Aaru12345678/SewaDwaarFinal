@@ -1,12 +1,14 @@
 import React, { useState } from "react";
 import { FaClock, FaCalendarAlt, FaEdit, FaTrash } from "react-icons/fa";
 import "../css/slotHoliday.css"; // reuse same CSS
+import { useNavigate } from "react-router-dom";
 
 const SlotConfig = () => {
   const [slots, setSlots] = useState([
     { id: 1, name: "Morning Slot", time: "09:00 - 12:00", department: "IT", capacity: 10, status: "Active" },
     { id: 2, name: "Afternoon Slot", time: "13:00 - 16:00", department: "HR", capacity: 8, status: "Inactive" },
   ]);
+const navigate = useNavigate();
 
   const [holidays, setHolidays] = useState([
     { id: 1, name: "Independence Day", date: "2025-08-15", description: "National Holiday" },
@@ -30,7 +32,13 @@ const SlotConfig = () => {
         <h1><FaClock /> Slot & Holiday Configuration</h1>
         <div>
           <button className="add-slot">Add Slot</button>
-          <button className="add-holiday">Add Holiday</button>
+         <button 
+  className="add-holiday"
+  onClick={() => navigate("/add/holiday")}
+>
+  Add Holiday
+</button>
+
         </div>
       </div>
 

@@ -1,44 +1,320 @@
-/* src/pages/AppointmentDetails.css */
+/* ===============================
+   PAGE WRAPPER
+================================ */
+.appointment-page {
+  min-height: calc(100vh - 60px);
+  background: #eef2f6;
+  padding: 40px 20px;
+  font-family: "Segoe UI", Roboto, Arial, sans-serif;
+}
 
-.appointment-details {
-  max-width: 500px;
-  margin: 40px auto;
-  padding: 20px 25px;
+/* ===============================
+   CARD
+================================ */
+.appointment-card {
+  max-width: 820px;
+  margin: auto;
   background: #ffffff;
-  border-radius: 10px;
-  box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.1);
-  font-family: Arial, sans-serif;
+  border-radius: 8px;
+  border: 1px solid #d6dbe1;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+  padding: 26px 30px;
+}
+
+/* ===============================
+   HEADER
+================================ */
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 3px solid #0b5ed7;
+  padding-bottom: 14px;
+  margin-bottom: 24px;
+}
+
+.card-header h2 {
+  font-size: 21px;
+  color: #0b3c5d;
+  margin: 0;
+  font-weight: 700;
+}
+
+.appt-id {
+  font-size: 13px;
   color: #333;
+  font-weight: 700;
+  background: #f1f4f8;
+  padding: 4px 10px;
+  border-radius: 4px;
 }
 
-.appointment-details h2 {
-  text-align: center;
-  margin-bottom: 20px;
-  color: #2c3e50;
+/* CANCELLED LABEL */
+.appt-id.cancelled-label {
+  background: #f8d7da;
+  color: #842029;
+  border-color: #f5c2c7;
 }
 
-.appointment-details p {
-  font-size: 16px;
-  margin: 10px 0;
-}
-
-.appointment-details strong {
-  color: #34495e;
-}
-
-.appointment-details button {
-  display: block;
-  margin: 20px auto 0;
-  padding: 10px 20px;
-  background-color: #3498db;
-  color: white;
+/* ===============================
+   SECTION TITLES
+================================ */
+.section-title {
   font-size: 15px;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: background 0.3s;
+  font-weight: 700;
+  color: #0b3c5d;
+  margin: 28px 0 12px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid #e0e5ec;
 }
 
-.appointment-details button:hover {
-  background-color: #2980b9;
+/* ===============================
+   DETAILS GRID
+================================ */
+.details-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 22px 32px;
+  background: #f8fafc;
+  padding: 20px;
+  border-radius: 6px;
+  border: 1px solid #e0e5ec;
+}
+
+.detail-item {
+  display: flex;
+  flex-direction: column;
+}
+
+.label {
+  font-size: 12px;
+  color: #5f6c7b;
+  margin-bottom: 3px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.value {
+  font-size: 15px;
+  color: #1f2933;
+  font-weight: 600;
+}
+
+/* ===============================
+   STATUS BADGE
+================================ */
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 16px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.6px;
+  border: 1px solid transparent;
+  margin-bottom: 18px;
+}
+
+.status-badge.pending {
+  background: #fff8e1;
+  color: #8a6d1d;
+  border-color: #f1d38a;
+}
+
+.status-badge.approved {
+  background: #e6f4ea;
+  color: #1e7e34;
+  border-color: #b7e1c1;
+}
+
+.status-badge.completed {
+  background: #f1f3f5;
+  color: #495057;
+  border-color: #d6d8db;
+}
+
+.status-badge.cancelled {
+  background: #f8d7da;
+  color: #842029;
+  border-color: #f5c2c7;
+}
+
+/* CANCELLED MESSAGE */
+.cancelled-msg {
+  color: #842029;
+  font-weight: 600;
+  margin-top: 12px;
+  font-size: 13px;
+}
+
+/* ===============================
+   STATUS TIMELINE
+================================ */
+.status-timeline {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 10px;
+}
+
+.timeline-step {
+  flex: 1;
+  text-align: center;
+  position: relative;
+  font-size: 12px;
+  font-weight: 600;
+  color: #9aa5b1;
+}
+
+.timeline-step::after {
+  content: "";
+  position: absolute;
+  top: 12px;
+  right: -50%;
+  width: 100%;
+  height: 2px;
+  background: #d6dbe1;
+}
+
+.timeline-step:last-child::after {
+  display: none;
+}
+
+.timeline-step .circle {
+  width: 12px;
+  height: 12px;
+  background: #d6dbe1;
+  border-radius: 50%;
+  margin: auto;
+  margin-bottom: 6px;
+}
+
+/* ACTIVE */
+.timeline-step.active {
+  color: #0b5ed7;
+}
+
+.timeline-step.active .circle {
+  background: #0b5ed7;
+}
+
+/* DONE */
+.timeline-step.done {
+  color: #198754;
+}
+
+.timeline-step.done .circle {
+  background: #198754;
+}
+
+/* GREYED TIMELINE FOR CANCELLED */
+.status-timeline.cancelled .timeline-step,
+.status-timeline.cancelled .timeline-step .circle {
+  color: #c0c0c0;
+  background: #d6dbe1;
+}
+
+.status-timeline.cancelled .timeline-step::after {
+  background: #d6dbe1;
+}
+
+/* ===============================
+   ACTION SECTION
+================================ */
+.action-section {
+  margin-top: 30px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+/* DISABLED ACTIONS WHEN CANCELLED */
+.action-section.cancelled {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+/* ===============================
+   QR BOX
+================================ */
+.qr-box {
+  text-align: center;
+}
+
+.qr-box p {
+  font-size: 12px;
+  font-weight: 600;
+  color: #555;
+  margin-bottom: 6px;
+}
+
+.qr-placeholder {
+  width: 90px;
+  height: 90px;
+  border: 2px dashed #b6c2d1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  color: #888;
+  background: #f8fafc;
+}
+
+/* ===============================
+   FOOTER BUTTONS
+================================ */
+.card-footer {
+  display: flex;
+  gap: 12px;
+}
+
+.back-btn {
+  padding: 8px 20px;
+  background: #0b5ed7;
+  color: #ffffff;
+  border: none;
+  border-radius: 4px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.back-btn:hover {
+  background: #084298;
+}
+
+.print-btn {
+  padding: 8px 18px;
+  background: #198754;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.print-btn:hover {
+  background: #146c43;
+}
+
+/* ===============================
+   PRINT CLEANUP
+================================ */
+@media print {
+  .back-btn {
+    display: none;
+  }
+
+  .appointment-page {
+    background: #fff;
+    padding: 0;
+  }
+
+  .appointment-card {
+    box-shadow: none;
+    border: none;
+  }
 }

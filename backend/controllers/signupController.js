@@ -1,7 +1,22 @@
 const pool = require('../db');
 require("dotenv").config(); // Ensure JWT_SECRET is loaded
-
+const nodemailer = require("nodemailer");
+const jwt = require("jsonwebtoken");
+const {verifyToken} = '../helpers/middleware'
 const bcrypt = require("bcrypt");
+
+// generate token:
+const generateToken = (user) => {
+  return jwt.sign(
+    {
+      user_id: user.out_user_id,
+      username: user.out_username,
+      role: user.out_role_code,
+    },
+    process.env.JWT_SECRET,
+    { expiresIn: process.env.JWT_EXPIRES_IN || "4h" }
+  );
+};
 
 // exports.insertVisitorSignup = async (req, res) => {
 //   try {
@@ -86,6 +101,7 @@ const fs = require("fs");
 
 // Multer setup for photo upload
 const multer = require("multer");
+const { sendMail } = require('../helpers/sendMail');
 
 // Folder to save uploaded photos
 const UPLOAD_DIR = path.join(__dirname, "../uploads/visitors");
@@ -358,6 +374,87 @@ const upload = multer({
 //   }
 // };
 
+// exports.insertVisitorSignup = async (req, res) => {
+//   try {
+//     const {
+//       full_name,
+//       email_id,
+//       mobile_no,
+//       gender,
+//       dob,
+//       state,
+//       division,
+//       district,
+//       taluka,
+//       pincode,
+//       password,
+//     } = req.body;
+
+//     if (!full_name || !password) {
+//       return res.status(400).json({
+//         success: false,
+//         message: "Full name and password are required",
+//       });
+//     }
+
+//     // Handle uploaded photo (via multer)
+//     const photo = req.file ? req.file.filename : null;
+
+//     // Hash password
+//     const hashedPassword = await bcrypt.hash(password, 10);
+
+//     // ✅ Call PostgreSQL function (12 params)
+//     const result = await pool.query(
+//       `SELECT * FROM register_visitor(
+//         $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12
+//       );`,
+//       [
+//         hashedPassword,                    // p_password_hash
+//         full_name?.trim().slice(0, 255),   // p_full_name
+//         gender?.charAt(0) || null,         // p_gender
+//         dob || null,                       // p_dob
+//         mobile_no?.trim() || null,         // p_mobile_no
+//         email_id?.trim() || null,          // p_email_id
+//         state?.trim() || null,             // p_state_code
+//         division?.trim() || null,          // p_division_code
+//         district?.trim() || null,          // p_district_code
+//         taluka?.trim() || null,            // p_taluka_code
+//         pincode?.trim() || null,           // p_pincode
+//         photo?.trim() || null              // p_photo
+//       ]
+//     );
+
+//     const row = result.rows[0];
+
+//     // Handle DB result
+//     if (!row || row.message !== "Registration successful") {
+//       return res.status(400).json({
+//         success: false,
+//         message: row?.message || "Failed to signup visitor",
+//       });
+//     }
+
+//     // ✅ Success response
+//     res.status(201).json({
+//       success: true,
+//       message: row.message,
+//       user_id: row.user_id,
+//       visitor_id: row.visitor_id,
+//     });
+
+//   } catch (error) {
+//     console.error("❌ Error in insertVisitorSignup:", error);
+//     res.status(500).json({
+//       success: false,
+//       message: "Failed to signup visitor",
+//       error: error.message,
+//     });
+//   }
+// };
+
+
+
+
 exports.insertVisitorSignup = async (req, res) => {
   try {
     const {
@@ -381,47 +478,58 @@ exports.insertVisitorSignup = async (req, res) => {
       });
     }
 
-    // Handle uploaded photo (via multer)
     const photo = req.file ? req.file.filename : null;
-
-    // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // ✅ Call PostgreSQL function (12 params)
+    // --- DB Insert ---
     const result = await pool.query(
-      `SELECT * FROM public.register_visitor(
+      `SELECT * FROM register_visitor(
         $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12
       );`,
       [
-        hashedPassword,                    // p_password_hash
-        full_name?.trim().slice(0, 255),   // p_full_name
-        gender?.charAt(0) || null,         // p_gender
-        dob || null,                       // p_dob
-        mobile_no?.trim() || null,         // p_mobile_no
-        email_id?.trim() || null,          // p_email_id
-        state?.trim() || null,             // p_state_code
-        division?.trim() || null,          // p_division_code
-        district?.trim() || null,          // p_district_code
-        taluka?.trim() || null,            // p_taluka_code
-        pincode?.trim() || null,           // p_pincode
-        photo?.trim() || null              // p_photo
+        hashedPassword,
+        full_name?.trim().slice(0, 255),
+        gender?.charAt(0) || null,
+        dob || null,
+        mobile_no?.trim() || null,
+        email_id?.trim() || null,
+        state?.trim() || null,
+        division?.trim() || null,
+        district?.trim() || null,
+        taluka?.trim() || null,
+        pincode?.trim() || null,
+        photo?.trim() || null,
       ]
     );
 
     const row = result.rows[0];
-
-    // Handle DB result
+    console.log(row)
     if (!row || row.message !== "Registration successful") {
       return res.status(400).json({
         success: false,
         message: row?.message || "Failed to signup visitor",
       });
     }
+    const name=row.full_name
+    const visitor_id = row.visitor_id;
+    const email =row.out_email_id
+    console.log(name,visitor_id,email)
+    // ===========================================================
+    // ✅ STEP 1: Send Email with Visitor ID
+    // ===========================================================
+    try {
+      sendMail(email,"Welcome to SevaDwaar",`Hi, ${name} Thank you registering your visitor id is ${visitor_id}`)
+      
+    } catch (emailError) {
+      console.error("Email sending failed:", emailError);
+    }
 
-    // ✅ Success response
+    // ===========================================================
+    // 🔚 FINAL RESPONSE
+    // ===========================================================
     res.status(201).json({
       success: true,
-      message: row.message,
+      message: "Registration successful. Visitor ID mailed!",
       user_id: row.user_id,
       visitor_id: row.visitor_id,
     });
@@ -436,15 +544,15 @@ exports.insertVisitorSignup = async (req, res) => {
   }
 };
 
-
 exports.login = async (req, res) => {
   const { username, password } = req.body;
 
   try {
-    // 1️⃣ Fetch user details by username
-    const result = await pool.query("SELECT * FROM get_user_by_username($1);", [username]);
-    const user = result.rows[0];
 
+    // 1️⃣ Fetch user details by username
+    const result = await pool.query("SELECT * FROM get_user_by_username2($1);", [username]);
+    const user = result.rows[0];
+   console.log(user,"localStorage.getItem")
     // 2️⃣ Check if user exists
     if (!user) {
       return res.status(404).json({
@@ -470,13 +578,24 @@ exports.login = async (req, res) => {
       });
     }
 
+
+// 👇 Generate Token
+    const token = generateToken(user);
+
+
+
     // 5️⃣ Success — return login info
     res.status(200).json({
       success: true,
       message: "Login successful",
+      token, // <-- send token to frontend
       user_id: user.out_user_id,
       username: user.out_username,
       role: user.out_role_code,
+      userstate_code: user.out_state_code,
+      userdivision_code: user.out_division_code,
+      userdistrict_code: user.out_district_code,
+      usertaluka_code: user.out_taluka_code,
     });
   } catch (error) {
     console.error("❌ Login error:", error);

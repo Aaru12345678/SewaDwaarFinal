@@ -1,11 +1,33 @@
-import React, { useState } from "react";
-import { Link } from "react-router-dom";
+import React, { useState,useEffect } from "react";
+import { Link,useNavigate } from "react-router-dom";
 import { FaHome, FaCalendarAlt, FaHistory, FaBell, FaUserCircle } from "react-icons/fa";
 import "../css/VisitorNavbar.css";
+import { toast } from "react-toastify";
 
 function VisitorNavbar({ fullName }) {
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const navigate=useNavigate();
+     const username = localStorage.getItem("username"); 
 
+const handleLogout = () => {
+    // Clear all session/local storage data
+    localStorage.removeItem("token");
+    localStorage.removeItem("user_id");
+    localStorage.removeItem("username");
+    localStorage.removeItem("role");
+    localStorage.removeItem("userstate_code");
+    localStorage.removeItem("userdivision_code");
+    localStorage.removeItem("userdistrict_code");
+    localStorage.removeItem("usertaluka_code");
+
+    // Redirect to login
+   navigate('/logout');
+  };
+  useEffect(()=>{if (!username) {
+      toast.error("Please log in first");
+      navigate("/login");
+      return;}},[username])
+  
   return (
     <nav className="navbar">
       <ul className="nav-links">
@@ -23,7 +45,9 @@ function VisitorNavbar({ fullName }) {
         {dropdownOpen && (
           <div className="dropdown">
             <Link to="/profile">My Profile</Link>
-            <Link to="/logout">Logout</Link>
+            <button className="logout-btn" onClick={handleLogout}>
+              Logout
+            </button>
           </div>
         )}
       </div>
