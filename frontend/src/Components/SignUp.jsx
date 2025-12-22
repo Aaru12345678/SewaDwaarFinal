@@ -30,7 +30,7 @@ export default function SignUp() {
     pincode: "",
     password: "",
     confirmPassword: "",
-    photo: "",
+    photo: null,
     state: "",
     division: "",
     district: "",
@@ -71,11 +71,7 @@ export default function SignUp() {
     setLoadingDivisions(true);
     const { data } = await getDivisions(stateCode);
     setLoadingDivisions(false);
-    if (!data) {
-      Swal.fire("Error", "Failed to load divisions.", "error");
-    } else {
-      setDivisions(data);
-    }
+    if (data) setDivisions(data);
   }, []);
 
   const fetchDistricts = useCallback(async (stateCode, divisionCode) => {
@@ -83,11 +79,7 @@ export default function SignUp() {
     setLoadingDistricts(true);
     const { data } = await getDistricts(stateCode, divisionCode);
     setLoadingDistricts(false);
-    if (!data) {
-      Swal.fire("Error", "Failed to load districts.", "error");
-    } else {
-      setDistricts(data);
-    }
+    if (data) setDistricts(data);
   }, []);
 
   const fetchTalukas = useCallback(async (stateCode, divisionCode, districtCode) => {
@@ -95,11 +87,7 @@ export default function SignUp() {
     setLoadingTalukas(true);
     const { data } = await getTalukas(stateCode, divisionCode, districtCode);
     setLoadingTalukas(false);
-    if (!data) {
-      Swal.fire("Error", "Failed to load talukas.", "error");
-    } else {
-      setTalukas(data);
-    }
+    if (data) setTalukas(data);
   }, []);
 
   useEffect(() => {
@@ -107,28 +95,17 @@ export default function SignUp() {
       setLoadingStates(true);
       const { data } = await getStates();
       setLoadingStates(false);
-      if (!data) {
-        Swal.fire("Error", "Failed to load states.", "error");
-      } else {
-        setStates(data);
-      }
+      if (data) setStates(data);
     })();
   }, []);
 
   /* ===================== AGE ===================== */
   const validateAge = (dobValue) => {
-    if (!dobValue) {
-      setIs18(true);
-      return true;
-    }
-
     const dobDate = new Date(dobValue);
     const today = new Date();
-
     let age = today.getFullYear() - dobDate.getFullYear();
     const m = today.getMonth() - dobDate.getMonth();
     if (m < 0 || (m === 0 && today.getDate() < dobDate.getDate())) age--;
-
     const valid = age >= 18;
     setIs18(valid);
     return valid;
@@ -152,7 +129,6 @@ export default function SignUp() {
         setErrors((e) => ({ ...e, photo: "Photo must be ≤ 200 KB." }));
         return;
       }
-
       setFormData((p) => ({ ...p, photo: file }));
       return;
     }
@@ -197,12 +173,39 @@ export default function SignUp() {
 
       return updated;
     });
+
+    /* INLINE VALIDATION */
+    if (name === "full_name" && !nameRegex.test(value)) {
+      setErrors((e) => ({ ...e, full_name: "Only alphabets allowed." }));
+    }
+    if (name === "email_id" && !emailRegex.test(value)) {
+      setErrors((e) => ({ ...e, email_id: "Invalid email format." }));
+    }
+    if (name === "mobile_no" && !mobileRegex.test(value)) {
+      setErrors((e) => ({ ...e, mobile_no: "Mobile must be 10 digits." }));
+    }
+    if (name === "pincode" && !pincodeRegex.test(value)) {
+      setErrors((e) => ({ ...e, pincode: "Pincode must be 6 digits." }));
+    }
   };
 
   /* ===================== FORM VALID ===================== */
   const isFormValid = useMemo(() => {
+    const required = [
+      "full_name",
+      "email_id",
+      "mobile_no",
+      "gender",
+      "dob",
+      "address",
+      "pincode",
+      "password",
+      "confirmPassword",
+      "photo",
+      "state",
+    ];
     return (
-      Object.values(formData).every((v) => v !== "" && v !== null) &&
+      required.every((f) => formData[f]) &&
       Object.values(errors).every((e) => !e) &&
       passwordMatch &&
       passwordStrength &&
@@ -216,7 +219,10 @@ export default function SignUp() {
     e.preventDefault();
 
     if (!isFormValid) {
-      Swal.fire("Error", "Please fix errors before submitting.", "error");
+      setErrors((e) => ({
+        ...e,
+        form: "Please correct the highlighted fields.",
+      }));
       return;
     }
 
@@ -257,7 +263,7 @@ export default function SignUp() {
           </option>
         ))
       : null;
-
+      
 return (
   <div className="signup-page">
 

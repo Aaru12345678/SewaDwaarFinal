@@ -40,7 +40,6 @@ const AppointmentList = () => {
   // ============================
   const handleCancel = async (id) => {
     try {
-      // SweetAlert2 prompt with textarea for reason
       const { value: reason, isConfirmed } = await Swal.fire({
         title: "Cancel Appointment",
         text: "Please provide a reason for cancelling:",
@@ -56,23 +55,15 @@ const AppointmentList = () => {
         },
       });
 
-      if (!isConfirmed) return; // User clicked cancel
+      if (!isConfirmed) return;
 
-      // Call API with reason
       const { data, error } = await cancelAppointment(id, reason);
 
-      if (error) {
-        console.error(error);
+      if (error || !data?.success) {
         Swal.fire("Error", "Failed to cancel appointment", "error");
         return;
       }
 
-      if (!data?.success) {
-        Swal.fire("Error", data?.message || "Unknown error", "error");
-        return;
-      }
-
-      // Update UI immediately (status only)
       setAppointments((prev) =>
         prev.map((appt) =>
           appt.appointment_id === id
@@ -83,8 +74,8 @@ const AppointmentList = () => {
 
       Swal.fire("Cancelled!", "Your appointment has been cancelled.", "success");
     } catch (err) {
-      console.error("Cancel appointment error:", err);
-      Swal.fire("Error", "Failed to cancel appointment due to server error", "error");
+      console.error(err);
+      Swal.fire("Error", "Server error while cancelling appointment", "error");
     }
   };
 
@@ -134,34 +125,55 @@ const AppointmentList = () => {
                   </td>
 
                   <td>
-                    {(appt.status === "pending" || appt.status === "approved") && (
-                      <>
-                        <button onClick={() => handleView(appt.appointment_id)}>View</button>
-                      </>
-                    )}
-
+                    {/* PENDING */}
                     {appt.status === "pending" && (
-                      <button onClick={() => handleCancel(appt.appointment_id)} style={{ marginLeft: "5px" }}>
-                        Cancel
-                      </button>
-                    )}
-
-                    {appt.status === "cancelled" && (
                       <>
-                        <button onClick={() => handleView(appt.appointment_id)}>View</button>
+                        <button onClick={() => handleView(appt.appointment_id)}>
+                          View
+                        </button>
                         <button
-                          disabled
-                          style={{ cursor: "not-allowed", opacity: 0.5, marginLeft: "5px" }}
+                          onClick={() => handleCancel(appt.appointment_id)}
+                          style={{ marginLeft: "5px" }}
                         >
                           Cancel
                         </button>
                       </>
                     )}
 
-                    {appt.status === "completed" && (
-                      <button onClick={() => handleView(appt.appointment_id)}>View Details</button>
+                    {/* APPROVED → VIEW PASS */}
+                    {appt.status === "approved" && (
+                      <button onClick={() => handleViewPass(appt.appointment_id)}>
+                        View Pass
+                      </button>
                     )}
 
+                    {/* CANCELLED */}
+                    {appt.status === "cancelled" && (
+                      <>
+                        <button onClick={() => handleView(appt.appointment_id)}>
+                          View
+                        </button>
+                        <button
+                          disabled
+                          style={{
+                            cursor: "not-allowed",
+                            opacity: 0.5,
+                            marginLeft: "5px",
+                          }}
+                        >
+                          Cancel
+                        </button>
+                      </>
+                    )}
+
+                    {/* COMPLETED */}
+                    {appt.status === "completed" && (
+                      <button onClick={() => handleView(appt.appointment_id)}>
+                        View Details
+                      </button>
+                    )}
+
+                    {/* REJECTED */}
                     {appt.status === "rejected" && <span>❌ Cancelled</span>}
                   </td>
                 </tr>
