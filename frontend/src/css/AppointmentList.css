@@ -2,6 +2,12 @@
   padding: 20px;
 }
 
+.cancelled-reason {
+  color: #d9534f; /* red for emphasis */
+  margin-top: 5px;
+  font-style: italic;
+}
+
 .appointment-table {
   width: 100%;
   border-collapse: collapse;

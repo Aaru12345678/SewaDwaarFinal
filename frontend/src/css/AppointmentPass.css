@@ -188,3 +188,16 @@
   color: red;
   font-weight: bold;
 }
+
+.back-btn {
+  padding: 8px 16px;
+  background-color: #595a96;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.back-btn:hover {
+  opacity: 0.9;
+}

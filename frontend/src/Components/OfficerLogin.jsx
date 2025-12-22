@@ -96,11 +96,11 @@ localStorage.setItem("username", data.username);
 
         <form className="form" onSubmit={handleOfficerLogin}>
           <label>
-            Officer ID<span className="required">*</span>
+            Officer ID/Email/Mobile no.<span className="required">*</span>
           </label>
           <input
             type="text"
-            placeholder="Enter Officer ID"
+            placeholder="Enter Officer ID/Email/Mobile no."
             value={username}
             onChange={(e) => setUsername(e.target.value)}
             required

@@ -1,13 +1,12 @@
-import React, { useState, useMemo, useRef } from "react"; 
+import React, { useState, useMemo, useRef } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { toast } from "react-toastify";
-import { login } from "../services/api";
+import { login, getVisitorDashboard } from "../services/api";
 import { AiOutlineEye, AiOutlineEyeInvisible } from "react-icons/ai";
 import "../css/Login.css";
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faUniversalAccess } from '@fortawesome/free-solid-svg-icons';
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faUniversalAccess } from "@fortawesome/free-solid-svg-icons";
 import logo from "../assets/emblem.png";
-import { getVisitorDashboard } from "../services/api"; // adjust the path
 
 export default function Login() {
   const navigate = useNavigate();
@@ -21,59 +20,63 @@ export default function Login() {
 
   const [superUserMode, setSuperUserMode] = useState(false);
   const [missingFields, setMissingFields] = useState({});
-  const [userCode, setUserCode] = useState(null);
 
   const isDisabled = useMemo(
     () => !username.trim() || !password.trim() || loading,
     [username, password, loading]
   );
 
-const handleSubmit = async (e) => {
-  e.preventDefault();
+  const handleSubmit = async (e) => {
+    e.preventDefault();
 
-  if (!username || !password) {
-    toast.error("Please enter username and password");
-    return;
-  }
-
-  setLoading(true);
-  setProgress(true);
-
-  try {
-    const payload = { username, password };
-    const { data } = await login(payload);
-console.log(data,"dataaa")
-    if (!data.success) {
-      toast.error(data.message || "Invalid credentials");
+    if (!username || !password) {
+      toast.error("Please enter username and password");
       return;
     }
 
-    // Save basic info
-    localStorage.setItem("visitor_id", data.visitor_id);
-    localStorage.setItem("user_id", data.user_id);
-    localStorage.setItem("username", data.username);
-    localStorage.setItem("role_code", data.role || "");
-    localStorage.setItem("userstate_code", data.userstate_code);
-    localStorage.setItem("userdivision_code", data.userdivision_code);
-    localStorage.setItem("userdistrict_code", data.userdistrict_code);
-    localStorage.setItem("usertaluka_code", data.usertaluka_code);
-    // localStorage.setItem("statecode",data.state_code)
-    // ✅ Fetch full_name from backend using your DB function
-    const dashboardRes = await getVisitorDashboard(data.username); // Call API endpoint that calls your DB function
-    const fullName = dashboardRes.data.full_name || data.username;
-    localStorage.setItem("fullName", fullName);
+    setLoading(true);
+    setProgress(true);
 
-    toast.success(`Welcome, ${fullName}!`);
-    navigate("/dashboard1");
-  } catch (err) {
-    console.error("Login error:", err);
-    toast.error("Something went wrong, try again.");
-  } finally {
-    setLoading(false);
-    setTimeout(() => setProgress(false), 400);
-  }
-};
+    try {
+      const payload = { username, password };
+      const { data } = await login(payload);
 
+      if (!data?.success) {
+        toast.error(data?.message || "Invalid credentials");
+        return;
+      }
+
+      // 🔐 Store session data
+      localStorage.setItem("visitor_id", data.visitor_id);
+      localStorage.setItem("user_id", data.user_id);
+      localStorage.setItem("username", data.username);
+      localStorage.setItem("role_code", data.role || "");
+      localStorage.setItem("userstate_code", data.userstate_code);
+      localStorage.setItem("userdivision_code", data.userdivision_code);
+      localStorage.setItem("userdistrict_code", data.userdistrict_code);
+      localStorage.setItem("usertaluka_code", data.usertaluka_code);
+
+      // 👤 Fetch & store full name (no alert)
+      try {
+        const dashboardRes = await getVisitorDashboard(data.username);
+        const fullName =
+          dashboardRes?.data?.full_name || data.username;
+        localStorage.setItem("fullName", fullName);
+      } catch (err) {
+        console.warn("Unable to fetch full name, using username");
+        localStorage.setItem("fullName", data.username);
+      }
+
+      // ✅ NO SUCCESS / WELCOME TOAST
+      navigate("/dashboard1");
+    } catch (err) {
+      console.error("Login error:", err);
+      toast.error("Something went wrong, try again.");
+    } finally {
+      setLoading(false);
+      setTimeout(() => setProgress(false), 400);
+    }
+  };
 
   return (
     <div className="container">
@@ -91,7 +94,11 @@ console.log(data,"dataaa")
         </div>
         <div className="right-controls">
           <span className="lang">अ/A</span>
-          <FontAwesomeIcon icon={faUniversalAccess} size="1x" className="access" />
+          <FontAwesomeIcon
+            icon={faUniversalAccess}
+            size="1x"
+            className="access"
+          />
         </div>
       </div>
 
@@ -107,11 +114,11 @@ console.log(data,"dataaa")
           {!superUserMode && (
             <>
               <label>
-                Username<span className="required">*</span>
+                Username/Email/Mobile no.<span className="required">*</span>
               </label>
               <input
                 type="text"
-                placeholder="Enter Username"
+                placeholder="Enter Username/Email/Mobile no."
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 required
@@ -164,7 +171,10 @@ console.log(data,"dataaa")
                   type={field.includes("email") ? "email" : "text"}
                   value={missingFields[field]}
                   onChange={(e) =>
-                    setMissingFields((prev) => ({ ...prev, [field]: e.target.value }))
+                    setMissingFields((prev) => ({
+                      ...prev,
+                      [field]: e.target.value,
+                    }))
                   }
                   required
                 />
@@ -176,7 +186,11 @@ console.log(data,"dataaa")
             className="submit-btn"
             disabled={isDisabled}
           >
-            {loading ? "Processing..." : superUserMode ? "Update Profile" : "Login"}
+            {loading
+              ? "Processing..."
+              : superUserMode
+              ? "Update Profile"
+              : "Login"}
           </button>
 
           {!superUserMode && (
@@ -199,10 +213,6 @@ console.log(data,"dataaa")
           )}
         </form>
       </div>
-
-      {/* <div className="footer">
-        <img src="/ashok-chakra.png" alt="Ashok Chakra" className="chakra" />
-      </div> */}
     </div>
   );
 }

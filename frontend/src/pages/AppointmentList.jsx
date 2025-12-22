@@ -1,10 +1,9 @@
-
-
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "../css/AppointmentList.css";
 import { getVisitorDashboard, cancelAppointment } from "../services/api";
 import VisitorNavbar from "./VisitorNavbar";
+import Swal from "sweetalert2";
 
 const AppointmentList = () => {
   const navigate = useNavigate();
@@ -24,7 +23,7 @@ const AppointmentList = () => {
       const { data, error } = await getVisitorDashboard(username);
 
       if (error) {
-        alert("Failed to fetch appointments");
+        Swal.fire("Error", "Failed to fetch appointments", "error");
       } else if (data && data.success) {
         setFullName(data.data.full_name || username);
         setAppointments(data.data.appointments || []);
@@ -40,26 +39,40 @@ const AppointmentList = () => {
   // Cancel Appointment
   // ============================
   const handleCancel = async (id) => {
-    const ok = window.confirm("Are you sure you want to cancel this appointment?");
-    if (!ok) return;
-
     try {
-      const { data, error } = await cancelAppointment(id);
+      // SweetAlert2 prompt with textarea for reason
+      const { value: reason, isConfirmed } = await Swal.fire({
+        title: "Cancel Appointment",
+        text: "Please provide a reason for cancelling:",
+        input: "textarea",
+        inputPlaceholder: "Enter cancelled reason...",
+        showCancelButton: true,
+        confirmButtonText: "Cancel Appointment",
+        cancelButtonText: "Keep Appointment",
+        inputValidator: (value) => {
+          if (!value) {
+            return "Reason is required!";
+          }
+        },
+      });
+
+      if (!isConfirmed) return; // User clicked cancel
+
+      // Call API with reason
+      const { data, error } = await cancelAppointment(id, reason);
 
       if (error) {
         console.error(error);
-        alert("Failed to cancel appointment");
+        Swal.fire("Error", "Failed to cancel appointment", "error");
         return;
       }
 
       if (!data?.success) {
-        alert(`Failed to cancel appointment: ${data?.message || "Unknown error"}`);
+        Swal.fire("Error", data?.message || "Unknown error", "error");
         return;
       }
 
-      alert("Appointment cancelled successfully!");
-
-      // Update UI immediately
+      // Update UI immediately (status only)
       setAppointments((prev) =>
         prev.map((appt) =>
           appt.appointment_id === id
@@ -67,9 +80,11 @@ const AppointmentList = () => {
             : appt
         )
       );
+
+      Swal.fire("Cancelled!", "Your appointment has been cancelled.", "success");
     } catch (err) {
       console.error("Cancel appointment error:", err);
-      alert("Failed to cancel appointment due to server error");
+      Swal.fire("Error", "Failed to cancel appointment due to server error", "error");
     }
   };
 
@@ -119,11 +134,16 @@ const AppointmentList = () => {
                   </td>
 
                   <td>
-                    {appt.status === "pending" && (
+                    {(appt.status === "pending" || appt.status === "approved") && (
                       <>
                         <button onClick={() => handleView(appt.appointment_id)}>View</button>
-                        <button onClick={() => handleCancel(appt.appointment_id)}>Cancel</button>
                       </>
+                    )}
+
+                    {appt.status === "pending" && (
+                      <button onClick={() => handleCancel(appt.appointment_id)} style={{ marginLeft: "5px" }}>
+                        Cancel
+                      </button>
                     )}
 
                     {appt.status === "cancelled" && (
@@ -136,10 +156,6 @@ const AppointmentList = () => {
                           Cancel
                         </button>
                       </>
-                    )}
-
-                    {appt.status === "approved" && (
-                      <button onClick={() => handleViewPass(appt.appointment_id)}>View Pass</button>
                     )}
 
                     {appt.status === "completed" && (

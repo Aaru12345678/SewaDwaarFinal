@@ -94,9 +94,9 @@ export const insertDepartments = (payload) =>
 export const getActiveDepartment = () =>
   safeRequest(api.get("/department/activedepartments"));
 
-// Cancel Appointment
-export const cancelAppointment = (id) =>
-  safeRequest(api.put(`/appointments/cancel/${id}`));
+
+export const cancelAppointment = (id, reason) =>
+  safeRequest(api.put(`/appointments/cancel/${id}`, { cancelled_reason: reason }));
 
 // =============================
 // ADMIN DASHBOARD (FETCH)

@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import "../css/AppointmentWizard.css"; // Link to basic CSS
 import { toast } from "react-toastify";
 import { Link } from "react-router-dom";
+import { getVisitorDashboard } from "../services/api";
 import { OfficerName,getOfficersByLocation,uploadAppointmentDocuments  } from "../services/api.jsx"; // ✅ Officer API
 import VisitorNavbar from "./VisitorNavbar.jsx";
 import {
@@ -21,9 +22,27 @@ const AppointmentWizard = () => {
 const [loadingOfficers, setLoadingOfficers] = useState(false);
   const [fullName, setFullName] = useState("");
 const [isMetric, setIsMetric] = useState(true); // Our condition state
+const username = localStorage.getItem("username");
+
 useEffect(() => {
-  setFullName(localStorage.getItem("fullName") || "");
-}, []);
+  const fetchVisitorName = async () => {
+    if (!username) return;
+
+    const { data, error } = await getVisitorDashboard(username);
+
+    if (error) {
+      console.error("Failed to fetch visitor dashboard");
+      return;
+    }
+
+    if (data?.success) {
+      setFullName(data.data.full_name || username);
+    }
+  };
+
+  fetchVisitorName();
+}, [username]);
+
 
   const [formData, setFormData] = useState({
     org_id: "",

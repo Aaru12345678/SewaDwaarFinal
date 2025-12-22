@@ -804,6 +804,18 @@ VALUES
 ('OF', 'Officer', 'अधिकारी', TRUE, '127.0.0.1', 'system'),
 ('HD', 'Helpdesk', 'सहायता डेस्क', TRUE, '127.0.0.1', 'system');
 
+INSERT INTO m_role (
+    role_code,
+    role_name,
+    role_name_ll,
+    is_active,
+    insert_ip,
+    insert_by
+)
+VALUES
+('VS', 'Visitor', 'नागरिक / अभ्यागत', TRUE, '127.0.0.1', 'system');
+
+
 ALTER TABLE m_designation ALTER COLUMN taluka_code DROP NOT NULL;
 INSERT INTO m_designation (
     designation_code,
@@ -1131,7 +1143,8 @@ $$ LANGUAGE plpgsql;
 
 CREATE OR REPLACE FUNCTION cancel_appointment(
     p_appointment_id VARCHAR,
-    p_cancelled_by VARCHAR DEFAULT 'visitor'
+    p_cancelled_by VARCHAR DEFAULT 'visitor',
+    p_cancelled_reason TEXT DEFAULT NULL
 )
 RETURNS JSON AS $$
 DECLARE
@@ -1141,6 +1154,7 @@ BEGIN
     -- 1️⃣ Update appointment → cancelled
     UPDATE appointments
     SET status = 'cancelled',
+        cancelled_reason = p_cancelled_reason,
         updated_date = NOW(),
         update_by = p_cancelled_by
     WHERE appointment_id = p_appointment_id
@@ -1168,7 +1182,8 @@ BEGIN
     ) VALUES (
         v_visitor_id,
         'Appointment Cancelled',
-        'You have cancelled your appointment ' || p_appointment_id,
+        'You have cancelled your appointment ' || p_appointment_id || 
+        COALESCE(' Reason: ' || p_cancelled_reason, ''),
         'warning'
     );
 
@@ -2360,7 +2375,8 @@ RETURNS TABLE (
     slot_time TIME,
     status VARCHAR,
     reschedule_reason TEXT,
-    qr_code_path VARCHAR
+    qr_code_path VARCHAR,
+    cancelled_reason TEXT           -- Added cancelled_reason
 )
 LANGUAGE plpgsql
 STABLE
@@ -2370,7 +2386,7 @@ BEGIN
     SELECT
         a.appointment_id,
         a.visitor_id,
-        vs.full_name AS visitor_name,         -- Visitor name added
+        vs.full_name AS visitor_name,
         a.organization_id,
         org.organization_name,
         a.department_id,
@@ -2384,9 +2400,10 @@ BEGIN
         a.slot_time,
         a.status,
         a.reschedule_reason,
-        a.qr_code_path
+        a.qr_code_path,
+        a.cancelled_reason             -- Include in select
     FROM appointments a
-    LEFT JOIN m_visitors_signup vs ON vs.visitor_id = a.visitor_id   -- join visitor table
+    LEFT JOIN m_visitors_signup vs ON vs.visitor_id = a.visitor_id
     LEFT JOIN m_organization org ON org.organization_id = a.organization_id
     LEFT JOIN m_department dept ON dept.department_id = a.department_id
     LEFT JOIN m_officers off ON off.officer_id = a.officer_id

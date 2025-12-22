@@ -1,21 +1,24 @@
 // controllers/appointmentController.js
 const pool = require("../db");
 
-// controllers/appointmentController.js
+// ============================
+// Cancel Appointment
+// ============================
 exports.cancelAppointment = async (req, res) => {
   try {
     const appointmentId = req.params.id;
+    const { cancelled_reason } = req.body || "";
 
+    // Call the PostgreSQL function with reason
     const result = await pool.query(
-      "SELECT cancel_appointment($1, $2) AS response",
-      [appointmentId, "visitor"]
+      "SELECT cancel_appointment($1, $2, $3) AS response",
+      [appointmentId, "visitor", cancelled_reason]
     );
 
     const dbResponse = result.rows[0].response;
 
     console.log("DB response:", dbResponse); // for debugging
 
-    // Treat any truthy value as success
     return res.json({
       success: !!dbResponse,
       message: dbResponse,
@@ -30,13 +33,15 @@ exports.cancelAppointment = async (req, res) => {
   }
 };
 
+// ============================
+// Get Appointments Summary
+// ============================
 exports.getAppointmentsSummary = async (req, res) => {
   try {
     const result = await pool.query(
       "SELECT get_appointments_summary() AS data;"
     );
 
-    // Function returns JSON
     const summary = result.rows[0]?.data;
 
     return res.status(200).json({
@@ -55,6 +60,9 @@ exports.getAppointmentsSummary = async (req, res) => {
   }
 };
 
+// ============================
+// Get Roles Summary
+// ============================
 exports.getRolesSummary = async (req, res) => {
   try {
     const result = await pool.query(
@@ -74,6 +82,9 @@ exports.getRolesSummary = async (req, res) => {
   }
 };
 
+// ============================
+// Get Appointment Details
+// ============================
 exports.getAppointmentDetails = async (req, res) => {
   const { appointmentId } = req.params;
 
@@ -90,9 +101,12 @@ exports.getAppointmentDetails = async (req, res) => {
       });
     }
 
+    // appointment now includes cancelled_reason
+    const appointment = result.rows[0];
+
     res.status(200).json({
       success: true,
-      data: result.rows[0],
+      data: appointment,
     });
   } catch (error) {
     console.error("❌ Error fetching appointment details:", error);

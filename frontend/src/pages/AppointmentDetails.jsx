@@ -1,15 +1,39 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import "../css/AppointmentDetails.css";
+import { getVisitorDashboard } from "../services/api";
+import VisitorNavbar from "./VisitorNavbar";
 
 const AppointmentDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
 
+  const username = localStorage.getItem("username");
+
+  const [fullName, setFullName] = useState("");
   const [appointment, setAppointment] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
+  // ============================
+  // Fetch Navbar User Info
+  // ============================
+  useEffect(() => {
+    const fetchUser = async () => {
+      if (!username) return;
+
+      const { data } = await getVisitorDashboard(username);
+      if (data?.success) {
+        setFullName(data.data.full_name || username);
+      }
+    };
+
+    fetchUser();
+  }, [username]);
+
+  // ============================
+  // Fetch Appointment Details
+  // ============================
   useEffect(() => {
     const fetchAppointmentDetails = async () => {
       try {
@@ -17,9 +41,11 @@ const AppointmentDetails = () => {
           `http://localhost:5000/api/appointments/${id}`
         );
         const result = await response.json();
+
         if (!response.ok) {
           throw new Error(result.message || "Failed to fetch details");
         }
+
         setAppointment(result.data);
       } catch (err) {
         setError(err.message);
@@ -34,111 +60,136 @@ const AppointmentDetails = () => {
   if (loading) return <p className="loading">Loading appointment details...</p>;
   if (error) return <p className="error">{error}</p>;
 
-  const isCancelled = appointment.status.toLowerCase() === "cancelled";
+  const isCancelled =
+    appointment.status.toLowerCase() === "cancelled" ||
+    appointment.status.toLowerCase() === "rejected";
 
   return (
-    <div className="appointment-page">
-      <div className="appointment-card">
+    <div>
+      {/* NAVBAR */}
+      <VisitorNavbar fullName={fullName} />
 
-        {/* Header */}
-        <div className="card-header">
-          <h2>Appointment Details</h2>
-          <span className={`appt-id ${isCancelled ? "cancelled-label" : ""}`}>
-            ID: {appointment.appointment_id}
-          </span>
-        </div>
+      <div className="appointment-page">
+        <div className="appointment-card">
 
-        {/* BASIC INFO */}
-        <h3 className="section-title">Basic Information</h3>
-        <div className="details-grid">
-          <div className="detail-item">
-            <span className="label">Officer</span>
-            <span className="value">{appointment.officer_name}</span>
-          </div>
-          <div className="detail-item">
-            <span className="label">Department</span>
-            <span className="value">{appointment.department_name}</span>
-          </div>
-          <div className="detail-item">
-            <span className="label">Organization</span>
-            <span className="value">{appointment.organization_name}</span>
-          </div>
-          <div className="detail-item">
-            <span className="label">Service</span>
-            <span className="value">{appointment.service_name}</span>
-          </div>
-        </div>
-
-        {/* SCHEDULE INFO */}
-        <h3 className="section-title">Schedule Details</h3>
-        <div className="details-grid">
-          <div className="detail-item">
-            <span className="label">Appointment Date</span>
-            <span className="value">
-              {new Date(appointment.appointment_date).toLocaleDateString("en-IN")}
+          {/* Header */}
+          <div className="card-header">
+            <h2>Appointment Details</h2>
+            <span className={`appt-id ${isCancelled ? "cancelled-label" : ""}`}>
+              ID: {appointment.appointment_id}
             </span>
           </div>
-          <div className="detail-item">
-            <span className="label">Time Slot</span>
-            <span className="value">{appointment.slot_time}</span>
+
+          {/* BASIC INFO */}
+          <h3 className="section-title">Basic Information</h3>
+          <div className="details-grid">
+            <div className="detail-item">
+              <span className="label">Officer</span>
+              <span className="value">{appointment.officer_name}</span>
+            </div>
+            <div className="detail-item">
+              <span className="label">Department</span>
+              <span className="value">{appointment.department_name}</span>
+            </div>
+            <div className="detail-item">
+              <span className="label">Organization</span>
+              <span className="value">{appointment.organization_name}</span>
+            </div>
+            <div className="detail-item">
+              <span className="label">Service</span>
+              <span className="value">{appointment.service_name}</span>
+            </div>
           </div>
-        </div>
 
-        {/* STATUS INFO */}
-        <h3 className="section-title">Status Information</h3>
-        <div className="status-container">
-          <span className={`status-badge ${appointment.status.toLowerCase()}`}>
-            {appointment.status.toUpperCase()}
-          </span>
-
-          {!isCancelled && (
-            <div className="status-timeline">
-              <div className={`timeline-step active`}>
-                <div className="circle"></div>
-                <span>Pending</span>
-              </div>
-              <div
-                className={`timeline-step ${
-                  appointment.status !== "pending" ? "active" : ""
-                }`}
-              >
-                <div className="circle"></div>
-                <span>Approved</span>
-              </div>
-              <div
-                className={`timeline-step ${
-                  appointment.status === "completed" ? "active" : ""
-                }`}
-              >
-                <div className="circle"></div>
-                <span>Completed</span>
-              </div>
+          {/* SCHEDULE INFO */}
+          <h3 className="section-title">Schedule Details</h3>
+          <div className="details-grid">
+            <div className="detail-item">
+              <span className="label">Appointment Date</span>
+              <span className="value">
+                {new Date(appointment.appointment_date).toLocaleDateString("en-IN")}
+              </span>
             </div>
-          )}
+            <div className="detail-item">
+              <span className="label">Time Slot</span>
+              <span className="value">{appointment.slot_time}</span>
+            </div>
+          </div>
 
-          {isCancelled && (
-            <p className="cancelled-msg">This appointment has been cancelled.</p>
-          )}
-        </div>
+          {/* STATUS INFO */}
+          <h3 className="section-title">Status Information</h3>
+          <div className="status-container">
+            <span className={`status-badge ${appointment.status.toLowerCase()}`}>
+              {appointment.status.toUpperCase()}
+            </span>
 
-        {/* QR + ACTIONS */}
-        {!isCancelled && (
+            {!isCancelled && (
+              <div className="status-timeline">
+                <div className="timeline-step active">
+                  <div className="circle"></div>
+                  <span>Pending</span>
+                </div>
+
+                <div
+                  className={`timeline-step ${
+                    appointment.status !== "pending" ? "active" : ""
+                  }`}
+                >
+                  <div className="circle"></div>
+                  <span>Approved</span>
+                </div>
+
+                <div
+                  className={`timeline-step ${
+                    appointment.status === "completed" ? "active" : ""
+                  }`}
+                >
+                  <div className="circle"></div>
+                  <span>Completed</span>
+                </div>
+              </div>
+            )}
+
+            {isCancelled && (
+              <div className="cancelled-info">
+                <p className="cancelled-msg">
+                  This appointment has been cancelled.
+                </p>
+                {appointment.cancelled_reason && (
+                  <p className="cancelled-reason">
+                    <strong>Reason:</strong> {appointment.cancelled_reason}
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* ACTIONS */}
           <div className="action-section">
-            <div className="qr-box">
-              <p>Appointment QR</p>
-              <div className="qr-placeholder">QR</div>
-            </div>
+            {/* Always show back button */}
             <div className="action-buttons">
               <button className="back-btn" onClick={() => navigate(-1)}>
                 ← Back
               </button>
-              <button className="print-btn" onClick={() => window.print()}>
-                🖨 Print Slip
-              </button>
-            </div>
-          </div>
-        )}
 
+              {/* Only show print button if not cancelled */}
+              {!isCancelled && (
+                <button className="print-btn" onClick={() => window.print()}>
+                  🖨 Print Slip
+                </button>
+              )}
+            </div>
+
+            {/* QR section only if not cancelled */}
+            {!isCancelled && (
+              <div className="qr-box">
+                <p>Appointment QR</p>
+                <div className="qr-placeholder">QR</div>
+              </div>
+            )}
+          </div>
+
+        </div>
       </div>
     </div>
   );

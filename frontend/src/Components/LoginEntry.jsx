@@ -22,9 +22,9 @@ export default function LoginEntry() {
     return () => (document.body.style.background = "");
   }, []);
 
-  const openContinue = () => {
-    if (!selectedRole) return;
-    navigate(`/login/${selectedRole}`);
+  const handleRoleSelect = (role) => {
+    setSelectedRole(role);
+    navigate(`/login/${role}`);
     setShowModal(false);
   };
 
@@ -84,7 +84,7 @@ export default function LoginEntry() {
               {/* Officer */}
               <div
                 className={`modal-tile ${selectedRole === "officerlogin" ? "active" : ""}`}
-                onClick={() => setSelectedRole("officerlogin")}
+                onClick={() => handleRoleSelect("officerlogin")}
               >
                 <div className="tile-title">Employee / Staff Login</div>
                 <div className="tile-sub">For Govt Employees</div>
@@ -93,7 +93,7 @@ export default function LoginEntry() {
               {/* Admin */}
               <div
                 className={`modal-tile ${selectedRole === "adminlogin" ? "active" : ""}`}
-                onClick={() => setSelectedRole("adminlogin")}
+                onClick={() => handleRoleSelect("adminlogin")}
               >
                 <div className="tile-title">Admin</div>
                 <div className="tile-sub">Admin & Management</div>
@@ -102,7 +102,7 @@ export default function LoginEntry() {
               {/* Visitor */}
               <div
                 className={`modal-tile ${selectedRole === "visitorlogin" ? "active" : ""}`}
-                onClick={() => setSelectedRole("visitorlogin")}
+                onClick={() => handleRoleSelect("visitorlogin")}
               >
                 <div className="tile-title">Citizen / Visitor Login</div>
                 <div className="tile-sub">For Citizens & Visitors</div>
@@ -111,7 +111,7 @@ export default function LoginEntry() {
               {/* Helpdesk */}
               <div
                 className={`modal-tile ${selectedRole === "helpdesklogin" ? "active" : ""}`}
-                onClick={() => setSelectedRole("helpdesklogin")}
+                onClick={() => handleRoleSelect("helpdesklogin")}
               >
                 <div className="tile-title">Helpdesk Support Login</div>
                 <div className="tile-sub">Support & Assistance</div>
@@ -121,13 +121,6 @@ export default function LoginEntry() {
             <div className="modal-actions">
               <button className="modal-cancel" onClick={() => setShowModal(false)}>
                 Cancel
-              </button>
-
-              <button
-                className={`modal-continue ${selectedRole ? "enabled" : ""}`}
-                onClick={openContinue}
-              >
-                Continue
               </button>
             </div>
           </div>
