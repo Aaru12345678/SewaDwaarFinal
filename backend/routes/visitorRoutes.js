@@ -4,9 +4,10 @@ const visitorController = require("../controllers/visitorController");
 const multer = require("multer");
 const path = require("path");
 const fs = require("fs");
-
+const { verifyToken } = require("../helpers/middleware");
 const UPLOAD_DIR = path.join(__dirname, "../uploads");
 if (!fs.existsSync(UPLOAD_DIR)) fs.mkdirSync(UPLOAD_DIR, { recursive: true });
+// const verifyToken=require("../helpers/middleware")
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
@@ -39,5 +40,17 @@ router.put(
 );
 
 router.put("/change-password/:visitor_id", visitorController.changePassword);
+// unread notifications count:
+router.get(
+  "/notifications/unreadcount",
+  visitorController.getUnreadNotificationCount
+);
+
+router.put(
+  "/visitor/notifications/mark-read",
+  verifyToken,
+  visitorController.markNotificationsAsRead
+);
+
 
 module.exports = router;

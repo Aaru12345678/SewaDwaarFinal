@@ -18,6 +18,15 @@ const safeRequest = async (request) => {
   }
 };
 
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem("token");
+  console.log(token)
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
 // ================= LOCATION DATA =================
 export const getStates = () => safeRequest(api.get("/states"));
 export const getDivisions = (stateCode) => safeRequest(api.get(`/divisions/${stateCode}`));
@@ -27,6 +36,10 @@ export const getTalukas = (stateCode, divisionCode, districtCode) =>
   safeRequest(api.get("/talukas", { params: { state_code: stateCode, division_code: divisionCode, district_code: districtCode } }));
 export const getDesignations = () => safeRequest(api.get("/designations"));
 export const getOrganization = () => safeRequest(api.get("/organization"));
+export const getOrganizationbyLocation = (params) =>
+  safeRequest(
+    api.get("/organizationbylocation", { params })
+  );
 export const getDepartment = (organization_id) => safeRequest(api.get(`/department/${organization_id}`));
 export const getServices = (organization_id, department_id) =>
   safeRequest(api.get(`/services/${organization_id}/${department_id}`));
@@ -40,6 +53,7 @@ export const login = (payload) => safeRequest(api.post("/login", payload));
 export const registerUserByRole = (payload) => safeRequest(api.post("/users_signup", payload)); // ✅ Main officer registration
 export const userLogin = (payload) => safeRequest(api.post("/users_login", payload));
 export const adminLoginAPI = (payload) => safeRequest(api.post("/admins_login", payload));
+export const changePassword=(payload)=>safeRequest(api.post("/change-password",payload));
 // in api.jsx
 export const officerLogin = (payload) => safeRequest(api.post("/users_login", payload));
 
@@ -65,8 +79,18 @@ export const getVisitorProfile = (username) =>
 export const updateVisitorProfile = (username,payload) =>
   safeRequest(api.put(`/visitor/profile/${username}`,payload,{ headers: { "Content-Type": "multipart/form-data" } }));
 
-export const changePassword = (username) =>
-  safeRequest(api.put(`/visitor/change-password/${username}`));
+// export const changePassword = (username) =>
+//   safeRequest(api.put(`/visitor/change-password/${username}`));
+
+export const getUnreadNotificationCount = (username) =>
+  safeRequest(
+    api.get(`/visitor/notifications/unreadcount`, {
+      params: { username },
+    })
+  );
+export const markNotificationsAsRead = () =>
+  safeRequest(api.put("/visitor/notifications/mark-read"));
+
 
 
 // ============ BOOK APPOINTMENT ==============

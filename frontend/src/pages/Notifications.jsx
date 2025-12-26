@@ -2,8 +2,17 @@ import React, { useEffect, useState } from "react";
 import "../css/Notifications.css";
 import { getVisitorDashboard } from "../services/api";
 import VisitorNavbar from "./VisitorNavbar"; // ✅ import navbar
+import Header from '../Components/Header';
+import NavbarMain from '../Components/NavbarMain';
+import Footer from '../Components/Footer';
+import './MainPage.css';
+import NavbarTop from '../Components/NavbarTop';
+import { useNavigate } from "react-router-dom";
+
 
 const Notifications = () => {
+    const navigate = useNavigate();
+  
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
   const username = localStorage.getItem("username"); 
@@ -39,12 +48,26 @@ const Notifications = () => {
   if (loading) return <p>Loading notifications...</p>;
 
   return (
-    <div>
+    <>
       {/* ✅ Add VisitorNavbar */}
-        <VisitorNavbar fullName={fullName} />
+        <div className="fixed-header">
+        <NavbarTop/>
+        <Header />
+      <VisitorNavbar fullName={fullName} />
+        
+      </div>
+<div className="main-layout">
+  <div className="content-below">
 
       <div className="notifications-container">
-        <h2>🔔 Notifications</h2>
+        
+    <h2><span
+    
+  >
+    <button className="back-btn" onClick={() => navigate(-1)}>
+                ← Back
+              </button>
+  </span>🔔 Notifications</h2>
         {notifications.length === 0 ? (
           <p className="empty">No notifications yet.</p>
         ) : (
@@ -60,7 +83,8 @@ const Notifications = () => {
           </ul>
         )}
       </div>
-    </div>
+      </div></div>
+    </>
   );
 };
 

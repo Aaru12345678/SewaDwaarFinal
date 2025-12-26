@@ -46,6 +46,23 @@ body {
   background-size: cover;
 
 }
+
+.signup-title-row {
+  display: flex;
+  align-items: center;
+  gap: 149px;
+}
+
+.back-icon {
+  font-size: 20px;
+  cursor: pointer;
+  color: #4a4a4a;
+  user-select: none;
+}
+
+.back-icon:hover {
+  color: #000;
+}
 /* ==============================
    GOV HEADER (same as login page)
 ============================== */

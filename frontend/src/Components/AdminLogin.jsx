@@ -84,6 +84,13 @@ export default function AdminLogin() {
       </div>
 
       <div ref={boxRef} className="login-box">
+        <span
+    
+  >
+    <button className="back-btn" onClick={() => navigate(-1)}>
+                ← Back
+              </button>
+  </span>
         <h2 className="login-title">Admin Login</h2>
 
         <form className="form" onSubmit={handleAdminLogin}>

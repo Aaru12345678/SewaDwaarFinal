@@ -4,6 +4,12 @@ import "../css/AppointmentList.css";
 import { getVisitorDashboard, cancelAppointment } from "../services/api";
 import VisitorNavbar from "./VisitorNavbar";
 import Swal from "sweetalert2";
+import Header from '../Components/Header';
+import NavbarMain from '../Components/NavbarMain';
+import Footer from '../Components/Footer';
+import './MainPage.css';
+import NavbarTop from '../Components/NavbarTop';
+
 
 const AppointmentList = () => {
   const navigate = useNavigate();
@@ -85,11 +91,24 @@ const AppointmentList = () => {
   if (loading) return <p>Loading appointments...</p>;
 
   return (
-    <div>
+    <>
+      <div className="fixed-header">
+        <NavbarTop/>
+        <Header />
       <VisitorNavbar fullName={fullName} />
+        
+      </div>
+<div className="main-layout">
+  <div className="content-below">
 
       <div className="appointment-list-container">
-        <h2>📅 My Appointments</h2>
+        <h2><span>    
+          <button className="back-btn" onClick={() => navigate(-1)}>
+                ← Back
+          </button>
+        </span>
+        📅 My Appointments
+        </h2>
 
         <table className="appointment-table">
           <thead>
@@ -113,7 +132,7 @@ const AppointmentList = () => {
               appointments.map((appt) => (
                 <tr key={appt.appointment_id}>
                   <td>{appt.appointment_id}</td>
-                  <td>{appt.officer_name}</td>
+                  <td>{appt.officer_name || "Helpdesk" }</td>
                   <td>{appt.department_name}</td>
                   <td>{appt.service_name}</td>
                   <td>
@@ -182,7 +201,8 @@ const AppointmentList = () => {
           </tbody>
         </table>
       </div>
-    </div>
+      </div></div>
+    </>
   );
 };
 

@@ -608,4 +608,62 @@ exports.login = async (req, res) => {
 };
 
 
+exports.changePassword = async (req, res) => {
+  try {
+    const { user_id, old_password, new_password } = req.body;
+
+    if (!user_id || !old_password || !new_password) {
+      return res.status(400).json({
+        success: false,
+        message: "All fields are required"
+      });
+    }
+
+    // Get existing password hash
+    const userResult = await pool.query(
+      "SELECT password_hash FROM m_users WHERE user_id = $1",
+      [user_id]
+    );
+
+    if (userResult.rowCount === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found"
+      });
+    }
+
+    const isMatch = await bcrypt.compare(
+      old_password,
+      userResult.rows[0].password_hash
+    );
+
+    if (!isMatch) {
+      return res.status(401).json({
+        success: false,
+        message: "Old password is incorrect"
+      });
+    }
+
+    // Hash new password
+    const newPasswordHash = await bcrypt.hash(new_password, 10);
+
+    await pool.query(
+      "UPDATE m_users SET password_hash = $1, updated_date = CURRENT_TIMESTAMP WHERE user_id = $2",
+      [newPasswordHash, user_id]
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: "Password changed successfully"
+    });
+
+  } catch (error) {
+    console.error("Change password error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error"
+    });
+  }
+};
+
 

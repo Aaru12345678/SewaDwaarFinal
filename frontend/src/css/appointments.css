@@ -6,6 +6,7 @@
   width: 100%;
   border-collapse: collapse;
   margin-top: 20px;
+  background-color: #ffffff;
 }
 
 .appointment-table th,
@@ -16,7 +17,7 @@
 }
 
 .appointment-table thead th {
-  background-color: #595a96;
+  background-color: #2b3a67;
   color: #ffffff; /* white text */
   text-align: left;
 }

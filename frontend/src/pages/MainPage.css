@@ -8,10 +8,21 @@ html, body, #root {
   display: flex;
   flex-direction: column;
   min-height: 100vh; /* Full viewport height */
-  background:#e6e6fa ;
+  /* background:#e6e6fa ; */
+  background:
+  linear-gradient(
+    rgba(240, 241, 243, 0.65),
+    rgba(249, 250, 252, 0.65)
+  ),
+  url("../assets/dashboard-bg.jpg");
+
+background-size: cover;
+background-position: center;
+background-attachment: fixed;
+
 }
 
 .content-below {
   flex: 1; /* Push footer down */
-  padding: 20px;
+  padding: 0px;
 }

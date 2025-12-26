@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { toast } from 'react-toastify';
 import { useNavigate } from 'react-router-dom';
-import { changePassword } from '../services/api1';
+import { changePassword } from '../services/api';
 import SHA256 from 'crypto-js/sha256';
 
 export default function ChangePassword() {
@@ -20,26 +20,30 @@ export default function ChangePassword() {
 
     const passwordRegex = /^(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*]).{8,}$/;
     if (!passwordRegex.test(newPassword)) {
-      toast.error("Password must be 8+ characters with 1 uppercase, 1 digit, and 1 special character.");
+      toast.error(
+        "Password must be 8+ characters with 1 uppercase, 1 digit, and 1 special character."
+      );
       return;
     }
 
-    const token = localStorage.getItem("token");
-    if (!token) {
+    // const token = localStorage.getItem("token");
+    const user_id = localStorage.getItem("user_id");
+
+    if ( !user_id) {
       toast.error("User session expired. Please login again.");
+      localStorage.clear();
       navigate("/login");
       return;
     }
 
-    
-
-    // Hash old password entered by user
+    // Hash passwords
     const hashedOldPassword = SHA256(oldPassword.trim()).toString();
     const hashedNewPassword = SHA256(newPassword.trim()).toString();
 
     const payload = {
+      user_id,
       old_password: hashedOldPassword,
-      new_password: hashedNewPassword,
+      new_password: hashedNewPassword
     };
 
     const { data, error } = await changePassword(payload);
@@ -52,7 +56,8 @@ export default function ChangePassword() {
       navigate("/login");
     }
   };
-
+console.log(oldPassword,"olddd")
+console.log(newPassword,"newpassword")
   return (
     <div className="container">
       <div className="login-box">
@@ -82,7 +87,9 @@ export default function ChangePassword() {
             required
           />
 
-          <button type="submit" className="submit-btn">Change Password</button>
+          <button type="submit" className="submit-btn">
+            Change Password
+          </button>
         </form>
       </div>
     </div>

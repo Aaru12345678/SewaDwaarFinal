@@ -149,7 +149,7 @@ const filteredWalkins = walkins.filter((w) =>
     </td>
     <td>{app.appointment_date}</td>
     <td>{app.slot_time}</td>
-    <td>{app.officer_name}</td>
+    <td>{app.officer_name || "Helpdesk"}</td>
     <td className={`status ${app.status}`}>
       {app.status}
     </td>

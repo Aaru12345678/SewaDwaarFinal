@@ -1,5 +1,6 @@
 .wizard-container {
   max-width: 650px;
+  /* height: 100vh; */
   margin: auto;
   padding: 20px;
   background: #fff;

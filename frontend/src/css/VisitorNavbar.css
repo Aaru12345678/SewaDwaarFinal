@@ -2,7 +2,7 @@
   position: sticky;
   top: 0;
   width: 100%;
-  background: #ffffff;
+  color: #ffffff;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -26,7 +26,7 @@
 
 .nav-links li a {
   text-decoration: none;
-  color: #333;
+  color: white;
   font-weight: 500;
   display: flex;
   align-items: center;
@@ -55,7 +55,8 @@
 }
 
 .profile:hover {
-  background: #f5f5f5;
+   background-color:#595a96;  /* Background on hover */
+  color: #fdbc08;   
 }
 
 .profile-icon {
@@ -86,4 +87,26 @@
 .dropdown a:hover {
   background: #f5f5f5;
   color: #007bff;
+}
+.bell-active {
+  animation: bell-shake 0.4s ease;
+}
+
+@keyframes bell-shake {
+  0% { transform: rotate(0); }
+  25% { transform: rotate(15deg); }
+  50% { transform: rotate(-15deg); }
+  75% { transform: rotate(10deg); }
+  100% { transform: rotate(0); }
+}
+
+.notification-badge {
+    position: absolute;
+    top: 20px;
+    right:960px;
+    background: red;
+    color: white;
+    font-size: 11px;
+    border-radius: 50%;
+    padding: 2px 6px;
 }

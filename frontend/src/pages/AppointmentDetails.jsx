@@ -3,6 +3,9 @@ import { useParams, useNavigate } from "react-router-dom";
 import "../css/AppointmentDetails.css";
 import { getVisitorDashboard } from "../services/api";
 import VisitorNavbar from "./VisitorNavbar";
+import NavbarTop from '../Components/NavbarTop';
+import Header from '../Components/Header';
+import './MainPage.css';
 
 const AppointmentDetails = () => {
   const { id } = useParams();
@@ -65,9 +68,16 @@ const AppointmentDetails = () => {
     appointment.status.toLowerCase() === "rejected";
 
   return (
-    <div>
+    <>
       {/* NAVBAR */}
+      <div className="fixed-header">
+        <NavbarTop/>
+        <Header />
       <VisitorNavbar fullName={fullName} />
+        
+      </div>
+      <div className="main-layout">
+  <div className="content-below">
 
       <div className="appointment-page">
         <div className="appointment-card">
@@ -191,7 +201,9 @@ const AppointmentDetails = () => {
 
         </div>
       </div>
-    </div>
+      </div>
+      </div>
+    </>
   );
 };
 

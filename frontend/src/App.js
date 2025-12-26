@@ -63,7 +63,7 @@ function App() {
   };
 
   const protectedRoutes = [
-    { path: "change-password", element: <ChangePassword /> },
+    // { path: "change-password", element: <ChangePassword /> },
     { path: "admindash", element: <AdminDashboard /> },
     { path: "approval", element: <ApprovalList /> },
   ];
@@ -72,6 +72,7 @@ function App() {
     <Router>
       <Routes>
         {/* Auth Routes */}
+        <Route path= "change-password" element={<ChangePassword />}/>
         <Route path="/signup" element={<SignUp />} />
         <Route path="/login/visitorlogin" element={<Login />} />
         <Route path="/register-officer" element={<OfficerForm />} />

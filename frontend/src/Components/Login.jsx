@@ -103,6 +103,13 @@ export default function Login() {
       </div>
 
       <div ref={boxRef} className="login-box">
+        <span
+    
+  >
+    <button className="back-btn" onClick={() => navigate(-1)}>
+                ← Back
+              </button>
+  </span>
         <h2 className="login-title">
           {superUserMode ? "Complete Superuser Profile" : "Login"}
         </h2>

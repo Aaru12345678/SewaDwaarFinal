@@ -189,3 +189,37 @@ exports.changePassword = async (req, res) => {
   }
 };
 
+exports.getUnreadNotificationCount = async (req, res) => {
+  const { username } = req.query;
+
+  const result = await pool.query(
+    `SELECT COUNT(*) AS unread_count
+     FROM notifications
+     WHERE username = $1 AND is_read = false`,
+    [username]
+  );
+
+  res.json({ unreadCount: Number(result.rows[0].unread_count) });
+};
+
+exports.markNotificationsAsRead = async (req, res) => {
+  try {
+    const username = req.user?.username; // ✅ FROM TOKEN
+
+    if (!username) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
+    await pool.query(
+      `UPDATE notifications
+       SET is_read = true
+       WHERE username = $1 AND is_read = false`,
+      [username]
+    );
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error("markNotificationsAsRead error:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+};

@@ -62,7 +62,7 @@ export default function SignUp() {
   const passwordRegex = /^(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*]).{8,}$/;
   const nameRegex = /^[A-Za-z\s]+$/;
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  const mobileRegex = /^\d{10}$/;
+  const mobileRegex = /^[6-9]\d{9}$/;
   const pincodeRegex = /^\d{6}$/;
 
   /* ===================== FETCHERS ===================== */
@@ -91,13 +91,32 @@ export default function SignUp() {
   }, []);
 
   useEffect(() => {
-    (async () => {
-      setLoadingStates(true);
-      const { data } = await getStates();
+  (async () => {
+    setLoadingStates(true);
+    try {
+      const { data, error } = await getStates();
       setLoadingStates(false);
-      if (data) setStates(data);
-    })();
-  }, []);
+
+      if (error || !data) {
+        Swal.fire(
+          "Error",
+          "Unable to load states. Please try again later.",
+          "error"
+        );
+        return;
+      }
+
+      setStates(data);
+    } catch (err) {
+      setLoadingStates(false);
+      Swal.fire(
+        "Error",
+        "Unable to load states due to server error.",
+        "error"
+      );
+    }
+  })();
+}, []);
 
   /* ===================== AGE ===================== */
   const validateAge = (dobValue) => {
@@ -182,8 +201,11 @@ export default function SignUp() {
       setErrors((e) => ({ ...e, email_id: "Invalid email format." }));
     }
     if (name === "mobile_no" && !mobileRegex.test(value)) {
-      setErrors((e) => ({ ...e, mobile_no: "Mobile must be 10 digits." }));
-    }
+  setErrors((e) => ({
+    ...e,
+    mobile_no: "Mobile number must start with 6–9 and be 10 digits.",
+  }));
+}
     if (name === "pincode" && !pincodeRegex.test(value)) {
       setErrors((e) => ({ ...e, pincode: "Pincode must be 6 digits." }));
     }
@@ -287,7 +309,16 @@ return (
     <main className="login-box">
       <div className="login-header-row">
         <div className="login-header-main">
-          <h2 className="login-title">Sign Up</h2>
+          <div className="signup-title-row">
+  <span
+    
+  >
+    <button className="back-btn" onClick={() => navigate(-1)}>
+                ← Back
+              </button>
+  </span>
+  <h2 className="login-title">Sign Up</h2>
+</div>
           <p className="login-subtitle">
             Create your visitor account to access government offices securely.
           </p>
@@ -336,11 +367,15 @@ return (
               Mobile <span className="required">*</span>
             </label>
             <input
-              name="mobile_no"
-              value={formData.mobile_no}
-              onChange={handleChange}
-              required
-            />
+  name="mobile_no"
+  value={formData.mobile_no}
+  onChange={handleChange}
+  maxLength={10}
+  pattern="[6-9][0-9]{9}"
+  inputMode="numeric"
+  required
+/>
+
             {errors.mobile_no && (
               <p className="error-text">{errors.mobile_no}</p>
             )}
@@ -544,7 +579,7 @@ return (
         {/* Photo */}
         <div className="form-field full">
           <label>
-            Photo <span className="required">*</span>
+            Photo <span className="required">*(Only JPG/JPEG allowed, max size 200KB)</span>
           </label>
           <input
             type="file"

@@ -3,6 +3,12 @@ import { Link, useNavigate } from "react-router-dom";
 import "../css/VisitorDashboard.css";
 import { getVisitorDashboard } from "../services/api";
 import VisitorNavbar from "./VisitorNavbar";
+import Header from '../Components/Header';
+import NavbarMain from '../Components/NavbarMain';
+import Footer from '../Components/Footer';
+import './MainPage.css';
+import NavbarTop from '../Components/NavbarTop';
+
 
 const VisitorDashboard = () => {
   const navigate = useNavigate();
@@ -63,9 +69,15 @@ const VisitorDashboard = () => {
   ).length;
 
   return (
-    <div>
+    <>
+    <div className="fixed-header">
+        <NavbarTop/>
+        <Header />
       <VisitorNavbar fullName={fullName} />
-
+        
+      </div>
+<div className="main-layout">
+  <div className="content-below">
       <div className="dashboard-container">
         <div className="dashboard-inner">
           <h2 className="welcome">👋 Welcome, {fullName || username}</h2>
@@ -111,7 +123,7 @@ const VisitorDashboard = () => {
                   appointments.map(appt => (
                     <tr key={appt.appointment_id}>
                       <td>{appt.appointment_id}</td>
-                      <td>{appt.officer_name}</td>
+                     <td>{appt.officer_name || "Helpdesk"}</td>
                       <td>{appt.department_name}</td>
                       <td>{appt.service_name}</td>
                       <td>{appt.appointment_date} {appt.slot_time}</td>
@@ -153,7 +165,9 @@ const VisitorDashboard = () => {
 
         </div>
       </div>
-    </div>
+      </div>
+      </div>
+    </>
   );
 };
 

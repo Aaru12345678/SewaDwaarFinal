@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 
-import bannerImg from "../assets/banner.jpg";
-import sewadwaarEng from "../assets/sewadwaar-eng.png";
+import bannerImg from "../assets/slider3.png";
+import sewadwaarEng from "../assets/sewaimage.png";
 import sewadwaarMain from "../assets/SewadwaarLogo1.png";
 import govLogo from "../assets/emblem.png";
 import loginBg from "../assets/loginimage.png";
@@ -40,10 +40,10 @@ export default function LoginEntry() {
           </div>
         </div>
 
-        <div className="gov-right">
+        {/* <div className="gov-right">
           <span className="gov-font">A/A</span>
           <span className="gov-access">🛗</span>
-        </div>
+        </div> */}
       </header>
 
       {/* MAIN SPLIT WRAPPER */}

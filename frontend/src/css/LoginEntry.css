@@ -125,7 +125,7 @@ html::before {
    FORM CARD
 ============================= */
 .form-card {
-  width: 85%;
+  width: 100%;
   max-width: 550px;
 
   background: #ffffff;

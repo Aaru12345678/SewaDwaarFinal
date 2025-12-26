@@ -61,6 +61,36 @@ exports.getOrganization = async(req,res)=>{
   }
 };
 
+exports.getOrganizationbyLocation = async (req, res) => {
+  try {
+    const {
+      state_code,
+      division_code,
+      district_code = null,
+      taluka_code = null
+    } = req.query;
+
+    // 🚨 Mandatory validation
+    if (!state_code || !division_code) {
+      return res.status(400).json({
+        success: false,
+        message: "state_code and division_code are required"
+      });
+    }
+
+    const result=await pool.query('SELECT * FROM get_organizations($1,$2,$3,$4)',[state_code,division_code,district_code,taluka_code]);
+    res.json(result.rows);
+  } catch (err) {
+    console.error("Error fetching organizations:", err);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch organizations"
+    });
+  }
+};
+
+
+
 
 exports.getDepartment=async(req,res)=>{
   const {organization_id} = req.params;

@@ -3,7 +3,7 @@
 ================================ */
 .appointment-page {
   min-height: calc(100vh - 60px);
-  background: #eef2f6;
+  /* background: #eef2f6; */
   padding: 40px 20px;
   font-family: "Segoe UI", Roboto, Arial, sans-serif;
 }
