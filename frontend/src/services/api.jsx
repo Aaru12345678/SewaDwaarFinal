@@ -136,3 +136,7 @@ export const fetchServicesByDept = (orgId, deptId) =>
 
 export const fetchOfficers = () =>
   safeRequest(api.get("/officers"));
+
+// ================= OFFICER DASHBOARD =================
+export const getOfficerDashboard = (officerId) =>
+  safeRequest(api.get(`/officer/${officerId}/dashboard`));

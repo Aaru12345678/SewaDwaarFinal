@@ -182,7 +182,20 @@ useEffect(() => {
   //   { id: "officer1", name: "John Doe" },
   //   { id: "officer2", name: "Jane Smith" }
   // ];
-  const slots = ["09:00", "10:00", "11:00", "14:00", "15:00"];
+  const slots = [
+  "09:00",
+  "10:00",
+  "11:00",
+  "14:00",
+  "15:00"
+];
+const formatTimeAMPM = (time24) => {
+  let [hours, minutes] = time24.split(":").map(Number);
+  const ampm = hours >= 12 ? "PM" : "AM";
+  hours = hours % 12 || 12;
+  return `${hours}:${minutes.toString().padStart(2, "0")} ${ampm}`;
+};
+
 
  const handleNext = () => {
   setShowErrors(true); // 🔴 force show errors
@@ -200,6 +213,13 @@ useEffect(() => {
 };
 
   const handleBack = () => setStep(step - 1);
+
+const formatDateDDMMYYYY = (dateStr) => {
+  if (!dateStr) return "";
+  const [yyyy, mm, dd] = dateStr.split("-");
+  return `${dd}-${mm}-${yyyy}`;
+};
+
 
 const handleSubmit = async (e) => {
   e.preventDefault();
@@ -230,7 +250,7 @@ const handleSubmit = async (e) => {
       department_id: formData.dept_id,
       service_id: formData.service_id,
       officer_id: formData.officer_id,
-      appointment_date: formData.appointment_date,
+      appointment_date:formatDateDDMMYYYY(formData.appointment_date),
       slot_time: formData.slot_time,
       purpose: formData.purpose,
       insert_by: localStorage.getItem("user_id") || "system",
@@ -626,15 +646,14 @@ const getAvailableSlots = () => {
     selectedDate.getMonth() === today.getMonth() &&
     selectedDate.getDate() === today.getDate();
 
-  if (!isToday) return slots; // All slots for future dates
+  if (!isToday) return slots;
 
-  // For today: show only upcoming slots
   const currentMinutes = today.getHours() * 60 + today.getMinutes();
 
-  return slots.filter(slot => {
-    const [hh, mm] = slot.split(":");
-    const slotMinutes = parseInt(hh) * 60 + parseInt(mm);
-    return slotMinutes > currentMinutes; // future only
+  return slots.filter((slot) => {
+    const [hh, mm] = slot.split(":").map(Number);
+    const slotMinutes = hh * 60 + mm;
+    return slotMinutes > currentMinutes;
   });
 };
 const isStep1Valid = useMemo(() => {
@@ -938,10 +957,11 @@ const getError = (condition, message) => {
 >
   <option value="">Select Slot</option>
   {getAvailableSlots().map((slot) => (
-    <option key={slot} value={slot}>
-      {slot}
-    </option>
-  ))}
+  <option key={slot} value={slot}>
+    {formatTimeAMPM(slot)}
+  </option>
+))}
+
 </select>
 {getError(formData.slot_time, "Time is required")}
           </div>

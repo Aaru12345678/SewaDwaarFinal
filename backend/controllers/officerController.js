@@ -322,3 +322,128 @@ exports.getOfficersByLocation = async (req, res) => {
     });
   }
 };
+
+// Get Officer Dashboard Data
+exports.getOfficerDashboard = async (req, res) => {
+  try {
+    const { officer_id } = req.params;
+
+    if (!officer_id) {
+      return res.status(400).json({
+        success: false,
+        message: "Officer ID is required",
+      });
+    }
+
+    const { rows } = await pool.query(
+      "SELECT get_officer_dashboard($1) AS dashboard",
+      [officer_id]
+    );
+
+    return res.status(200).json({
+      success: true,
+      data: rows[0].dashboard,
+    });
+
+  } catch (error) {
+    console.error("❌ Dashboard error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Server error while fetching dashboard",
+    });
+  }
+};
+
+
+// Update appointment status (approve, reject, complete)
+exports.updateAppointmentStatus = async (req, res) => {
+  try {
+    const { appointment_id, status, officer_id, reason } = req.body;
+
+    const { rows } = await pool.query(
+      `SELECT update_appointment_status($1, $2, $3, $4) AS result`,
+      [appointment_id, status, officer_id, reason]
+    );
+
+    const result = rows[0].result;
+
+    if (!result.success) {
+      return res.status(400).json(result);
+    }
+
+    return res.status(200).json(result);
+
+  } catch (error) {
+    console.error("❌ Error updating appointment status:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Server error while updating appointment",
+    });
+  }
+};
+
+
+// Reschedule appointment
+exports.rescheduleAppointment = async (req, res) => {
+  try {
+    const { appointment_id, officer_id, new_date, new_time, reason } = req.body;
+
+    const { rows } = await pool.query(
+      "SELECT reschedule_appointment($1, $2, $3, $4, $5) AS result",
+      [appointment_id, officer_id, new_date, new_time, reason]
+    );
+
+    return res.status(200).json(rows[0].result);
+
+  } catch (error) {
+    console.error("❌ Error rescheduling appointment:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Server error while rescheduling appointment",
+    });
+  }
+};
+
+
+// Get appointments by specific date for reports/downloads
+exports.getAppointmentsByDate = async (req, res) => {
+  try {
+    const { officer_id } = req.params;
+    const { date } = req.query;
+    // console.log(officer_id,"officer_id")
+    // console.log(date,"date")
+
+    const { rows } = await pool.query(
+      "SELECT get_appointments_by_date($1, $2) AS result",
+      [officer_id, date]
+    );
+   
+    return res.status(200).json(rows[0].result);
+
+  } catch (error) {
+    console.error("❌ Error fetching appointments by date:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Server error while fetching appointments",
+    });
+  }
+};
+
+
+// Get report data for officer
+exports.getOfficerReports = async (req, res) => {
+  try {
+    const { officer_id } = req.params;
+    const { type, month, start, end } = req.query;
+
+    const { rows } = await pool.query(
+      `SELECT get_officer_reports($1, $2, $3, $4, $5) AS result`,
+      [officer_id, type, month, start, end]
+    );
+
+    res.status(200).json(rows[0].result);
+  } catch (err) {
+    console.error("❌ Report error:", err);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+};

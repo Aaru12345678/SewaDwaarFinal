@@ -26,6 +26,7 @@ import ResetPassword from "./pages/ResetPassword";
 // Main & general pages
 import Home from "./pages/Home";
 import Dashboard from "./pages/Dashboard";
+import OfficerReport from "./pages/OfficerReport"
 import MainPage from "./pages/MainPage";
 import ChangePassword from "./pages/ChangePassword";
 import Contact from "./pages/Contact";
@@ -49,6 +50,7 @@ import AddServices from "./pages/AddServices";
 import AddHoliday from "./pages/AddHoliday";
 import EditProfile from "./pages/EditProfile";
 import AppointmentWizard2 from "./pages/AppointmentWizard2";
+import OfficerNotifications from "./pages/OfficerNotifications";
 
 function App() {
   const loggedIn = !!localStorage.getItem("token");
@@ -119,7 +121,9 @@ function App() {
         <Route path="/officer/action/:id" element={<AppointmentAction />} />
         <Route path="/officer/notifications" element={<Notifications />} />
         <Route path="/officer/history" element={<History />} />
-
+        <Route path="/officer/reports" element={<OfficerReport/>}/>
+        <Route path="/officer/notifications2" element={<OfficerNotifications/>}/>
+        
         {/* Main Layout */}
         <Route path="/" element={<MainPage />}>
           <Route index element={<Home />} />

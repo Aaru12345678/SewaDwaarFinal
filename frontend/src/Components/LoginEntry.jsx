@@ -39,6 +39,7 @@ export default function LoginEntry() {
             <div className="gov-en">Government of Maharashtra</div>
           </div>
         </div>
+        
 
         {/* <div className="gov-right">
           <span className="gov-font">A/A</span>
