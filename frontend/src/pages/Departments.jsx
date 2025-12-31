@@ -11,39 +11,45 @@ import {
 } from "../services/api";
 
 const Departments = () => {
-  // ---------- MAIN DASHBOARD DATA (now from DB) ----------
   const [organizations, setOrganizations] = useState([]);
   const [departments, setDepartments] = useState([]);
   const [services, setServices] = useState([]);
   const [officers, setOfficers] = useState([]);
 
-  // UI state
   const [showAddModal, setShowAddModal] = useState(false);
   const [selectedOrg, setSelectedOrg] = useState(null);
-  const [selectedDept, setSelectedDept] = useState(null); // track expanded department
+  const [selectedDept, setSelectedDept] = useState(null);
   const [loading, setLoading] = useState(true);
 
   const navigate = useNavigate();
   const firstTypeRef = useRef(null);
 
-  // -------------------------------------------------------
-  // LOAD ALL DATA ONCE (organizations → departments → services → officers)
-  // -------------------------------------------------------
+  // Helper to convert is_active to status string
+  const getStatus = (val) => {
+  if (val === true || val === 1 || ["true","t","1"].includes(String(val).toLowerCase().trim())) return "Active";
+  if (val === false || val === 0 || ["false","f","0"].includes(String(val).toLowerCase().trim())) return "Inactive";
+  return "Unknown";
+};
+
+
+
   useEffect(() => {
     const loadDashboardData = async () => {
       try {
         // 1️⃣ Organizations
         const { data: orgRes } = await fetchOrganizations();
-        const orgRows = Array.isArray(orgRes) ? orgRes : orgRes?.data || [];
 
-        const orgMapped = orgRows.map((o) => ({
-          id: o.organization_id ?? o.id,
-          name: o.organization_name ?? o.name,
-          status: o.is_active ? "Active" : "Inactive",
-        }));
-        setOrganizations(orgMapped);
+        const orgRows = Array.isArray(orgRes) ? orgRes : [orgRes];
 
-        // 2️⃣ Departments for each organization
+const orgMapped = orgRows.map((o) => ({
+  id: o.organization_id,
+  name: o.organization_name,
+  status: getStatus(o.is_active),
+}));
+
+setOrganizations(orgMapped);
+
+        // 2️⃣ Departments & 3️⃣ Services
         let allDepartments = [];
         let allServices = [];
 
@@ -63,15 +69,15 @@ const Departments = () => {
             id: d.department_id ?? d.id,
             organizationId: org.id,
             name: d.department_name ?? d.name,
-            status: d.is_active ? "Active" : "Inactive",
+            status: getStatus(d.is_active),
           }));
-
           allDepartments.push(...deptsForOrg);
 
-          // 3️⃣ Services for each department in this org
           const srvPromises = deptsForOrg.map((dept) =>
             fetchServicesByDept(org.id, dept.id)
           );
+          
+
           const srvResults = await Promise.all(srvPromises);
 
           srvResults.forEach((srvRes, idx) => {
@@ -79,15 +85,14 @@ const Departments = () => {
             const srvRows = Array.isArray(srvRes.data)
               ? srvRes.data
               : srvRes.data?.data || [];
-
+            console.log("Fetched services:", srvRows);
             const svcsForDept = srvRows.map((s) => ({
-              id: s.service_id ?? s.id,
-              organizationId: org.id,
-              departmentId: dept.id,
-              name: s.service_name ?? s.name,
-              status: s.is_active ? "Active" : "Inactive",
+            id: s.service_id ?? s.id,
+            organizationId: org.id,
+            departmentId: dept.id,
+            name: s.service_name ?? s.name,
+            status: getStatus(s.is_active),
             }));
-
             allServices.push(...svcsForDept);
           });
         }
@@ -95,24 +100,23 @@ const Departments = () => {
         setDepartments(allDepartments);
         setServices(allServices);
 
-        // 4️⃣ Officers (if your backend route exists)
+        // 4️⃣ Officers
         try {
           const { data: offRes } = await fetchOfficers();
           const offRows = Array.isArray(offRes) ? offRes : offRes?.data || [];
-          console.log(offRows,"off")
+
           const officersMapped = offRows.map((o) => ({
             id: o.officer_id ?? o.id,
             departmentId: o.department_id ?? o.departmentId ?? null,
             name: o.full_name ?? o.name,
             role: o.role ?? o.designation_name ?? "",
             email: o.email ?? o.email_id,
-            status: o.is_active ? "Active" : "Inactive",
+            status: getStatus(o.is_active),
           }));
 
           setOfficers(officersMapped);
         } catch (err) {
           console.error("Error loading officers (optional):", err);
-          // if API not ready, keep officers empty instead of crashing
         }
       } catch (err) {
         console.error("Error loading dashboard data:", err);
@@ -145,16 +149,13 @@ const Departments = () => {
 
   const handleOrgClick = (org) => {
     setSelectedOrg(selectedOrg?.id === org.id ? null : org);
-    setSelectedDept(null); // collapse any expanded department
+    setSelectedDept(null);
   };
 
   const handleDeptClick = (dept) => {
     setSelectedDept(selectedDept?.id === dept.id ? null : dept);
   };
 
-  // -------------------------------------------------------
-  // RENDER
-  // -------------------------------------------------------
   return (
     <div className="departments-page">
       {/* Header */}
@@ -437,7 +438,7 @@ const Departments = () => {
             </div>
           )}
 
-          {/* ------------------- OFFICERS TABLE ------------------- */}
+          {/* Officers Table */}
           <div className="table-container" style={{ marginTop: "2rem" }}>
             <h2>Officers</h2>
             <table>

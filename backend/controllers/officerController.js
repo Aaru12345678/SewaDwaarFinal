@@ -15,9 +15,150 @@ const generateToken = (user) => {
   );
 };
 
+// exports.insertOfficerSignup = async (req, res) => {
+//   try {
+//     // ✅ 1️⃣ First log — check raw incoming data from frontend
+//     console.log("📩 Incoming signup request body:", req.body);
+//     console.log("📸 Uploaded file info:", req.file);
+
+//     const {
+//       full_name,
+//       mobile_no,
+//       email_id,
+//       password,
+//       designation_code,
+//       department_id,
+//       organization_id,
+//       state_code,
+//       division_code,
+//       district_code,
+//       taluka_code,
+//       role_code, // Admin / Officer / Helpdesk
+//     } = req.body;
+
+//     // ✅ Basic validation
+//     if (!full_name || !password) {
+//       return res.status(400).json({
+//         success: false,
+//         message: "Full name and password are required",
+//       });
+//     }
+
+//     // ✅ 2️⃣ Log what role is being used for registration
+//     console.log("🧩 Role being used:", role_code);
+
+//     // ✅ Validate role_code
+//     const roleCheck = await pool.query(
+//       "SELECT 1 FROM m_role WHERE role_code = $1 AND is_active = TRUE",
+//       [role_code || "OF"]
+//     );
+//     if (roleCheck.rowCount === 0) {
+//       console.warn("⚠️ Invalid or inactive role:", role_code);
+//       return res.status(400).json({
+//         success: false,
+//         message: "Invalid or inactive role code",
+//       });
+//     }
+
+//     // ✅ Handle uploaded photo
+//     const photo = req.file ? req.file.filename : null;
+
+//     // ✅ 3️⃣ Log before password hashing
+//     console.log("🔐 Preparing to hash password for user:", email_id || mobile_no);
+
+//     // ✅ Hash password
+//     const hashedPassword = await bcrypt.hash(password, 10);
+
+//     // ✅ 4️⃣ Log the final payload to be passed into your DB function
+//     console.log("📦 Final parameters for DB function:", {
+//       hashedPassword,
+//       full_name,
+//       mobile_no,
+//       email_id,
+//       designation_code,
+//       department_id,
+//       organization_id,
+//       state_code,
+//       division_code,
+//       district_code,
+//       taluka_code,
+//       photo,
+//       role_code,
+//     });
+
+//     // ✅ Call generic user registration function
+//     const result = await pool.query(
+//       `SELECT * FROM public.register_user_by_role(
+//         $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13
+//       );`,
+//       [
+//         hashedPassword,                    // p_password_hash
+//         full_name?.trim().slice(0, 255),   // p_full_name
+//         mobile_no?.trim() || null,         // p_mobile_no
+//         email_id?.trim() || null,          // p_email_id
+//         designation_code || null,          // p_designation_code
+//         department_id || null,             // p_department_id
+//         organization_id || null,           // p_organization_id
+//         state_code?.trim() || null,        // p_state_code
+//         division_code?.trim() || null,     // p_division_code
+//         district_code?.trim() || null,     // p_district_code
+//         taluka_code?.trim() || null,       // p_taluka_code
+//         photo?.trim() || null,             // p_photo
+//         role_code?.trim() || "OF",         // p_role_code
+//       ]
+//     );
+
+//     // ✅ 5️⃣ Log result coming back from PostgreSQL
+//     console.log("🧾 DB function result:", result.rows);
+
+//     const row = result.rows[0];
+//     console.log(row,"row results")
+//     const email=row.out_email_id
+//     const officer_id=row.out_entity_id
+//     const name=row.full_name
+//     let entityId;
+//     if (role_code === "OF") entityId = row.out_entity_id;
+//     else if (role_code === "HD") entityId = row.out_entity_id;
+//     else if (role_code === "AD") entityId = row.out_entity_id;
+
+// try {
+//       sendMail(email,"Welcome to SevaDwaar",`Hi, ${name} Thank you registering your officer id is ${officer_id}`)
+      
+//     } catch (emailError) {
+//       console.error("Email sending failed:", emailError);
+//     }
+
+//     // ✅ Success response
+//     if (row?.message?.toLowerCase().includes("success")) {
+//       console.log("✅ Registration successful:", row);
+//       return res.status(201).json({
+//         success: true,
+//         message: row.message,
+//         user_id: row.out_user_id,
+//         entity_id: entityId,
+//         role: role_code?.trim() || "OF",
+//       });
+//     }
+
+//     // ❌ Failure response from DB
+//     console.warn("❌ Registration failed from DB:", row?.message);
+//     return res.status(400).json({
+//       success: false,
+//       message: row?.message || "Failed to register user",
+//     });
+
+//   } catch (error) {
+//     console.error("💥 Error in insertOfficerSignup:", error);
+//     return res.status(500).json({
+//       success: false,
+//       message: "Failed to register user",
+//       error: error.message,
+//     });
+//   }
+// };
+
 exports.insertOfficerSignup = async (req, res) => {
   try {
-    // ✅ 1️⃣ First log — check raw incoming data from frontend
     console.log("📩 Incoming signup request body:", req.body);
     console.log("📸 Uploaded file info:", req.file);
 
@@ -26,136 +167,138 @@ exports.insertOfficerSignup = async (req, res) => {
       mobile_no,
       email_id,
       password,
+      gender,
       designation_code,
       department_id,
       organization_id,
-      state_code,
-      division_code,
-      district_code,
-      taluka_code,
-      role_code, // Admin / Officer / Helpdesk
+
+      officer_address,
+      officer_state_code,
+      officer_district_code,
+      officer_division_code,
+      officer_taluka_code,
+      officer_pincode,
+
+      role_code, // OF / HD / AD
     } = req.body;
 
-    // ✅ Basic validation
-    if (!full_name || !password) {
+    /* -------------------- BASIC VALIDATION -------------------- */
+    if (!full_name || !password || !role_code) {
       return res.status(400).json({
         success: false,
-        message: "Full name and password are required",
+        message: "Full name, password and role are required",
       });
     }
 
-    // ✅ 2️⃣ Log what role is being used for registration
-    console.log("🧩 Role being used:", role_code);
-
-    // ✅ Validate role_code
+    /* -------------------- ROLE VALIDATION -------------------- */
     const roleCheck = await pool.query(
-      "SELECT 1 FROM m_role WHERE role_code = $1 AND is_active = TRUE",
-      [role_code || "OF"]
+      `SELECT 1 FROM m_role 
+       WHERE role_code = $1 AND is_active = TRUE`,
+      [role_code]
     );
+
     if (roleCheck.rowCount === 0) {
-      console.warn("⚠️ Invalid or inactive role:", role_code);
       return res.status(400).json({
         success: false,
         message: "Invalid or inactive role code",
       });
     }
 
-    // ✅ Handle uploaded photo
+    /* -------------------- PHOTO -------------------- */
     const photo = req.file ? req.file.filename : null;
 
-    // ✅ 3️⃣ Log before password hashing
-    console.log("🔐 Preparing to hash password for user:", email_id || mobile_no);
-
-    // ✅ Hash password
+    /* -------------------- PASSWORD HASH -------------------- */
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // ✅ 4️⃣ Log the final payload to be passed into your DB function
-    console.log("📦 Final parameters for DB function:", {
-      hashedPassword,
+    console.log("📦 Parameters passed to DB function:", {
       full_name,
       mobile_no,
       email_id,
+      gender,
       designation_code,
       department_id,
       organization_id,
-      state_code,
-      division_code,
-      district_code,
-      taluka_code,
+      officer_address,
+      officer_state_code,
+      officer_district_code,
+      officer_division_code,
+      officer_taluka_code,
+      officer_pincode,
       photo,
       role_code,
     });
 
-    // ✅ Call generic user registration function
+    /* -------------------- DB FUNCTION CALL -------------------- */
     const result = await pool.query(
       `SELECT * FROM public.register_user_by_role(
-        $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13
+        $1,$2,$3,$4,$5,$6,$7,$8,
+        $9,$10,$11,$12,$13,$14,
+        $15,$16
       );`,
       [
-        hashedPassword,                    // p_password_hash
-        full_name?.trim().slice(0, 255),   // p_full_name
-        mobile_no?.trim() || null,         // p_mobile_no
-        email_id?.trim() || null,          // p_email_id
-        designation_code || null,          // p_designation_code
-        department_id || null,             // p_department_id
-        organization_id || null,           // p_organization_id
-        state_code?.trim() || null,        // p_state_code
-        division_code?.trim() || null,     // p_division_code
-        district_code?.trim() || null,     // p_district_code
-        taluka_code?.trim() || null,       // p_taluka_code
-        photo?.trim() || null,             // p_photo
-        role_code?.trim() || "OF",         // p_role_code
+        hashedPassword,                  // 1 p_password_hash
+        full_name.trim().slice(0, 255),  // 2 p_full_name
+        mobile_no?.trim() || null,       // 3 p_mobile_no
+        email_id?.trim() || null,        // 4 p_email_id
+        gender || null,                  // 5 p_gender
+        designation_code || null,        // 6 p_designation_code
+        department_id || null,           // 7 p_department_id
+        organization_id || null,         // 8 p_organization_id
+
+        officer_address || null,         // 9 p_officer_address
+        officer_state_code || null,      // 10 p_officer_state_code
+        officer_district_code || null,   // 11 p_officer_district_code
+        officer_division_code || null,   // 12 p_officer_division_code
+        officer_taluka_code || null,     // 13 p_officer_taluka_code
+        officer_pincode || null,         // 14 p_officer_pincode
+
+        photo || null,                   // 15 p_photo
+        role_code,                       // 16 p_role_code
       ]
     );
 
-    // ✅ 5️⃣ Log result coming back from PostgreSQL
-    console.log("🧾 DB function result:", result.rows);
-
     const row = result.rows[0];
-    console.log(row,"row results")
-    const email=row.out_email_id
-    const officer_id=row.out_entity_id
-    const name=row.full_name
-    let entityId;
-    if (role_code === "OF") entityId = row.out_entity_id;
-    else if (role_code === "HD") entityId = row.out_entity_id;
-    else if (role_code === "AD") entityId = row.out_entity_id;
+    console.log("🧾 DB function result:", row);
 
-try {
-      sendMail(email,"Welcome to SevaDwaar",`Hi, ${name} Thank you registering your officer id is ${officer_id}`)
-      
-    } catch (emailError) {
-      console.error("Email sending failed:", emailError);
+    /* -------------------- EMAIL (OPTIONAL) -------------------- */
+    if (row?.out_email_id) {
+      try {
+        await sendMail(
+          row.out_email_id,
+          "Welcome to SevaDwaar",
+          `Hi ${row.full_name},\n\nYour registration was successful.\nYour ID: ${row.out_entity_id}`
+        );
+      } catch (err) {
+        console.error("📧 Email failed:", err.message);
+      }
     }
 
-    // ✅ Success response
+    /* -------------------- FINAL RESPONSE -------------------- */
     if (row?.message?.toLowerCase().includes("success")) {
-      console.log("✅ Registration successful:", row);
       return res.status(201).json({
         success: true,
         message: row.message,
         user_id: row.out_user_id,
-        entity_id: entityId,
-        role: role_code?.trim() || "OF",
+        entity_id: row.out_entity_id,
+        role: role_code,
       });
     }
 
-    // ❌ Failure response from DB
-    console.warn("❌ Registration failed from DB:", row?.message);
     return res.status(400).json({
       success: false,
-      message: row?.message || "Failed to register user",
+      message: row?.message || "User registration failed",
     });
 
   } catch (error) {
-    console.error("💥 Error in insertOfficerSignup:", error);
+    console.error("💥 insertOfficerSignup error:", error);
     return res.status(500).json({
       success: false,
-      message: "Failed to register user",
+      message: "Internal server error",
       error: error.message,
     });
   }
 };
+
 
 
 

@@ -602,7 +602,10 @@ try {
     }
 
     return (
+<<<<<<< Updated upstream
       
+=======
+>>>>>>> Stashed changes
       <div className="appointments-table-wrapper">
         <table className="appointments-table">
           <thead>
@@ -1147,11 +1150,15 @@ try {
         </div>
       )}
       </div>
+<<<<<<< Updated upstream
       <Footer />
       </div>
     </div>
+=======
+            <Footer />
+>>>>>>> Stashed changes
     </div>
   );
-}
 
+}
 export default OfficerDashboard;

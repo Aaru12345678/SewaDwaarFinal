@@ -126,7 +126,8 @@ export const cancelAppointment = (id, reason) =>
 // ADMIN DASHBOARD (FETCH)
 // =============================
 export const fetchOrganizations = () =>
-  safeRequest(api.get("/organization"));
+  safeRequest(api.get("/organizations"));
+
 
 export const fetchDepartmentsByOrg = (orgId) =>
   safeRequest(api.get(`/departments/${orgId}`));

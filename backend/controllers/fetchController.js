@@ -32,17 +32,21 @@ exports.getDepartmentsByOrg = async (req, res) => {
 exports.getServicesByDepartment = async (req, res) => {
   try {
     const { organization_id, department_id } = req.params;
+    console.log(req.params); // should show { organization_id: 'ORG001', department_id: 'DEP001' }
 
     const result = await pool.query(
       "SELECT * FROM get_services_by_department($1,$2)",
       [organization_id, department_id]
     );
-
+    
+    console.log("Raw DB services:", JSON.stringify(result.rows, null, 2));
+  // 🔹 check here
     res.json(result.rows);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 };
+
 
 // ------------------ ALL OFFICERS ------------------
 exports.getAllOfficers = async (req, res) => {

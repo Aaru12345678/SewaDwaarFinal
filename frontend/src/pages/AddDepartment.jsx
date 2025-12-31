@@ -1,64 +1,91 @@
 import React, { useEffect, useState } from "react";
 import "../css/department.css";
 import { useNavigate } from "react-router-dom";
-import { toast } from "react-toastify";
-import axios from "axios";
-
+import Swal from "sweetalert2";
+import { Link } from "react-router-dom";
+import {
+  FaBuilding,
+  FaCalendarAlt,
+  FaUsers,
+  FaChartBar,
+  FaUserCog,
+} from "react-icons/fa";
 import { 
   getOrganization, 
-  getStates, 
   insertDepartments 
 } from "../services/api";
+
+const NAME_REGEX = /^[A-Za-z\s]+$/;
 
 export default function AddDepartment() {
   const navigate = useNavigate();
 
-  // Dynamic lists
+  // 🔹 Organization
   const [orgList, setOrgList] = useState([]);
-  const [stateList, setStateList] = useState([]);
+  const [selectedOrg, setSelectedOrg] = useState("");
 
-  // Department + Services
+  // 🔹 Departments
   const [departments, setDepartments] = useState([]);
   const [activeDeptIndex, setActiveDeptIndex] = useState(null);
   const [activeServiceIndex, setActiveServiceIndex] = useState(null);
 
+  // 🔹 Form state
   const [currentDept, setCurrentDept] = useState({
     department_name: "",
     department_name_ll: "",
-    organization_id: "",
-    state_code: "",
-    is_active: true,
     services: [],
   });
 
-  // 🟢 Fetch orgs and states
+  // 🔹 Inline errors
+  const [deptError, setDeptError] = useState("");
+  const [serviceError, setServiceError] = useState("");
+
+   const handleLogout = () => {
+  localStorage.removeItem("token");
+  localStorage.removeItem("user_id");
+  localStorage.removeItem("officer_id");
+  localStorage.removeItem("role_code");
+  localStorage.removeItem("username");
+
+  navigate("/login");
+};
+
+  // 🟢 Fetch organizations
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const [{ data: orgData }, { data: stateData }] = await Promise.all([
-          getOrganization(),
-          getStates()
-        ]);
-
-        setOrgList(orgData || []);
-        setStateList(stateData || []);
-      } catch (err) {
-        console.error("Error fetching org/state data:", err);
-        toast.error("Failed to load organization or state list");
-      }
-    };
-
-    fetchData();
+    getOrganization()
+      .then((res) => setOrgList(res.data || []))
+      .catch(() =>
+        Swal.fire("Error", "Failed to load organizations", "error")
+      );
   }, []);
 
-  // 🟢 Save Department locally
+  // 🟢 Department name validation
+  const handleDeptNameChange = (value) => {
+    setCurrentDept({ ...currentDept, department_name: value });
+
+    if (!value) {
+      setDeptError("Department name is required");
+    } else if (!NAME_REGEX.test(value)) {
+      setDeptError("Only alphabets and spaces are allowed");
+    } else {
+      setDeptError("");
+    }
+  };
+
+  // 🟢 Save department locally
   const handleSaveDepartment = () => {
-    if (!currentDept.department_name || !currentDept.organization_id || !currentDept.state_code) {
-      toast.error("Please fill in all required fields");
+    if (!selectedOrg) {
+      Swal.fire("Validation Error", "Please select an organization", "warning");
+      return;
+    }
+
+    if (!currentDept.department_name || deptError) {
+      Swal.fire("Validation Error", "Please fix department name", "warning");
       return;
     }
 
     const updated = [...departments];
+
     if (activeDeptIndex !== null) updated[activeDeptIndex] = currentDept;
     else updated.push(currentDept);
 
@@ -70,29 +97,24 @@ export default function AddDepartment() {
     setCurrentDept({
       department_name: "",
       department_name_ll: "",
-      organization_id: "",
-      state_code: "",
-      is_active: true,
       services: [],
     });
+    setDeptError("");
+    setServiceError("");
     setActiveDeptIndex(null);
     setActiveServiceIndex(null);
   };
 
-  // 🟢 Submit to backend (API wrapper)
+  // 🟢 Submit to backend
   const handleSubmit = async () => {
     if (departments.length === 0) {
-      toast.error("Add at least one department first.");
+      Swal.fire("Validation Error", "Add at least one department", "warning");
       return;
     }
 
-    const orgId = departments[0].organization_id;
-    const stateCode = departments[0].state_code;
-
     try {
       const res = await insertDepartments({
-        organization_id: orgId,
-        state_code: stateCode,
+        organization_id: selectedOrg,
         departments: departments.map((d) => ({
           dept_name: d.department_name,
           dept_name_ll: d.department_name_ll,
@@ -104,18 +126,17 @@ export default function AddDepartment() {
       });
 
       if (res.data.success) {
-        toast.success("Departments and services added successfully!");
+        Swal.fire("Success", "Departments added successfully", "success");
         navigate("/admin/departments");
       } else {
-        toast.error("Error: " + res.data.message);
+        Swal.fire("Error", res.data.message || "Submission failed", "error");
       }
     } catch (err) {
-      console.error("Error submitting:", err);
-      toast.error("Server error while submitting departments");
+      Swal.fire("Server Error", "Unable to submit data", "error");
     }
   };
 
-  // 🟢 Edit/Delete + Service handlers
+  // 🟢 Edit/Delete department
   const handleEditDept = (i) => {
     setCurrentDept(departments[i]);
     setActiveDeptIndex(i);
@@ -125,13 +146,25 @@ export default function AddDepartment() {
     setDepartments(departments.filter((_, idx) => idx !== i));
   };
 
+  // 🟢 Services
   const addService = () => {
-    const updated = [...currentDept.services, { service_name: "", service_name_ll: "" }];
-    setCurrentDept({ ...currentDept, services: updated });
-    setActiveServiceIndex(updated.length - 1);
+    setCurrentDept({
+      ...currentDept,
+      services: [...currentDept.services, { service_name: "", service_name_ll: "" }],
+    });
+    setActiveServiceIndex(currentDept.services.length);
   };
 
   const updateServiceField = (i, key, value) => {
+    if (key === "service_name") {
+      if (!NAME_REGEX.test(value) && value !== "") {
+        setServiceError("Only alphabets and spaces allowed");
+        return;
+      } else {
+        setServiceError("");
+      }
+    }
+
     const updated = [...currentDept.services];
     updated[i][key] = value;
     setCurrentDept({ ...currentDept, services: updated });
@@ -144,53 +177,112 @@ export default function AddDepartment() {
     setActiveServiceIndex(null);
   };
 
-  const closeServiceForm = () => setActiveServiceIndex(null);
-
-  // 🧱 UI
   return (
+  <div className="admin-layout">
+      {/* Sidebar */}
+      <aside className="sidebar">
+        <h2 className="logo">ADMINISTRATIVE</h2>
+        <ul>
+          <li>
+            <Link to="/admin/departments">
+              <FaBuilding /> Departments & Officers
+            </Link>
+          </li>
+          <li>
+            <Link to="/admin/slot-config">
+              <FaCalendarAlt /> Slot & Holiday Config
+            </Link>
+          </li>
+          <li>
+            <Link to="/admin/appointments">
+              <FaUsers /> Appointments & Walk In Summary
+            </Link>
+          </li>
+          <li>
+            <Link to="/admin/analytics">
+              <FaChartBar /> Analytics & Reports
+            </Link>
+          </li>
+          <li>
+            <Link to="/admin/user-roles">
+              <FaUserCog /> User Roles & Access
+            </Link>
+          </li>
+        </ul>
+      </aside>
+  
+      {/* Main Content */}
+      <div className="main">
+          {/* Top Header */}
+          <header className="topbar">
+            <button
+      className="back-btn"
+      onClick={() => navigate(-1)}
+    >
+      ← Back
+    </button>
+            <div className="top-actions">
+              <span>👤 Admin Profile</span>
+              {/* ✅ Clickable Logout Button */}
+              <button className="logout-btn" onClick={handleLogout}>
+                Logout
+              </button>
+            </div>
+          </header>
+  
     <div className="center-wrapper">
-    <div className="dept-wrapper">
-      <div className="dept-card">
-        <div className="dept-breadcrumb">Home › Add Entry › Department</div>
-        <h2 className="dept-title">Register Government Department</h2>
+      <div className="dept-wrapper">
+        <div className="dept-card">
 
-        {/* Department List Table */}
-        {departments.length > 0 && (
-          <table className="dept-table">
-            <thead>
-              <tr>
-                <th>Department</th>
-                <th>Services</th>
-                <th>Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {departments.map((d, i) => (
-                <tr key={i}>
-                  <td>{d.department_name}</td>
-                  <td>{d.services.length}</td>
-                  <td>
-                    <button onClick={() => handleEditDept(i)}>Edit</button>
-                    <button onClick={() => handleDeleteDept(i)}>Delete</button>
-                  </td>
+          <h2 className="dept-title">Register Government Department</h2>
+
+          {/* 🔹 Organization */}
+          <label>Organization *</label>
+          <select
+            value={selectedOrg}
+            onChange={(e) => setSelectedOrg(e.target.value)}
+          >
+            <option value="">— Select Organization —</option>
+            {orgList.map((o) => (
+              <option key={o.organization_id} value={o.organization_id}>
+                {o.organization_name}
+              </option>
+            ))}
+          </select>
+
+          {/* Department List */}
+          {departments.length > 0 && (
+            <table className="dept-table">
+              <thead>
+                <tr>
+                  <th>Department</th>
+                  <th>Services</th>
+                  <th>Action</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
+              </thead>
+              <tbody>
+                {departments.map((d, i) => (
+                  <tr key={i}>
+                    <td>{d.department_name}</td>
+                    <td>{d.services.length}</td>
+                    <td>
+                      <button onClick={() => handleEditDept(i)}>Edit</button>
+                      <button onClick={() => handleDeleteDept(i)}>Delete</button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
 
-        {/* Department Form */}
-        <form className="dept-form">
-          <div className="section-label">Basic Information</div>
-
+          {/* Department Form */}
           <label>Department Name *</label>
           <input
             type="text"
             value={currentDept.department_name}
-            onChange={(e) =>
-              setCurrentDept({ ...currentDept, department_name: e.target.value })
-            }
+            onChange={(e) => handleDeptNameChange(e.target.value)}
           />
+          {deptError && <div className="field-error">{deptError}</div>}
 
           <label>Department Name (Local Language)</label>
           <input
@@ -201,82 +293,27 @@ export default function AddDepartment() {
             }
           />
 
-          <div className="section-label">Association</div>
-
-          <label>Organization *</label>
-          <select
-            value={currentDept.organization_id}
-            onChange={(e) =>
-              setCurrentDept({ ...currentDept, organization_id: e.target.value })
-            }
-          >
-            <option value="">— Select —</option>
-            {orgList.map((o) => (
-              <option key={o.organization_id} value={o.organization_id}>
-                {o.organization_name}
-              </option>
-            ))}
-          </select>
-
-          <label>State *</label>
-          <select
-            value={currentDept.state_code}
-            onChange={(e) =>
-              setCurrentDept({ ...currentDept, state_code: e.target.value })
-            }
-          >
-            <option value="">— Select —</option>
-            {stateList.map((s) => (
-              <option key={s.state_code} value={s.state_code}>
-                {s.state_name}
-              </option>
-            ))}
-          </select>
-
-          <div className="toggle-row">
-            <label>Status</label>
-            <label className="switch">
-              <input
-                type="checkbox"
-                checked={currentDept.is_active}
-                onChange={() =>
-                  setCurrentDept({ ...currentDept, is_active: !currentDept.is_active })
-                }
-              />
-              <span className="slider"></span>
-            </label>
-          </div>
-
-          {/* Services Table */}
+          {/* Services */}
           <div className="section-label">Services</div>
-          {currentDept.services.length === 0 && <p>No services added.</p>}
 
           <table className="dept-table">
-            <thead>
-              <tr>
-                <th>Service</th>
-                <th>Action</th>
-              </tr>
-            </thead>
             <tbody>
               {currentDept.services.map((srv, i) => (
                 <tr key={i}>
                   <td>{srv.service_name || "Untitled"}</td>
                   <td>
-                    <button type="button" onClick={() => setActiveServiceIndex(i)}>Edit</button>
-                    <button type="button" onClick={() => removeService(i)}>Delete</button>
+                    <button onClick={() => setActiveServiceIndex(i)}>Edit</button>
+                    <button onClick={() => removeService(i)}>Delete</button>
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
 
-          <button type="button" onClick={addService}>+ Add Service</button>
+          <button onClick={addService}>+ Add Service</button>
 
           {activeServiceIndex !== null && (
             <div className="service-card">
-              <h4>Edit Service #{activeServiceIndex + 1}</h4>
-
               <label>Service Name *</label>
               <input
                 type="text"
@@ -285,6 +322,7 @@ export default function AddDepartment() {
                   updateServiceField(activeServiceIndex, "service_name", e.target.value)
                 }
               />
+              {serviceError && <div className="field-error">{serviceError}</div>}
 
               <label>Service Name (Local Language)</label>
               <input
@@ -294,23 +332,18 @@ export default function AddDepartment() {
                   updateServiceField(activeServiceIndex, "service_name_ll", e.target.value)
                 }
               />
-
-              <button type="button" onClick={closeServiceForm}>Close</button>
             </div>
           )}
 
           <div className="button-row">
-            <button type="button" onClick={handleSaveDepartment}>Save Department</button>
+            <button onClick={handleSaveDepartment}>Save Department</button>
+            <button className="submit-btn" onClick={handleSubmit}>Submit All</button>
           </div>
-        </form>
 
-        <div className="button-row">
-          <button type="button" className="submit-btn" onClick={handleSubmit}>
-            Submit All
-          </button>
         </div>
       </div>
     </div>
+        </div>
     </div>
   );
 }
