@@ -78,7 +78,7 @@ exports.getOrganizationbyLocation = async (req, res) => {
       });
     }
 
-    const result=await pool.query('SELECT * FROM get_organizations($1,$2,$3,$4)',[state_code,division_code,district_code,taluka_code]);
+    const result=await pool.query('SELECT * FROM get_organizations_by_location($1,$2,$3,$4)',[state_code,division_code,district_code,taluka_code]);
     res.json(result.rows);
   } catch (err) {
     console.error("Error fetching organizations:", err);

@@ -90,6 +90,135 @@ CREATE TABLE m_organization (
     FOREIGN KEY (state_code) REFERENCES m_state(state_code)
 );
 
+INSERT INTO m_organization (
+    organization_id,
+    organization_name,
+    organization_name_ll,
+    state_code
+)
+VALUES
+-- ('ORG007', 'District Collector Office, Amravati', 'जिल्हाधिकारी कार्यालय, अमरावती', '27'),
+-- ('ORG008', 'Zilla Parishad, Amravati', 'जिल्हा परिषद, अमरावती', '27'),
+('ORG009', 'Pune Municipal Corporation', 'महानगरपालिका', '27'),
+
+('ORG010', 'Public Works Department,Pune', 'सार्वजनिक बांधकाम विभाग', '27'),
+
+('ORG011', 'Regional Transport Office, Pune', 'प्रादेशिक परिवहन कार्यालय', '27'),
+
+('ORG012', 'Maharashtra State Electricity Distribution Company Limited (MSEDCL),Aurangabad', 
+ 'महाराष्ट्र राज्य विद्युत वितरण कंपनी लिमिटेड', '27'),
+
+('ORG013', 'District Skill Development and Employment Office, Aurangabad', 
+ 'जिल्हा कौशल्य विकास व रोजगार कार्यालय, अमरावती', '27'),
+
+('ORG014', 'Nagpur Municipal Corporation', 'नागपूर महानगरपालिका', '27'),
+('ORG015', 'Nashik Municipal Corporation', 'नाशिक महानगरपालिका', '27'),
+('ORG016', 'Mumbai Municipal Corporation', 'मुंबई महानगरपालिका', '27');
+
+UPDATE m_organization
+SET division_code = '04',
+    district_code = '477',
+    taluka_code = '4112'
+WHERE organization_id = 'ORG012';
+
+
+
+UPDATE m_organization
+SET division_code = '02',
+    district_code = '480',
+    taluka_code = '4292'
+WHERE organization_id = 'ORG009';
+
+UPDATE m_organization
+SET division_code = '02',
+    district_code = '480',
+    taluka_code = '4291'
+WHERE organization_id = 'ORG010';
+
+UPDATE m_organization
+SET division_code = '02',
+    district_code = '480',
+    taluka_code = '4294'
+WHERE organization_id = 'ORG011';
+
+
+
+UPDATE m_organization
+SET division_code = '02',
+    district_code = '515',
+    taluka_code = '0001'
+WHERE organization_id = 'ORG012';
+
+UPDATE m_organization
+SET division_code = '04',
+    district_code = '505',
+    taluka_code = '0001'
+WHERE organization_id = 'ORG014';
+
+UPDATE m_organization
+SET division_code = '03',
+    district_code = '516',
+    taluka_code = '0001'
+WHERE organization_id = 'ORG015';
+
+UPDATE m_organization
+SET division_code = '06',
+    district_code = '514',
+    taluka_code = '0001'
+WHERE organization_id = 'ORG016';
+
+
+----------------------------------------
+-- get organization function working:
+CREATE OR REPLACE FUNCTION public.get_organizations(
+    p_state_code     VARCHAR,
+    p_division_code  VARCHAR,
+    p_district_code  VARCHAR DEFAULT NULL,
+    p_taluka_code    VARCHAR DEFAULT NULL
+)
+RETURNS TABLE (
+    organization_id   VARCHAR,
+    organization_name TEXT
+)
+LANGUAGE sql
+AS $function$
+    SELECT
+        t.organization_id,
+        t.organization_name
+    FROM (
+        SELECT DISTINCT
+            o.organization_id,
+            o.organization_name::TEXT AS organization_name
+        FROM
+            m_organization o
+        JOIN
+            m_organization_location l
+              ON l.organization_id = o.organization_id
+        WHERE
+            o.is_active = TRUE
+            AND l.is_active = TRUE
+            AND l.state_code = p_state_code
+            AND l.division_code = p_division_code
+            AND (p_district_code IS NULL OR l.district_code = p_district_code)
+            AND (p_taluka_code IS NULL OR l.taluka_code = p_taluka_code)
+    ) t
+    ORDER BY
+        t.organization_name;
+$function$;
+
+SELECT * 
+FROM get_organizations('27', '01');
+
+SELECT * 
+FROM get_organizations('27', '01','482');
+
+
+
+
+------
+
+
+
 
 CREATE TABLE m_department (
     department_id VARCHAR(10) PRIMARY KEY,
@@ -110,6 +239,37 @@ CREATE TABLE m_department (
 
 select  * from m_department
 
+-- insert department:
+INSERT INTO m_department (
+    department_id,
+    organization_id,
+    department_name,
+    department_name_ll,
+    state_code
+)
+VALUES
+('DEP007', 'ORG001', 'General Administration', 'सामान्य प्रशासन', '27'),
+('DEP008', 'ORG002', 'Revenue Department', 'महसूल विभाग', '27'),
+('DEP009', 'ORG003', 'Public Works Department', 'सार्वजनिक बांधकाम विभाग', '27'),
+('DEP010', 'ORG005', 'Health Department', 'आरोग्य विभाग', '27'),
+('DEP011', 'ORG005', 'Education Department', 'शिक्षण विभाग', '27'),
+('DEP012', 'ORG006', 'Women and Child Development', 'महिला व बाल विकास विभाग', '27'),
+('DEP013', 'ORG007', 'Rural Development', 'ग्रामीण विकास विभाग', '27'),
+('DEP014', 'ORG008', 'Urban Development', 'नगर विकास विभाग', '27'),
+('DEP015', 'ORG009', 'Social Welfare', 'सामाजिक कल्याण विभाग', '27'),
+('DEP016', 'ORG010', 'Agriculture Department', 'कृषी विभाग', '27'),
+('DEP017', 'ORG011', 'Water Resources', 'जलसंपदा विभाग', '27'),
+('DEP018', 'ORG012', 'Transport Department', 'परिवहन विभाग', '27'),
+('DEP019', 'ORG013', 'Labour Department', 'कामगार विभाग', '27'),
+('DEP020', 'ORG014', 'Food and Civil Supplies', 'अन्न व नागरी पुरवठा विभाग', '27'),
+('DEP021', 'ORG015', 'Environment Department', 'पर्यावरण विभाग', '27'),
+('DEP022', 'ORG016', 'Planning Department', 'नियोजन विभाग', '27');
+
+-- 
+
+
+
+	
 CREATE TABLE m_services (
     service_id VARCHAR(10) PRIMARY KEY,
     organization_id VARCHAR(10) NOT NULL,
@@ -129,6 +289,40 @@ CREATE TABLE m_services (
     FOREIGN KEY (state_code) REFERENCES m_state(state_code)
 );
 
+select * from m_services
+	
+-- insert for services
+INSERT INTO m_services (
+    service_id,
+    organization_id,
+    department_id,
+    service_name,
+    service_name_ll,
+    state_code
+)
+VALUES
+('SRV008', 'ORG001', 'DEP007', 'File Processing Service', 'फाईल प्रक्रिया सेवा', '27'),
+('SRV009', 'ORG002', 'DEP008', 'Land Record Verification', 'जमीन नोंद पडताळणी', '27'),
+('SRV010', 'ORG003', 'DEP009', 'Road Repair Request', 'रस्ता दुरुस्ती विनंती', '27'),
+('SRV011', 'ORG005', 'DEP010', 'Health Certificate Issuance', 'आरोग्य प्रमाणपत्र सेवा', '27'),
+('SRV012', 'ORG005', 'DEP011', 'School Admission Assistance', 'शाळा प्रवेश सहाय्य', '27'),
+('SRV013', 'ORG006', 'DEP012', 'Anganwadi Scheme Registration', 'अंगणवाडी योजना नोंदणी', '27'),
+('SRV014', 'ORG007', 'DEP013', 'Rural Housing Application', 'ग्रामीण गृहनिर्माण अर्ज', '27'),
+('SRV015', 'ORG008', 'DEP014', 'Property Tax Related Service', 'मालमत्ता कर सेवा', '27'),
+('SRV016', 'ORG009', 'DEP015', 'Pension Scheme Application', 'पेन्शन योजना अर्ज', '27'),
+('SRV017', 'ORG010', 'DEP016', 'Crop Subsidy Application', 'पीक अनुदान अर्ज', '27'),
+('SRV018', 'ORG011', 'DEP017', 'Water Connection Approval', 'पाणी जोडणी मान्यता', '27'),
+('SRV019', 'ORG012', 'DEP018', 'Driving License Assistance', 'वाहनचालक परवाना सहाय्य', '27'),
+('SRV020', 'ORG013', 'DEP019', 'Labour Registration Service', 'कामगार नोंदणी सेवा', '27'),
+('SRV021', 'ORG014', 'DEP020', 'Ration Card Update', 'रेशन कार्ड अद्ययावत सेवा', '27'),
+('SRV022', 'ORG015', 'DEP021', 'Environmental Clearance Request', 'पर्यावरण मंजुरी सेवा', '27'),
+('SRV023', 'ORG016', 'DEP022', 'Development Planning Approval', 'विकास नियोजन मंजुरी', '27');
+
+
+
+
+-------
+	
 CREATE SEQUENCE IF NOT EXISTS m_organization_id_seq START 1 INCREMENT 1;
 CREATE SEQUENCE IF NOT EXISTS m_department_id_seq START 1 INCREMENT 1;
 CREATE SEQUENCE IF NOT EXISTS m_services_id_seq START 1 INCREMENT 1;
@@ -182,7 +376,7 @@ CREATE TABLE m_designation (
     FOREIGN KEY (taluka_code) REFERENCES m_taluka(taluka_code)
 );
 
-
+select * from m_helpdesk;
 ---VISITOR/OFFICER/HELPDESK/ADMIN 
 CREATE TABLE user_seq_monthly (
     year_month VARCHAR(7) PRIMARY KEY,  -- Format YYYY-MM
@@ -381,8 +575,10 @@ CREATE TABLE m_officers (
     FOREIGN KEY (taluka_code) REFERENCES m_taluka(taluka_code)
 );
 
+select * from m_helpdesk;
 
-
+drop table m_helpdesk;
+	
 CREATE SEQUENCE m_helpdesk_id_seq START 1 INCREMENT 1;
 
 CREATE TABLE m_helpdesk (
@@ -417,6 +613,46 @@ CREATE TABLE m_helpdesk (
     FOREIGN KEY (taluka_code) REFERENCES m_taluka(taluka_code)
 );
 
+INSERT INTO m_helpdesk (
+    user_id,
+    full_name,
+    mobile_no,
+    email_id,
+    
+    assigned_department,
+    assigned_location,
+    state_code,
+    division_code,
+    district_code,
+    taluka_code,
+    availability_status,
+    insert_by
+)
+VALUES
+-- Amravati
+( 'Amravati Helpdesk Officer', '9000000001', 'amravati.helpdesk@gov.in',
+  'DEP001', , '27', '05', NULL, NULL, 'Available', 'system'),
+
+-- Aurangabad
+('USR_HLP_02', 'Aurangabad Helpdesk Officer', '9000000002', 'aurangabad.helpdesk@gov.in',
+  NULL, NULL, '27', '04', NULL, NULL, 'Available', 'system'),
+
+-- Konkan
+('USR_HLP_03', 'Konkan Helpdesk Officer', '9000000003', 'konkan.helpdesk@gov.in',
+ NULL, NULL, '27', '01', NULL, NULL, 'Available', 'system'),
+
+-- Nagpur
+('USR_HLP_04', 'Nagpur Helpdesk Officer', '9000000004', 'nagpur.helpdesk@gov.in',
+  NULL, NULL, '27', '06', NULL, NULL, 'Available', 'system'),
+
+-- Nashik
+('USR_HLP_05', 'Nashik Helpdesk Officer', '9000000005', 'nashik.helpdesk@gov.in', NULL, NULL, '27', '03', NULL, NULL, 'Available', 'system'),
+
+-- Pune
+('USR_HLP_06', 'Pune Helpdesk Officer', '9000000006', 'pune.helpdesk@gov.in',
+  NULL, NULL, '27', '02', NULL, NULL, 'Available', 'system');
+
+select * from m_helpdesk
 
 CREATE SEQUENCE m_admins_id_seq START 1 INCREMENT 1;
 
@@ -453,6 +689,8 @@ CREATE TABLE m_admins (
 );
 
 ----
+select * from appointments;
+
 CREATE SEQUENCE appointments_id_seq START 1 INCREMENT 1;
 
 CREATE TABLE appointments (
@@ -482,7 +720,7 @@ CREATE TABLE appointments (
     FOREIGN KEY (department_id) REFERENCES m_department(department_id),
     FOREIGN KEY (service_id) REFERENCES m_services(service_id)
 );
-
+select * from appointments;
 
 CREATE SEQUENCE appointment_documents_id_seq START 1 INCREMENT 1;
 
@@ -533,6 +771,8 @@ CREATE TABLE walkins (
 );
 
 CREATE SEQUENCE walkin_tokens_id_seq START 1 INCREMENT 1;
+
+Alter table walkins Add column time_slot time;
 
 CREATE TABLE walkin_tokens (
     token_id VARCHAR(20) PRIMARY KEY DEFAULT ('T' || LPAD(nextval('walkin_tokens_id_seq')::TEXT, 5, '0')),
@@ -804,18 +1044,6 @@ VALUES
 ('OF', 'Officer', 'अधिकारी', TRUE, '127.0.0.1', 'system'),
 ('HD', 'Helpdesk', 'सहायता डेस्क', TRUE, '127.0.0.1', 'system');
 
-INSERT INTO m_role (
-    role_code,
-    role_name,
-    role_name_ll,
-    is_active,
-    insert_ip,
-    insert_by
-)
-VALUES
-('VS', 'Visitor', 'नागरिक / अभ्यागत', TRUE, '127.0.0.1', 'system');
-
-
 ALTER TABLE m_designation ALTER COLUMN taluka_code DROP NOT NULL;
 INSERT INTO m_designation (
     designation_code,
@@ -913,7 +1141,8 @@ BEGIN
     );
 END;
 $$ LANGUAGE plpgsql;
-
+select * from appointments
+-- 1st------
 CREATE OR REPLACE FUNCTION insert_appointment(
     p_visitor_id VARCHAR,
     p_organization_id VARCHAR,
@@ -949,7 +1178,7 @@ BEGIN
         p_visitor_id,
         p_organization_id,
         p_department_id,
-        p_officer_id,
+        COALESCE(p_officer_id, 'HELPDESK'),
         p_service_id,
         p_purpose,
         p_appointment_date,
@@ -971,6 +1200,97 @@ BEGIN
     WHERE vs.visitor_id = p_visitor_id;
 
     -- 4️⃣ Insert notification
+   INSERT INTO notifications(
+    username,
+    appointment_id,
+    title,
+    message,
+    type
+)
+VALUES (
+    visitor_username,
+    appointment_id,
+    'Appointment Created',
+    'Your appointment ' || appointment_id ||
+    ' is created and pending approval from ' ||
+    COALESCE(officer_name, 'Helpdesk'),
+    'info'
+);
+
+    -- 5️⃣ Return the appointment ID
+    RETURN appointment_id;
+END;
+$$ LANGUAGE plpgsql;
+
+
+
+-- demo
+CREATE OR REPLACE FUNCTION insert_appointment(
+    p_visitor_id VARCHAR,
+    p_organization_id VARCHAR,
+    p_department_id VARCHAR,
+    p_officer_id VARCHAR,
+    p_service_id VARCHAR,
+    p_purpose TEXT,
+    p_appointment_date DATE,
+    p_slot_time TIME,
+    p_insert_by VARCHAR,
+    p_insert_ip VARCHAR
+)
+RETURNS VARCHAR AS $$
+DECLARE
+    appointment_id VARCHAR;
+    officer_name VARCHAR;
+    visitor_username VARCHAR;
+    final_officer_id VARCHAR;
+BEGIN
+    -- 🔹 0️⃣ Decide final officer (Helpdesk fallback)
+    final_officer_id := COALESCE(p_officer_id, 'HELPDESK');
+
+    -- 🔹 1️⃣ Insert appointment (officer_id never NULL)
+    INSERT INTO appointments(
+        visitor_id,
+        organization_id,
+        department_id,
+        officer_id,
+        service_id,
+        purpose,
+        appointment_date,
+        slot_time,
+        insert_by,
+        insert_ip
+    )
+    VALUES (
+        p_visitor_id,
+        p_organization_id,
+        p_department_id,
+        final_officer_id,
+        p_service_id,
+        p_purpose,
+        p_appointment_date,
+        p_slot_time,
+        p_insert_by,
+        p_insert_ip
+    )
+    RETURNING appointments.appointment_id INTO appointment_id;
+
+    -- 🔹 2️⃣ Get officer name (safe for Helpdesk)
+    SELECT full_name
+    INTO officer_name
+    FROM m_officers
+    WHERE officer_id = final_officer_id;
+
+    -- 🔹 3️⃣ Fallback if officer record does not exist
+    officer_name := COALESCE(officer_name, 'Helpdesk');
+
+    -- 🔹 4️⃣ Get visitor username
+    SELECT u.username
+    INTO visitor_username
+    FROM m_visitors_signup vs
+    JOIN m_users u ON u.user_id = vs.user_id
+    WHERE vs.visitor_id = p_visitor_id;
+
+    -- 🔹 5️⃣ Insert notification (never NULL message)
     INSERT INTO notifications(
         username,
         appointment_id,
@@ -982,14 +1302,411 @@ BEGIN
         visitor_username,
         appointment_id,
         'Appointment Created',
-        'Your appointment ' || appointment_id || ' is created and pending approval from Officer ' || officer_name,
+        'Your appointment ' || appointment_id ||
+        ' is created and pending approval from ' || officer_name,
         'info'
     );
 
-    -- 5️⃣ Return the appointment ID
+    -- 🔹 6️⃣ Return appointment ID
     RETURN appointment_id;
 END;
 $$ LANGUAGE plpgsql;
+
+
+select * from insert_appointment();
+
+select * from get_appointment_details1('APT044');
+-- demo2:
+CREATE OR REPLACE FUNCTION insert_appointment(
+    p_visitor_id VARCHAR,
+    p_organization_id VARCHAR,
+    p_department_id VARCHAR,
+    p_officer_id VARCHAR,
+    p_service_id VARCHAR,
+    p_purpose TEXT,
+    p_appointment_date DATE,
+    p_slot_time TIME,
+    p_insert_by VARCHAR,
+    p_insert_ip VARCHAR
+)
+RETURNS VARCHAR
+LANGUAGE plpgsql
+AS $$
+DECLARE
+    v_appointment_id VARCHAR;
+    v_officer_name VARCHAR;
+    v_visitor_username VARCHAR;
+BEGIN
+    -- 1️⃣ Insert appointment
+    INSERT INTO appointments(
+        visitor_id,
+        organization_id,
+        department_id,
+        officer_id,
+        service_id,
+        purpose,
+        appointment_date,
+        slot_time,
+        insert_by,
+        insert_ip
+    )
+    VALUES (
+        p_visitor_id,
+        p_organization_id,
+        p_department_id,
+        COALESCE(p_officer_id, 'HELPDESK'),
+        p_service_id,
+        p_purpose,
+        p_appointment_date,
+        p_slot_time,
+        p_insert_by,
+        p_insert_ip
+    )
+    RETURNING appointment_id INTO v_appointment_id;
+
+    -- 2️⃣ Get officer OR helpdesk full_name
+    SELECT full_name
+    INTO v_officer_name
+    FROM (
+        SELECT full_name
+        FROM m_officers
+        WHERE officer_id = p_officer_id
+
+        UNION ALL
+
+        SELECT full_name
+        FROM m_helpdesk
+        WHERE helpdesk_id = p_officer_id
+    ) t
+    LIMIT 1;
+
+    -- 3️⃣ Safe fallback
+    v_officer_name := COALESCE(v_officer_name, 'Helpdesk');
+
+    -- 4️⃣ Get visitor username
+    SELECT u.username
+    INTO v_visitor_username
+    FROM m_visitors_signup vs
+    JOIN m_users u ON u.user_id = vs.user_id
+    WHERE vs.visitor_id = p_visitor_id;
+
+    -- 5️⃣ Insert notification
+    INSERT INTO notifications(
+        username,
+        appointment_id,
+        title,
+        message,
+        type
+    )
+    VALUES (
+        v_visitor_username,
+        v_appointment_id,
+        'Appointment Created',
+        'Your appointment ' || v_appointment_id ||
+        ' is created and pending approval from ' || v_officer_name,
+        'info'
+    );
+
+    -- 6️⃣ Return appointment ID
+    RETURN v_appointment_id;
+END;
+$$;
+select * from m_visitors_signup;
+select * from appointments
+
+-- demo3:
+
+CREATE OR REPLACE FUNCTION insert_appointment(
+    p_visitor_id VARCHAR,
+    p_organization_id VARCHAR,
+    p_department_id VARCHAR,
+    p_officer_id VARCHAR,
+    p_service_id VARCHAR,
+    p_purpose TEXT,
+    p_appointment_date DATE,
+    p_slot_time TIME,
+    p_insert_by VARCHAR,
+    p_insert_ip VARCHAR
+)
+RETURNS VARCHAR AS $$
+DECLARE
+    appointment_id VARCHAR;
+    officer_name VARCHAR;
+    visitor_username VARCHAR;
+    final_officer_id VARCHAR;
+BEGIN
+    -- ✅ 1️⃣ Decide officer or helpdesk (REAL ID)
+    IF p_officer_id IS NULL THEN
+        SELECT helpdesk_id
+        INTO final_officer_id
+        FROM m_helpdesk
+        WHERE is_active = TRUE
+        ORDER BY helpdesk_id
+        LIMIT 1;   -- default helpdesk
+    ELSE
+        final_officer_id := p_officer_id;
+    END IF;
+
+    -- ✅ 2️⃣ Insert appointment
+    INSERT INTO appointments(
+        visitor_id,
+        organization_id,
+        department_id,
+        officer_id,
+        service_id,
+        purpose,
+        appointment_date,
+        slot_time,
+        insert_by,
+        insert_ip
+    )
+    VALUES (
+        p_visitor_id,
+        p_organization_id,
+        p_department_id,
+        final_officer_id,
+        p_service_id,
+        p_purpose,
+        p_appointment_date,
+        p_slot_time,
+        p_insert_by,
+        p_insert_ip
+    )
+    RETURNING appointments.appointment_id INTO appointment_id;
+
+    -- ✅ 3️⃣ Officer / Helpdesk name
+    SELECT COALESCE(o.full_name, h.full_name)
+    INTO officer_name
+    FROM m_helpdesk h
+    FULL JOIN m_officers o
+        ON o.officer_id = final_officer_id
+    WHERE h.helpdesk_id = final_officer_id
+       OR o.officer_id = final_officer_id;
+
+    officer_name := COALESCE(officer_name, 'Helpdesk');
+
+    -- ✅ 4️⃣ Visitor username
+    SELECT u.username
+    INTO visitor_username
+    FROM m_visitors_signup vs
+    JOIN m_users u ON u.user_id = vs.user_id
+    WHERE vs.visitor_id = p_visitor_id;
+
+    -- ✅ 5️⃣ Notification
+    INSERT INTO notifications(
+        username,
+        appointment_id,
+        title,
+        message,
+        type
+    )
+    VALUES (
+        visitor_username,
+        appointment_id,
+        'Appointment Created',
+        'Your appointment ' || appointment_id ||
+        ' is created and pending approval from ' || officer_name,
+        'info'
+    );
+
+    -- ✅ 6️⃣ Return
+    RETURN appointment_id;
+END;
+$$ LANGUAGE plpgsql;
+-- demo4:
+CREATE OR REPLACE FUNCTION insert_appointment(
+    p_visitor_id VARCHAR,
+    p_organization_id VARCHAR,
+    p_department_id VARCHAR,
+    p_officer_id VARCHAR,
+    p_service_id VARCHAR,
+    p_purpose TEXT,
+    p_appointment_date DATE,
+    p_slot_time TIME,
+    p_insert_by VARCHAR,
+    p_insert_ip VARCHAR
+)
+RETURNS VARCHAR AS $$
+DECLARE
+    appointment_id VARCHAR;
+    officer_name VARCHAR;
+    visitor_username VARCHAR;
+    final_officer_id VARCHAR;
+BEGIN
+    -- 1️⃣ Decide officer / helpdesk (REAL ID)
+    IF p_officer_id IS NULL THEN
+        SELECT helpdesk_id
+        INTO final_officer_id
+        FROM m_helpdesk
+        WHERE is_active = TRUE
+        ORDER BY helpdesk_id
+        LIMIT 1;
+    ELSE
+        final_officer_id := p_officer_id;
+    END IF;
+
+    -- 2️⃣ Insert appointment
+    INSERT INTO appointments(
+        visitor_id,
+        organization_id,
+        department_id,
+        officer_id,
+        service_id,
+        purpose,
+        appointment_date,
+        slot_time,
+        insert_by,
+        insert_ip
+    )
+    VALUES (
+        p_visitor_id,
+        p_organization_id,
+        p_department_id,
+        final_officer_id,
+        p_service_id,
+        p_purpose,
+        p_appointment_date,
+        p_slot_time,
+        p_insert_by,
+        p_insert_ip
+    )
+    RETURNING appointments.appointment_id INTO appointment_id;
+
+    -- 3️⃣ Officer name lookup
+    SELECT full_name
+    INTO officer_name
+    FROM m_officers
+    WHERE officer_id = final_officer_id;
+
+    -- 4️⃣ Helpdesk fallback
+    IF officer_name IS NULL THEN
+        SELECT full_name
+        INTO officer_name
+        FROM m_helpdesk
+        WHERE helpdesk_id = final_officer_id;
+    END IF;
+
+    officer_name := COALESCE(officer_name, 'Helpdesk');
+
+    -- 5️⃣ Visitor username
+    SELECT u.username
+    INTO visitor_username
+    FROM m_visitors_signup vs
+    JOIN m_users u ON u.user_id = vs.user_id
+    WHERE vs.visitor_id = p_visitor_id;
+
+    -- 6️⃣ Notification
+    INSERT INTO notifications(
+        username,
+        appointment_id,
+        title,
+        message,
+        type
+    )
+    VALUES (
+        visitor_username,
+        appointment_id,
+        'Appointment Created',
+        'Your appointment ' || appointment_id ||
+        ' is created and pending approval from ' || officer_name,
+        'info'
+    );
+
+    RETURN appointment_id;
+END;
+$$ LANGUAGE plpgsql;
+-- demo 5
+CREATE OR REPLACE FUNCTION insert_appointment(
+    p_visitor_id VARCHAR,
+    p_organization_id VARCHAR,
+    p_department_id VARCHAR,
+    p_officer_id VARCHAR,   -- can be officer_id OR helpdesk_id
+    p_service_id VARCHAR,
+    p_purpose TEXT,
+    p_appointment_date DATE,
+    p_slot_time TIME,
+    p_insert_by VARCHAR,
+    p_insert_ip VARCHAR
+)
+RETURNS VARCHAR
+LANGUAGE plpgsql
+AS $$
+DECLARE
+    v_appointment_id VARCHAR;
+    v_officer_name VARCHAR;
+    v_visitor_username VARCHAR;
+BEGIN
+    -- 1️⃣ Insert appointment (officer_id must be provided)
+    INSERT INTO appointments(
+        visitor_id,
+        organization_id,
+        department_id,
+        officer_id,
+        service_id,
+        purpose,
+        appointment_date,
+        slot_time,
+        insert_by,
+        insert_ip
+    )
+    VALUES (
+        p_visitor_id,
+        p_organization_id,
+        p_department_id,
+        p_officer_id,
+        p_service_id,
+        p_purpose,
+        p_appointment_date,
+        p_slot_time,
+        p_insert_by,
+        p_insert_ip
+    )
+    RETURNING appointment_id INTO v_appointment_id;
+
+    -- 2️⃣ Try getting officer name
+    SELECT full_name
+    INTO v_officer_name
+    FROM m_officers
+    WHERE officer_id = p_officer_id;
+
+    -- 3️⃣ If not officer, try helpdesk
+    IF v_officer_name IS NULL THEN
+        SELECT full_name
+        INTO v_officer_name
+        FROM m_helpdesk
+        WHERE helpdesk_id = p_officer_id;
+    END IF;
+
+    -- 4️⃣ Visitor username
+    SELECT u.username
+    INTO v_visitor_username
+    FROM m_visitors_signup vs
+    JOIN m_users u ON u.user_id = vs.user_id
+    WHERE vs.visitor_id = p_visitor_id;
+
+    -- 5️⃣ Insert notification
+    INSERT INTO notifications(
+        username,
+        appointment_id,
+        title,
+        message,
+        type
+    )
+    VALUES (
+        v_visitor_username,
+        v_appointment_id,
+        'Appointment Created',
+        'Your appointment ' || v_appointment_id ||
+        ' is created and pending approval from ' || v_officer_name,
+        'info'
+    );
+
+    RETURN v_appointment_id;
+END;
+$$;
+
+-- 
+select * from m_officers;
 
 CREATE OR REPLACE FUNCTION insert_appointment_document(
     p_appointment_id VARCHAR,
@@ -1019,37 +1736,62 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+
+-- newwwwwwwwww get officers by organization:
 CREATE OR REPLACE FUNCTION get_officers_same_location(
     p_state_code VARCHAR,
     p_division_code VARCHAR,
-    p_district_code VARCHAR,
-    p_taluka_code VARCHAR,
     p_organization_id VARCHAR,
-    p_department_id VARCHAR
+    p_district_code VARCHAR DEFAULT NULL,
+    p_taluka_code VARCHAR DEFAULT NULL,
+    p_department_id VARCHAR DEFAULT NULL
 )
 RETURNS TABLE (
     officer_id VARCHAR,
-    full_name VARCHAR
+    full_name VARCHAR,
+    officer_type VARCHAR
 )
 LANGUAGE plpgsql
 AS $$
 BEGIN
     RETURN QUERY
+
+    -- 🔹 Regular Officers
     SELECT 
         o.officer_id,
-        o.full_name
+        o.full_name,
+        CAST('OFFICER' AS VARCHAR) AS officer_type
     FROM m_officers o
     WHERE o.is_active = TRUE
       AND o.state_code = p_state_code
       AND o.division_code = p_division_code
-      AND o.district_code = p_district_code
-      AND o.taluka_code = p_taluka_code
       AND o.organization_id = p_organization_id
-      AND o.department_id = p_department_id
-    ORDER BY o.full_name;
+      AND (p_district_code IS NULL OR o.district_code = p_district_code)
+      AND (p_taluka_code IS NULL OR o.taluka_code = p_taluka_code)
+      AND (p_department_id IS NULL OR o.department_id = p_department_id)
+
+    UNION ALL
+
+    -- 🔹 Helpdesk Officers
+    SELECT
+        h.helpdesk_id AS officer_id,
+        h.full_name,
+        CAST('HELPDESK' AS VARCHAR) AS officer_type
+    FROM m_helpdesk h
+    WHERE h.is_active = TRUE
+      AND h.state_code = p_state_code
+      AND h.division_code = p_division_code
+      AND h.organization_id = p_organization_id
+      AND (p_district_code IS NULL OR h.district_code = p_district_code)
+      AND (p_taluka_code IS NULL OR h.taluka_code = p_taluka_code)
+      AND (p_department_id IS NULL OR h.department_id = p_department_id)
+
+    ORDER BY full_name;
 END;
 $$;
+-- 
 
+-- 
 CREATE OR REPLACE FUNCTION insert_department_data(
     p_organization_id TEXT,
     p_state_code TEXT,
@@ -1143,8 +1885,7 @@ $$ LANGUAGE plpgsql;
 
 CREATE OR REPLACE FUNCTION cancel_appointment(
     p_appointment_id VARCHAR,
-    p_cancelled_by VARCHAR DEFAULT 'visitor',
-    p_cancelled_reason TEXT DEFAULT NULL
+    p_cancelled_by VARCHAR DEFAULT 'visitor'
 )
 RETURNS JSON AS $$
 DECLARE
@@ -1154,7 +1895,6 @@ BEGIN
     -- 1️⃣ Update appointment → cancelled
     UPDATE appointments
     SET status = 'cancelled',
-        cancelled_reason = p_cancelled_reason,
         updated_date = NOW(),
         update_by = p_cancelled_by
     WHERE appointment_id = p_appointment_id
@@ -1182,8 +1922,7 @@ BEGIN
     ) VALUES (
         v_visitor_id,
         'Appointment Cancelled',
-        'You have cancelled your appointment ' || p_appointment_id || 
-        COALESCE(' Reason: ' || p_cancelled_reason, ''),
+        'You have cancelled your appointment ' || p_appointment_id,
         'warning'
     );
 
@@ -1196,14 +1935,17 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+------vistors data
 CREATE OR REPLACE FUNCTION get_visitor_dashboard_by_username(p_username VARCHAR)
-RETURNS JSON AS $$
+RETURNS JSON
+LANGUAGE plpgsql
+AS $$
 DECLARE
     appointment_data JSON;
     notification_data JSON;
     visitor_name VARCHAR;
 BEGIN
-    -- Get visitor full name
+    -- 1️⃣ Get visitor full name
     SELECT vs.full_name
     INTO visitor_name
     FROM m_visitors_signup vs
@@ -1211,51 +1953,72 @@ BEGIN
     WHERE u.username = p_username
     LIMIT 1;
 
-    -- Fetch appointments
+    -- 2️⃣ Fetch appointments (OFFICER + HELPDESK SAFE)
     SELECT json_agg(
         json_build_object(
             'appointment_id', a.appointment_id,
             'organization_name', o.organization_name,
             'department_name', d.department_name,
-            'officer_name', off.full_name,
+
+            -- ✅ Unified officer/helpdesk name
+            'officer_name',
+            (
+                SELECT x.full_name
+                FROM (
+                    SELECT o2.officer_id AS staff_id, o2.full_name
+                    FROM m_officers o2
+                    UNION ALL
+                    SELECT h.helpdesk_id AS staff_id, h.full_name
+                    FROM m_helpdesk h
+                ) x
+                WHERE x.staff_id = a.officer_id
+                LIMIT 1
+            ),
+
             'service_name', s.service_name,
-            'appointment_date', a.appointment_date,
-            'slot_time', a.slot_time,
+            'appointment_date', TO_CHAR(a.appointment_date, 'DD-MM-YYYY'),
+            'slot_time', TO_CHAR(a.slot_time, 'HH12:MI AM'),
             'status', a.status,
             'purpose', a.purpose
-        ) ORDER BY a.insert_date DESC
+        )
+        ORDER BY a.insert_date DESC
     )
     INTO appointment_data
     FROM appointments a
     LEFT JOIN m_organization o ON o.organization_id = a.organization_id
     LEFT JOIN m_department d ON d.department_id = a.department_id
-    LEFT JOIN m_officers off ON off.officer_id = a.officer_id
     LEFT JOIN m_services s ON s.service_id = a.service_id
     JOIN m_visitors_signup vs ON vs.visitor_id = a.visitor_id
     JOIN m_users u ON u.user_id = vs.user_id
     WHERE u.username = p_username;
 
-    -- Fetch notifications from notifications table
+    -- 3️⃣ Fetch notifications
     SELECT json_agg(
-    json_build_object(
-        'message', n.message,
-        'type', n.type,
-        'appointment_id', n.appointment_id,
-        'created_at', n.created_at
-    ) ORDER BY n.created_at DESC
-)
-INTO notification_data
-FROM notifications n
-WHERE n.username = p_username;
+        json_build_object(
+            'message', n.message,
+            'type', n.type,
+            'appointment_id', n.appointment_id,
+            'created_at', n.created_at
+        )
+        ORDER BY n.created_at DESC
+    )
+    INTO notification_data
+    FROM notifications n
+    WHERE n.username = p_username;
 
-    -- Return dashboard JSON
+    -- 4️⃣ Return dashboard JSON
     RETURN json_build_object(
         'full_name', COALESCE(visitor_name, ''),
         'appointments', COALESCE(appointment_data, '[]'::json),
         'notifications', COALESCE(notification_data, '[]'::json)
     );
 END;
-$$ LANGUAGE plpgsql;
+$$;
+
+SELECT get_visitor_dashboard_by_username('VIS019');
+
+
+--------
 
 CREATE OR REPLACE FUNCTION insert_multiple_services(p_services jsonb)
 RETURNS jsonb AS $$
@@ -1647,11 +2410,23 @@ BEGIN
     ELSIF p_role_code = 'HD' THEN
         INSERT INTO m_helpdesk (
             user_id, full_name, mobile_no, email_id,
-            assigned_department, assigned_location, photo, insert_by
+            designation_code ,
+    department_id ,
+    organization_id ,
+    state_code,
+    division_code,
+    district_code,
+    taluka_code, photo, insert_by
         )
         VALUES (
             v_uid, p_full_name, p_mobile_no, p_email_id,
-            p_department_id, p_district_code, p_photo, 'system'
+            p_designation_code ,
+    p_department_id ,
+    p_organization_id ,
+    p_state_code,
+    p_division_code,
+    p_district_code,
+    p_taluka_code, p_photo, 'system'
         )
         RETURNING helpdesk_id INTO v_entity_id;
 
@@ -1851,17 +2626,35 @@ SELECT * FROM update_visitor_by_id(
 
 
 -- change password
-CREATE OR REPLACE FUNCTION update_user_password(p_user_id BIGINT, p_new_hash TEXT)
-RETURNS BOOLEAN
+CREATE OR REPLACE FUNCTION change_user_password(
+    p_user_id VARCHAR,
+    p_old_password_hash VARCHAR,
+    p_new_password_hash VARCHAR
+)
+RETURNS TABLE(success BOOLEAN, message TEXT)
 LANGUAGE plpgsql
 AS $$
 BEGIN
+    -- Check if old password matches
+    IF NOT EXISTS (
+        SELECT 1
+        FROM m_users
+        WHERE user_id = p_user_id
+          AND password_hash = p_old_password_hash
+    ) THEN
+        RETURN QUERY
+        SELECT FALSE, 'Old password is incorrect';
+        RETURN;
+    END IF;
+
+    -- Update password
     UPDATE m_users
-    SET password_hash = p_new_hash,
-        updated_date = NOW()
+    SET password_hash = p_new_password_hash,
+        updated_date = CURRENT_TIMESTAMP
     WHERE user_id = p_user_id;
 
-    RETURN TRUE;
+    RETURN QUERY
+    SELECT TRUE, 'Password changed successfully';
 END;
 $$;
 
@@ -1930,7 +2723,7 @@ END;
 $$ LANGUAGE plpgsql;
 
 SELECT get_officer_dashboard_by_username('OFF005');
-
+-- 
 
 
 
@@ -2375,8 +3168,66 @@ RETURNS TABLE (
     slot_time TIME,
     status VARCHAR,
     reschedule_reason TEXT,
-    qr_code_path VARCHAR,
-    cancelled_reason TEXT           -- Added cancelled_reason
+    qr_code_path VARCHAR
+)
+LANGUAGE plpgsql
+STABLE
+AS $$
+BEGIN
+    RETURN QUERY
+    SELECT
+        a.appointment_id,
+        a.visitor_id,
+        vs.full_name AS visitor_name,         -- Visitor name added
+        a.organization_id,
+        org.organization_name,
+        a.department_id,
+        dept.department_name,
+        a.officer_id,
+        off.full_name AS officer_name,
+        a.service_id,
+        srv.service_name,
+        a.purpose,
+        a.appointment_date,
+        a.slot_time,
+        a.status,
+        a.reschedule_reason,
+        a.qr_code_path
+    FROM appointments a
+    LEFT JOIN m_visitors_signup vs ON vs.visitor_id = a.visitor_id   -- join visitor table
+    LEFT JOIN m_organization org ON org.organization_id = a.organization_id
+    LEFT JOIN m_department dept ON dept.department_id = a.department_id
+    LEFT JOIN m_officers off ON off.officer_id = a.officer_id
+    LEFT JOIN m_services srv ON srv.service_id = a.service_id
+    WHERE a.appointment_id = p_appointment_id
+      AND a.is_active = TRUE;
+END;
+$$;
+
+
+
+-- demmo:
+DROP FUNCTION get_appointment_details1(character varying)
+
+CREATE OR REPLACE FUNCTION get_appointment_details1(p_appointment_id VARCHAR)
+RETURNS TABLE (
+    appointment_id VARCHAR,
+    visitor_id VARCHAR,
+    visitor_name VARCHAR,
+    organization_id VARCHAR,
+    organization_name VARCHAR,
+    department_id VARCHAR,
+    department_name VARCHAR,
+    officer_id VARCHAR,
+    officer_name VARCHAR,
+    service_id VARCHAR,
+    service_name VARCHAR,
+    purpose TEXT,
+    appointment_date DATE,
+    slot_time TIME,
+    status VARCHAR,
+    reschedule_reason TEXT,
+    qr_code_path VARCHAR
 )
 LANGUAGE plpgsql
 STABLE
@@ -2392,7 +3243,10 @@ BEGIN
         a.department_id,
         dept.department_name,
         a.officer_id,
-        off.full_name AS officer_name,
+
+        -- 🔹 Officer OR Helpdesk name
+        COALESCE(off.full_name, hd.full_name, 'Helpdesk') AS officer_name,
+
         a.service_id,
         srv.service_name,
         a.purpose,
@@ -2400,20 +3254,245 @@ BEGIN
         a.slot_time,
         a.status,
         a.reschedule_reason,
-        a.qr_code_path,
-        a.cancelled_reason             -- Include in select
+        a.qr_code_path
     FROM appointments a
-    LEFT JOIN m_visitors_signup vs ON vs.visitor_id = a.visitor_id
-    LEFT JOIN m_organization org ON org.organization_id = a.organization_id
-    LEFT JOIN m_department dept ON dept.department_id = a.department_id
-    LEFT JOIN m_officers off ON off.officer_id = a.officer_id
-    LEFT JOIN m_services srv ON srv.service_id = a.service_id
+    LEFT JOIN m_visitors_signup vs 
+        ON vs.visitor_id = a.visitor_id
+
+    LEFT JOIN m_organization org 
+        ON org.organization_id = a.organization_id
+
+    LEFT JOIN m_department dept 
+        ON dept.department_id = a.department_id
+
+    -- 🔹 Officer table
+    LEFT JOIN m_officers off 
+        ON off.officer_id = a.officer_id
+
+    -- 🔹 Helpdesk table
+    LEFT JOIN m_helpdesk hd 
+        ON hd.helpdesk_id = a.officer_id
+
+    LEFT JOIN m_services srv 
+        ON srv.service_id = a.service_id
+
     WHERE a.appointment_id = p_appointment_id
       AND a.is_active = TRUE;
 END;
 $$;
 
-SELECT * FROM get_appointment_details1('APT010');
+-------
+CREATE OR REPLACE FUNCTION get_appointment_details1(p_appointment_id VARCHAR)
+RETURNS TABLE (
+    appointment_id VARCHAR,
+    visitor_id VARCHAR,
+    visitor_name VARCHAR,
+    organization_id VARCHAR,
+    organization_name VARCHAR,
+    department_id VARCHAR,
+    department_name VARCHAR,
+    officer_id VARCHAR,
+    officer_name VARCHAR,
+    service_id VARCHAR,
+    service_name VARCHAR,
+    purpose TEXT,
+    appointment_date DATE,
+    slot_time TIME,
+    status VARCHAR,
+    reschedule_reason TEXT,
+    qr_code_path VARCHAR
+)
+LANGUAGE plpgsql
+STABLE
+AS $$
+BEGIN
+    RETURN QUERY
+    SELECT
+        a.appointment_id,
+        a.visitor_id,
+        vs.full_name AS visitor_name,
+        a.organization_id,
+        org.organization_name,
+        a.department_id,
+        dept.department_name,
+        a.officer_id,
+
+        -- ✅ GUARANTEED officer/helpdesk name
+        CASE
+            WHEN a.officer_id = 'HELPDESK' THEN 'Helpdesk'
+            ELSE COALESCE(
+                (SELECT o.full_name FROM m_officers o WHERE o.officer_id = a.officer_id),
+                (SELECT h.full_name FROM m_helpdesk h WHERE h.helpdesk_id = a.officer_id),
+                'Helpdesk'
+            )
+        END AS officer_name,
+
+        a.service_id,
+        srv.service_name,
+        a.purpose,
+        a.appointment_date,
+        a.slot_time,
+        a.status,
+        a.reschedule_reason,
+        a.qr_code_path
+    FROM appointments a
+    LEFT JOIN m_visitors_signup vs ON vs.visitor_id = a.visitor_id
+    LEFT JOIN m_organization org ON org.organization_id = a.organization_id
+    LEFT JOIN m_department dept ON dept.department_id = a.department_id
+    LEFT JOIN m_services srv ON srv.service_id = a.service_id
+    WHERE a.appointment_id = p_appointment_id
+      AND a.is_active = TRUE;
+END;
+$$;
+-------demoooo:
+CREATE OR REPLACE FUNCTION get_appointment_details1(p_appointment_id VARCHAR)
+RETURNS TABLE (
+    appointment_id VARCHAR,
+    visitor_id VARCHAR,
+    visitor_name VARCHAR,
+    organization_id VARCHAR,
+    organization_name VARCHAR,
+    department_id VARCHAR,
+    department_name VARCHAR,
+    officer_id VARCHAR,
+    officer_name VARCHAR,
+    service_id VARCHAR,
+    service_name VARCHAR,
+    purpose TEXT,
+    appointment_date DATE,
+    slot_time TIME,
+    status VARCHAR,
+    reschedule_reason TEXT,
+    qr_code_path VARCHAR
+)
+LANGUAGE plpgsql
+STABLE
+AS $$
+BEGIN
+    RETURN QUERY
+    SELECT
+        a.appointment_id,
+        a.visitor_id,
+        vs.full_name AS visitor_name,
+        a.organization_id,
+        org.organization_name,
+        a.department_id,
+        dept.department_name,
+        a.officer_id,
+
+        -- ✅ Officer OR Helpdesk name (NO COALESCE, NO DEFAULT)
+        CASE
+            WHEN o.officer_id IS NOT NULL THEN o.full_name
+            WHEN h.helpdesk_id IS NOT NULL THEN h.full_name
+            ELSE NULL
+        END AS officer_name,
+
+        a.service_id,
+        srv.service_name,
+        a.purpose,
+        a.appointment_date,
+        a.slot_time,
+        a.status,
+        a.reschedule_reason,
+        a.qr_code_path
+    FROM appointments a
+    LEFT JOIN m_visitors_signup vs
+        ON vs.visitor_id = a.visitor_id
+    LEFT JOIN m_organization org
+        ON org.organization_id = a.organization_id
+    LEFT JOIN m_department dept
+        ON dept.department_id = a.department_id
+    LEFT JOIN m_services srv
+        ON srv.service_id = a.service_id
+
+    -- 🔹 Join both tables safely
+    LEFT JOIN m_officers o
+        ON o.officer_id = a.officer_id
+    LEFT JOIN m_helpdesk h
+        ON h.helpdesk_id = a.officer_id
+
+    WHERE a.appointment_id = p_appointment_id
+      AND a.is_active = TRUE;
+END;
+$$;
+--------
+CREATE OR REPLACE FUNCTION get_appointment_details1(p_appointment_id VARCHAR)
+RETURNS TABLE (
+    appointment_id VARCHAR,
+    visitor_id VARCHAR,
+    visitor_name VARCHAR,
+    organization_id VARCHAR,
+    organization_name VARCHAR,
+    department_id VARCHAR,
+    department_name VARCHAR,
+    officer_id VARCHAR,
+    officer_name VARCHAR,
+    service_id VARCHAR,
+    service_name VARCHAR,
+    purpose TEXT,
+    appointment_date DATE,
+    slot_time TIME,
+    status VARCHAR,
+    reschedule_reason TEXT,
+    qr_code_path VARCHAR
+)
+LANGUAGE plpgsql
+STABLE
+AS $$
+BEGIN
+    RETURN QUERY
+    SELECT
+        a.appointment_id,
+        a.visitor_id,
+        vs.full_name AS visitor_name,
+        a.organization_id,
+        org.organization_name,
+        a.department_id,
+        dept.department_name,
+        a.officer_id,
+
+        -- ✅ Explicitly qualified officer/helpdesk lookup
+        (
+            SELECT x.full_name
+            FROM (
+                SELECT o.officer_id AS staff_id, o.full_name
+                FROM m_officers o
+
+                UNION ALL
+
+                SELECT h.helpdesk_id AS staff_id, h.full_name
+                FROM m_helpdesk h
+            ) x
+            WHERE x.staff_id = a.officer_id
+            LIMIT 1
+        ) AS officer_name,
+
+        a.service_id,
+        srv.service_name,
+        a.purpose,
+        a.appointment_date,
+        a.slot_time,
+        a.status,
+        a.reschedule_reason,
+        a.qr_code_path
+    FROM appointments a
+    LEFT JOIN m_visitors_signup vs
+        ON vs.visitor_id = a.visitor_id
+    LEFT JOIN m_organization org
+        ON org.organization_id = a.organization_id
+    LEFT JOIN m_department dept
+        ON dept.department_id = a.department_id
+    LEFT JOIN m_services srv
+        ON srv.service_id = a.service_id
+    WHERE a.appointment_id = p_appointment_id
+      AND a.is_active = TRUE;
+END;
+$$;
+
+
+------
+select * from appointments
+SELECT * FROM get_appointment_details1('APT052');
 
 CREATE OR REPLACE FUNCTION get_active_departments_count()
 RETURNS INTEGER AS $$
@@ -2431,3 +3510,349 @@ $$ LANGUAGE plpgsql;
 
 Select * from get_active_departments_count()
 
+--alter for VIS id: 
+ALTER TABLE m_users
+ALTER COLUMN user_id DROP DEFAULT;
+
+
+ALTER TABLE m_visitors_signup
+ALTER COLUMN visitor_id DROP DEFAULT;
+
+
+DROP SEQUENCE IF EXISTS m_users_user_id_seq;
+DROP SEQUENCE IF EXISTS m_visitors_signup_id_seq;
+
+
+CREATE TABLE user_seq_monthly ( year_month VARCHAR(7) PRIMARY KEY, -- Format YYYY-MM 
+	seq_no INT NOT NULL );  
+CREATE TABLE visitor_seq_monthly ( year_month VARCHAR(7) PRIMARY KEY, -- Format: YYYY-MM 
+	seq_no INT NOT NULL );
+
+-- user id:
+CREATE OR REPLACE FUNCTION generate_user_id()
+RETURNS TEXT AS $$
+DECLARE
+    ym VARCHAR(7);
+    mon TEXT;
+    yr TEXT;
+    seq INT;
+BEGIN
+    ym := TO_CHAR(NOW(), 'YYYY-MM');
+
+    SELECT seq_no INTO seq
+    FROM user_seq_monthly
+    WHERE year_month = ym
+    FOR UPDATE;
+
+    IF NOT FOUND THEN
+        seq := 1;
+        INSERT INTO user_seq_monthly(year_month, seq_no)
+        VALUES (ym, seq);
+    ELSE
+        seq := seq + 1;
+        UPDATE user_seq_monthly
+        SET seq_no = seq
+        WHERE year_month = ym;
+    END IF;
+
+    mon := TO_CHAR(NOW(), 'MON');
+    yr  := TO_CHAR(NOW(), 'YYYY');
+
+    RETURN mon || '-' || yr || '-USR-' || LPAD(seq::TEXT, 3, '0');
+END;
+$$ LANGUAGE plpgsql;
+
+-- visitor id:
+CREATE OR REPLACE FUNCTION generate_visitor_id()
+RETURNS TEXT AS $$
+DECLARE
+    ym VARCHAR(7);
+    mon TEXT;
+    yr TEXT;
+    seq INT;
+BEGIN
+    ym := TO_CHAR(NOW(), 'YYYY-MM');
+
+    SELECT seq_no INTO seq
+    FROM visitor_seq_monthly
+    WHERE year_month = ym
+    FOR UPDATE;
+
+    IF NOT FOUND THEN
+        seq := 1;
+        INSERT INTO visitor_seq_monthly(year_month, seq_no)
+        VALUES (ym, seq);
+    ELSE
+        seq := seq + 1;
+        UPDATE visitor_seq_monthly
+        SET seq_no = seq
+        WHERE year_month = ym;
+    END IF;
+
+    mon := TO_CHAR(NOW(), 'MON');
+    yr  := TO_CHAR(NOW(), 'YYYY');
+
+    RETURN mon || '-' || yr || '-VIS-' || LPAD(seq::TEXT, 3, '0');
+END;
+$$ LANGUAGE plpgsql;
+
+
+-- triggers:
+-- User trigger
+CREATE OR REPLACE FUNCTION set_user_id()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF NEW.user_id IS NULL THEN
+        NEW.user_id := generate_user_id();
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Visitor trigger
+CREATE OR REPLACE FUNCTION set_visitor_id()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF NEW.visitor_id IS NULL THEN
+        NEW.visitor_id := generate_visitor_id();
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+
+-- 
+-- m_users
+DROP TRIGGER IF EXISTS trg_set_user_id ON m_users;
+
+CREATE TRIGGER trg_set_user_id
+BEFORE INSERT ON m_users
+FOR EACH ROW
+EXECUTE FUNCTION set_user_id();
+
+DROP TRIGGER IF EXISTS trg_set_visitor_id ON m_visitors_signup;
+
+CREATE TRIGGER trg_set_visitor_id
+BEFORE INSERT ON m_visitors_signup
+FOR EACH ROW
+EXECUTE FUNCTION set_visitor_id();
+
+
+INSERT INTO m_users (username, password_hash, role_code)
+VALUES ('testuser1', 'hash', 'AD');
+
+INSERT INTO m_users (username, password_hash, role_code)
+VALUES ('testuser2', 'hash', 'AD');
+
+select * from m_users;
+-- 
+
+
+
+
+-- alter table m_organization:
+ALTER TABLE m_organization
+ADD COLUMN address TEXT,
+ADD COLUMN pincode VARCHAR(6),
+ADD COLUMN division_code VARCHAR(2),
+ADD COLUMN district_code VARCHAR(3),
+ADD COLUMN taluka_code VARCHAR(4);
+
+Select * from m_organization
+Select * from m_department
+
+CREATE OR REPLACE FUNCTION insert_organization_data(
+    p_organization_name     TEXT,
+    p_organization_name_ll  TEXT,
+    p_state_code            TEXT,
+    p_address               TEXT,
+    p_pincode               VARCHAR(6),
+    p_division_code         VARCHAR(2),
+    p_district_code         VARCHAR(3),
+    p_taluka_code           VARCHAR(4),
+    p_departments           JSON
+)
+RETURNS JSON AS
+$$
+DECLARE
+    v_organization_id VARCHAR(10);
+    v_department_id   VARCHAR(10);
+    dept_obj          JSON;
+    service_obj       JSON;
+BEGIN
+    -- ===============================
+    -- INSERT ORGANIZATION
+    -- ===============================
+    INSERT INTO m_organization (
+        organization_name,
+        organization_name_ll,
+        state_code,
+        address,
+        pincode,
+        division_code,
+        district_code,
+        taluka_code
+    )
+    VALUES (
+        p_organization_name,
+        p_organization_name_ll,
+        p_state_code,
+        p_address,
+        p_pincode,
+        p_division_code,
+        p_district_code,
+        p_taluka_code
+    )
+    RETURNING organization_id INTO v_organization_id;
+
+    -- ===============================
+    -- NO DEPARTMENTS → RETURN
+    -- ===============================
+    IF p_departments IS NULL
+       OR json_typeof(p_departments) <> 'array'
+       OR json_array_length(p_departments) = 0 THEN
+        RETURN json_build_object(
+            'success', TRUE,
+            'organization_id', v_organization_id
+        );
+    END IF;
+
+    -- ===============================
+    -- DEPARTMENTS LOOP
+    -- ===============================
+    FOR dept_obj IN
+        SELECT * FROM json_array_elements(p_departments)
+    LOOP
+        INSERT INTO m_department (
+            organization_id,
+            department_name,
+            department_name_ll,
+            state_code
+        )
+        VALUES (
+            v_organization_id,
+            dept_obj->>'dept_name',
+            dept_obj->>'dept_name_ll',
+            p_state_code
+        )
+        RETURNING department_id INTO v_department_id;
+
+        -- ===============================
+        -- SERVICES LOOP
+        -- ===============================
+        IF dept_obj->'services' IS NULL
+           OR json_typeof(dept_obj->'services') <> 'array'
+           OR json_array_length(dept_obj->'services') = 0 THEN
+            CONTINUE;
+        END IF;
+
+        FOR service_obj IN
+            SELECT * FROM json_array_elements(dept_obj->'services')
+        LOOP
+            INSERT INTO m_services (
+                organization_id,
+                department_id,
+                service_name,
+                service_name_ll,
+                state_code
+            )
+            VALUES (
+                v_organization_id,
+                v_department_id,
+                service_obj->>'name',
+                service_obj->>'name_ll',
+                p_state_code
+            );
+        END LOOP;
+    END LOOP;
+
+    -- ===============================
+    -- SUCCESS RESPONSE
+    -- ===============================
+    RETURN json_build_object(
+        'success', TRUE,
+        'organization_id', v_organization_id
+    );
+END;
+$$ LANGUAGE plpgsql;
+
+
+--get organization by location:
+CREATE OR REPLACE FUNCTION get_organizations_by_location(
+    p_state_code VARCHAR,
+    p_division_code VARCHAR DEFAULT NULL,
+    p_district_code VARCHAR DEFAULT NULL,
+    p_taluka_code VARCHAR DEFAULT NULL
+)
+RETURNS TABLE (
+    organization_id VARCHAR,
+    organization_name VARCHAR,
+    organization_name_ll VARCHAR,
+    address TEXT,
+    pincode VARCHAR,
+    state_code VARCHAR,
+    division_code VARCHAR,
+    district_code VARCHAR,
+    taluka_code VARCHAR
+)
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    RETURN QUERY
+    SELECT
+        o.organization_id,
+        o.organization_name,
+        o.organization_name_ll,
+        o.address,
+        o.pincode,
+        o.state_code,
+        o.division_code,
+        o.district_code,
+        o.taluka_code
+    FROM m_organization o
+    WHERE o.is_active = TRUE
+      AND o.state_code = p_state_code
+      AND (p_division_code IS NULL OR o.division_code = p_division_code)
+      AND (p_district_code IS NULL OR o.district_code = p_district_code)
+      AND (p_taluka_code IS NULL OR o.taluka_code = p_taluka_code)
+    ORDER BY o.organization_name;
+END;
+$$;
+
+SELECT * FROM get_organizations_by_location('27');
+
+select * from m_users;
+
+INSERT INTO m_helpdesk (
+    user_id,
+    full_name,
+    mobile_no,
+    email_id,
+    designation_code,
+    department_id,
+    organization_id,
+    state_code,
+    division_code,
+    district_code,
+    taluka_code,
+    insert_by,
+    insert_ip
+)
+VALUES (
+    'DEC-2025-USR-004',
+    'Amit Kulkarni',
+    '9876543210',
+    'amit@gov.in',
+    'DES01',
+    'DEP001',
+    'ORG009',
+    '27',
+    '04',
+    '481',
+    '4230',
+    'admin',
+    '127.0.0.1'
+);
+
+select * from m_designation;
+select * from m_role;

@@ -40,9 +40,9 @@ exports.getVisitorDashboard = async (req, res) => {
       `SELECT get_visitor_dashboard_by_username($1) AS data;`,
       [username]
     );
-
+    
     const dashboardData = result.rows[0].data;
-
+     console.log(dashboardData,"dataaaaa")
     res.status(200).json({
       success: true,
       data: dashboardData

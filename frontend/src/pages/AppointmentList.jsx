@@ -132,7 +132,7 @@ const AppointmentList = () => {
               appointments.map((appt) => (
                 <tr key={appt.appointment_id}>
                   <td>{appt.appointment_id}</td>
-                  <td>{appt.officer_name || "Helpdesk" }</td>
+                  <td>{appt.officer_name}</td>
                   <td>{appt.department_name}</td>
                   <td>{appt.service_name}</td>
                   <td>

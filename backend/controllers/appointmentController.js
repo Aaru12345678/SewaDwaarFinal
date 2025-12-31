@@ -93,7 +93,7 @@ exports.getAppointmentDetails = async (req, res) => {
       "SELECT * FROM get_appointment_details1($1)",
       [appointmentId]
     );
-
+console.log(result,"result")
     if (result.rows.length === 0) {
       return res.status(404).json({
         success: false,
@@ -103,7 +103,7 @@ exports.getAppointmentDetails = async (req, res) => {
 
     // appointment now includes cancelled_reason
     const appointment = result.rows[0];
-
+    console.log(appointment,"appointments")
     res.status(200).json({
       success: true,
       data: appointment,

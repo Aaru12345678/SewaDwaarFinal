@@ -6,6 +6,8 @@ import Header from "../Components/Header";
 import Footer from "../Components/Footer";
 import NavbarMain from '../Components/NavbarMain';
 import NavbarTop from '../Components/NavbarTop';
+import VisitorNavbar from "./VisitorNavbar";
+
 
 import {
   FaCalendarDay, 
@@ -32,7 +34,8 @@ import {
   FaChartBar
 } from "react-icons/fa";
 import "../css/Dashboard.css";
-
+import OfficerNavbar from "./OfficerNavbar";
+import "../pages/MainPage.css"
 function OfficerDashboard() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
@@ -93,6 +96,8 @@ function OfficerDashboard() {
       try {
         const { data, error } = await getOfficerDashboard(officer);
         console.log(data.pending_appointments,"dataaaa")
+
+        
         // console.log(purpose,"purpose");
         if (error) {
           console.error("Failed to fetch dashboard:", error);
@@ -597,7 +602,7 @@ try {
     }
 
     return (
-      <>
+      
       <div className="appointments-table-wrapper">
         <table className="appointments-table">
           <thead>
@@ -653,10 +658,17 @@ try {
 
   return (
     <div>
-      <Header />
+      <div className="fixed-header">
+        <NavbarTop/>
+        <Header />
+      <OfficerNavbar fullName={fullName} />
+        
+      </div>
+      <div className="main-layout">
+  <div className="content-below">
       <div className="dashboard-container">
       {/* Top Navigation Bar */}
-      <nav className="dashboard-nav">
+      {/* <nav className="dashboard-nav">
         <div className="nav-brand">
           <span className="brand-icon">🏛️</span>
           <span className="brand-text">SewaDwaar</span>
@@ -677,7 +689,7 @@ try {
             <FaSignOutAlt />
           </button>
         </div>
-      </nav>
+      </nav> */}
 
       <div className="dashboard-content">
         {/* Welcome Header */}
@@ -1136,8 +1148,9 @@ try {
       )}
       </div>
       <Footer />
+      </div>
     </div>
-    </>
+    </div>
   );
 }
 

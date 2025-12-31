@@ -47,8 +47,19 @@
 /* ===== Main Container ===== */
 .dashboard-container {
   min-height: 100vh;
-  background: linear-gradient(135deg, #e6e6fa 0%, #e6e6fa 100%);
+  /* background: linear-gradient(135deg, #e6e6fa 0%, #e6e6fa 100%); */
   font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+  background:
+  linear-gradient(
+    rgba(240, 241, 243, 0.65),
+    rgba(249, 250, 252, 0.65)
+  ),
+  url("../assets/dashboard-bg.jpg");
+
+background-size: cover;
+background-position: center;
+background-attachment: fixed;
+
 }
 
 /* ===== Top Navigation ===== */

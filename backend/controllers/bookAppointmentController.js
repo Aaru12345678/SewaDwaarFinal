@@ -52,7 +52,7 @@ exports.createAppointment = async (req, res) => {
       insert_by || "system",
       insert_ip || "127.0.0.1"
     ];
-
+    console.log("📤 SQL Params:", values);
     const { rows } = await pool.query(query, values);
 
     if (!rows || rows.length === 0) {

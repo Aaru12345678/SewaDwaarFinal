@@ -221,6 +221,7 @@ const formatDateDDMMYYYY = (dateStr) => {
 };
 
 
+
 const handleSubmit = async (e) => {
   e.preventDefault();
 
@@ -521,10 +522,10 @@ const handleChange = (e) => {
 //   fetchOfficers();
 // }, [formData.org_id, formData.dept_id]);
 
-const HELPDESK_OFFICER = {
-  officer_id: "HELPDESK",
-  full_name: "Helpdesk Officer"
-};
+// const HELPDESK_OFFICER = {
+//   officer_id: "HELPDESK",
+//   full_name: "Helpdesk Officer"
+// };
 
 useEffect(() => {
   const state_code = formData.state;
@@ -534,14 +535,13 @@ useEffect(() => {
   const organization_id = formData.org_id;
   const department_id = formData.dept_id || null;
 
-  // 🚫 Reset if mandatory fields missing
+  // 🚫 Mandatory fields
   if (!state_code || !division_code || !organization_id) {
     setOfficers([]);
     return;
   }
 
   let isMounted = true;
-  let alertShown = false; // ✅ prevents repeated SweetAlert
 
   const fetchOfficers = async () => {
     try {
@@ -559,57 +559,27 @@ useEffect(() => {
       const { data } = await getOfficersByLocation(payload);
       if (!isMounted) return;
 
-      if (data?.success && data?.data?.length > 0) {
+      if (data?.success && Array.isArray(data.data)) {
         setOfficers(data.data);
       } else {
-        // ✅ Auto-assign Helpdesk
-        setOfficers([
-          {
-            officer_id: "HELPDESK",
-            full_name: "Helpdesk Officer"
-          }
-        ]);
-
-        setFormData(prev => ({
-          ...prev,
-          officer_id: "HELPDESK"
-        }));
-
-        // ✅ SweetAlert instead of toast
-        if (!alertShown) {
-          alertShown = true;
-          Swal.fire({
-            icon: "info",
-            title: "Officer Not Available",
-            text:
-              data?.message ||
-              "No officer available. Helpdesk will handle your appointment.",
-            confirmButtonText: "OK"
-          });
-        }
+        setOfficers([]);
       }
+
     } catch (err) {
-      if (!isMounted) return;
-
       console.error("❌ Error fetching officers:", err);
-
+      setOfficers([]);
       Swal.fire({
         icon: "error",
         title: "Error",
-        text: "Error fetching officers. Please try again."
+        text: "Failed to fetch officers. Please try again."
       });
-
-      setOfficers([]);
     } finally {
-      if (isMounted) {
-        setLoadingOfficers(false);
-      }
+      if (isMounted) setLoadingOfficers(false);
     }
   };
 
   fetchOfficers();
 
-  // ✅ Cleanup (undo effect + prevent duplicate alerts)
   return () => {
     isMounted = false;
   };
