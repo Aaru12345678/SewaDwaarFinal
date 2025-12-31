@@ -36,23 +36,25 @@
 .nav-links li a:hover {
   color: #007bff;
 }
-
 .navbar-right {
   display: flex;
   align-items: center;
   position: relative;
-  margin-right: 20px;   /* <-- keep profile inside page */
+  margin-right: 30px;
 }
 
 .profile {
   cursor: pointer;
   display: flex;
   align-items: center;
-  justify-content: center;
-  padding: 6px;         /* <-- give space around the icon */
-  border-radius: 50%;
+
+  gap: 10px;              /* ✅ SPACE BETWEEN ICON & NAME */
+
+  padding: 6px 10px;      /* breathing space */
+  border-radius: 20px;
   transition: background 0.2s ease;
 }
+
 
 .profile:hover {
    background-color:#595a96;  /* Background on hover */
@@ -61,7 +63,7 @@
 
 .profile-icon {
   font-size: 32px;      /* bigger but visible */
-  color: #007bff;       /* blue */
+  color: #fdfefe;       /* blue */
 }
 
 .dropdown {

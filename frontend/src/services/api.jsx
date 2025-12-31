@@ -109,6 +109,7 @@ export const getOfficersByLocation = (payload) =>
   safeRequest(api.post("/getOfficersByLocation", payload));
 
 
+
 export const insertServices = (data) =>
   safeRequest(api.post("/services/insert-multiple", data));
 

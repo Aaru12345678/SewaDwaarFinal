@@ -221,7 +221,10 @@ const formatDateDDMMYYYY = (dateStr) => {
 };
 
 
+<<<<<<< Updated upstream
 
+=======
+>>>>>>> Stashed changes
 const handleSubmit = async (e) => {
   e.preventDefault();
 
@@ -646,6 +649,35 @@ const isStep3Valid = useMemo(() => {
   return !!formData.purpose;
 }, [formData]);
 
+const handleStepClick = (targetStep) => {
+  // Step 1 is always accessible
+  if (targetStep === 1) {
+    setStep(1);
+    return;
+  }
+
+  if (targetStep === 2 && !isStep1Valid) {
+    toast.error("Please complete Step 1 first");
+    return;
+  }
+
+  if (targetStep === 3 && (!isStep1Valid || !isStep2Valid)) {
+    toast.error("Please complete previous steps first");
+    return;
+  }
+
+  if (
+    targetStep === 4 &&
+    (!isStep1Valid || !isStep2Valid || !isStep3Valid)
+  ) {
+    toast.error("Please complete all previous steps first");
+    return;
+  }
+
+  // ✅ Allowed navigation
+  setStep(targetStep);
+};
+
 const getError = (condition, message) => {
   if (!showErrors) return null;
   return condition ? null : <span className="error-text">{message}</span>;
@@ -667,242 +699,308 @@ const getError = (condition, message) => {
 
       {/* Progress Bar */}
       <div className="progressbar">
-        {steps.map((label, index) => {
-          const stepNumber = index + 1;
-          return (
-            <div
-              key={stepNumber}
-              className={`progress-step ${step >= stepNumber ? "active" : ""}`}
-            >
-              <div className="step-number">{stepNumber}</div>
-              <div className="step-label">{label}</div>
-              {stepNumber < steps.length && (
-                <div className={`step-line ${step > stepNumber ? "filled" : ""}`}></div>
-              )}
-            </div>
-          );
-        })}
+  {steps.map((label, index) => {
+    const stepNumber = index + 1;
+
+    return (
+      <div
+        key={stepNumber}
+        className={`progress-step 
+          ${step === stepNumber ? "active" : ""} 
+          ${step > stepNumber ? "completed" : ""}`}
+        onClick={() => handleStepClick(stepNumber)}
+        style={{ cursor: "pointer" }}
+      >
+        <div className="step-number">{stepNumber}</div>
+        <div className="step-label">{label}</div>
       </div>
+    );
+  })}
+</div>
+
 
       {/* Form */}
       <form onSubmit={handleSubmit}>
   {/* Step 1 */}
   {step === 1 && (
-  <div className="form-step">
-    <div className="radio-group">
-      <label
-        className={`radio-option ${mode === "department" ? "selected" : ""}`}
-        htmlFor="byDept"
-      >
-        <input
-          id="byDept"
-          type="radio"
-          name="mode"
-          value="department"
-          checked={mode === "department"}
-          onChange={() => setMode("department")}
-        />
-        <span className="radio-text">Search by Department</span>
-      </label>
+  <div className="step-panel">
 
-      <label
-        className={`radio-option ${mode === "service" ? "selected" : ""}`}
-        htmlFor="byService"
-      >
-        <input
-          id="byService"
-          type="radio"
-          name="mode"
-          value="service"
-          checked={mode === "service"}
-          onChange={() => setMode("service")}
-        />
-        <span className="radio-text">Search by Service</span>
-      </label>
+    {/* SEARCH MODE */}
+    <div className="panel-section">
+      <div className="section-title">Search Type</div>
+
+      <div className="radio-group dashboard-radio">
+        <label className={`radio-option ${mode === "department" ? "selected" : ""}`}>
+          <input
+            type="radio"
+            checked={mode === "department"}
+            onChange={() => setMode("department")}
+          />
+          Search by Department
+        </label>
+
+        <label className={`radio-option ${mode === "service" ? "selected" : ""}`}>
+          <input
+            type="radio"
+            checked={mode === "service"}
+            onChange={() => setMode("service")}
+          />
+          Search by Service
+        </label>
+      </div>
     </div>
-     <div className="form-field full">
-                <label htmlFor="state">
-                  State <span className="required">*</span>
-                </label>
-                <select
-                  id="state"
-                  name="state"
-                  value={formData.state}
-                  onChange={handleChange2}
-                  required
-                >
-                  <option value="">
-                    {loadingStates ? "Loading..." : "Select State"}
-                  </option>
-                  {renderOptions(states, "state_code", "state_name")}
-                </select>
-                {getError(formData.state, "State is required")}
-              </div>
 
-              <div className="form-row location-row">
-                <div className="form-field">
-                  <label htmlFor="division">Division<span className="required">*</span></label>
-                  <select
-                    id="division"
-                    name="division"
-                    value={formData.division}
-                    onChange={handleChange2}
-                    disabled={!formData.state || loadingDivisions}
-                  >
-                    <option value="">
-                      {loadingDivisions ? "Loading..." : "Select Division"}
-                    </option>
-                    {renderOptions(
-                      divisions,
-                      "division_code",
-                      "division_name"
-                    )}
-                  </select>
-                  {getError(formData.division, "Division is required")}
-                </div>
+    {/* LOCATION DETAILS */}
+    <div className="panel-section">
+      <div className="section-title">Location Details</div>
 
-                <div className="form-field">
-                  <label htmlFor="district">District</label>
-                  <select
-                    id="district"
-                    name="district"
-                    value={formData.district}
-                    onChange={handleChange2}
-                    disabled={!formData.division || loadingDistricts}
-                  >
-                    <option value="">
-                      {loadingDistricts ? "Loading..." : "Select District"}
-                    </option>
-                    {renderOptions(
-                      districts,
-                      "district_code",
-                      "district_name"
-                    )}
-                  </select>
-                </div>
+      <div className="grid-4">
+        <div className="form-field">
+          <label>State *</label>
+          <select name="state" value={formData.state} onChange={handleChange2}>
+            <option value="">Select State</option>
+            {renderOptions(states, "state_code", "state_name")}
+          </select>
+          {getError(formData.state, "State is required")}
+        </div>
 
-                <div className="form-field">
-                  <label htmlFor="taluka">Taluka</label>
-                  <select
-                    id="taluka"
-                    name="taluka"
-                    value={formData.taluka}
-                    onChange={handleChange2}
-                    disabled={!formData.district || loadingTalukas}
-                  >
-                    <option value="">
-                      {loadingTalukas ? "Loading..." : "Select Taluka"}
-                    </option>
-                    {renderOptions(talukas, "taluka_code", "taluka_name")}
-                  </select>
-                </div>
-              </div>
+        <div className="form-field">
+          <label>Division *</label>
+          <select
+            name="division"
+            value={formData.division}
+            onChange={handleChange2}
+            disabled={!formData.state}
+          >
+            <option value="">Select Division</option>
+            {renderOptions(divisions, "division_code", "division_name")}
+          </select>
+          {getError(formData.division, "Division is required")}
+        </div>
 
-    {/* Organization Dropdown - always shown */}
-    <label>Organization<span className="required">*</span></label>
-   <select
-  name="org_id"
-  value={formData.org_id}
-  onChange={handleChange}
-  disabled={!formData.state || !formData.division || loadingOrganization}
-  required
->
-  <option value="">
-    {loadingOrganization ? "Loading organizations..." : "Select Organization"}
-  </option>
+        <div className="form-field">
+          <label>District</label>
+          <select
+            name="district"
+            value={formData.district}
+            onChange={handleChange2}
+            disabled={!formData.division}
+          >
+            <option value="">Select District</option>
+            {renderOptions(districts, "district_code", "district_name")}
+          </select>
+        </div>
 
-  {organization.map((org) => (
-    <option key={org.organization_id} value={org.organization_id}>
-      {org.organization_name}
-    </option>
-  ))}
-</select>
-                  {getError(formData.org_id, "Organization is required")}
+        <div className="form-field">
+          <label>Taluka</label>
+          <select
+            name="taluka"
+            value={formData.taluka}
+            onChange={handleChange2}
+            disabled={!formData.district}
+          >
+            <option value="">Select Taluka</option>
+            {renderOptions(talukas, "taluka_code", "taluka_name")}
+          </select>
+        </div>
+      </div>
+    </div>
 
-    {/* Department Dropdown - only show if mode is "department" */}
-    {mode === "department" && (
-      <>
-        <label>Department<span className="required">*</span></label>
-        <select
-          name="dept_id"
-          value={formData.dept_id}
-          onChange={handleChange}
-          disabled={!formData.org_id || loadingDepartment}
-        >
-          <option value="">
-            {loadingDepartment ? "Loading..." : "Select Department"}
+    {/* OFFICE DETAILS */}
+    <div className="panel-section">
+      <div className="section-title">Office Details</div>
+
+      <div className="grid-2">
+        <div className="form-field">
+          <label>Organization *</label>
+          <select
+            name="org_id"
+            value={formData.org_id}
+            onChange={handleChange}
+          >
+            <option value="">Select Organization</option>
+            {organization.map(o => (
+              <option key={o.organization_id} value={o.organization_id}>
+                {o.organization_name}
+              </option>
+            ))}
+          </select>
+          {getError(formData.org_id, "Organization is required")}
+        </div>
+
+        {mode === "department" && (
+          <div className="form-field">
+            <label>Department *</label>
+            <select
+              name="dept_id"
+              value={formData.dept_id}
+              onChange={handleChange}
+            >
+              <option value="">Select Department</option>
+              {renderOptions(department, "department_id", "department_name")}
+            </select>
+            {getError(formData.dept_id, "Department is required")}
+          </div>
+        )}
+
+        <div className="form-field">
+          <label>Service *</label>
+          <select
+            name="service_id"
+            value={formData.service_id}
+            onChange={handleChange}
+          >
+            <option value="">Select Service</option>
+            {renderOptions(services, "service_id", "service_name")}
+          </select>
+          {getError(formData.service_id, "Service is required")}
+        </div>
+      </div>
+    </div>
+
+  </div>
+)}
+
+        {/* Step 2 */}
+{step === 2 && (
+  <div className="step2-panel">
+
+    <div className="step2-field">
+      <label>
+        Officer <span className="required">*</span>
+      </label>
+
+      <select
+        name="officer_id"
+        value={formData.officer_id}
+        onChange={handleChange}
+        required
+        disabled={loadingOfficers}
+      >
+        <option value="">
+          {loadingOfficers
+            ? "Loading officers..."
+            : officers.length === 0
+            ? "No officers available"
+            : "Select Officer"}
+        </option>
+
+        {officers.map((officer) => (
+          <option
+            key={officer.officer_id}
+            value={officer.officer_id}
+          >
+            {officer.full_name}
           </option>
-          {renderOptions(department, "department_id", "department_name")}
-        </select>
-        {getError(formData.dept_id, "Department is required")}
-      </>
-    )}
+        ))}
+      </select>
 
-    {/* Service Dropdown */}
-    <label>Service<span className="required">*</span></label>
-    <select
-      name="service_id"
-      value={formData.service_id}
-      onChange={handleChange}
-      required
-      disabled={!formData.org_id || loadingServices}
-    >
-      <option value="">
-        {loadingServices ? "Loading..." : "Select Services"}
-      </option>
-      {renderOptions(services, "service_id", "service_name")}
-    </select>
-    {getError(formData.service_id, "Service is required")}
+      {getError(formData.officer_id, "Officer is required")}
+    </div>
+
+    <div className="step2-field">
+      <label>
+        Appointment Date <span className="required">*</span>
+      </label>
+
+      <input
+        type="date"
+        name="appointment_date"
+        value={formData.appointment_date}
+        onChange={handleChange}
+        min={today}
+        onKeyDown={(e) => e.preventDefault()}
+        onPaste={(e) => e.preventDefault()}
+        required
+      />
+
+      <small className="hint-text">
+        Select date using calendar only
+      </small>
+
+      {getError(formData.appointment_date, "Date is required")}
+    </div>
+
+    <div className="step2-field">
+      <label>
+        Time Slot <span className="required">*</span>
+      </label>
+
+      <select
+        name="slot_time"
+        value={formData.slot_time}
+        onChange={handleChange}
+        required
+      >
+        <option value="">Select Slot</option>
+        {getAvailableSlots().map((slot) => (
+          <option key={slot} value={slot}>
+            {formatTimeAMPM(slot)}
+          </option>
+        ))}
+      </select>
+
+      {getError(formData.slot_time, "Time is required")}
+    </div>
+
   </div>
 )}
 
 
+<<<<<<< Updated upstream
 
         {/* Step 2 */}
-        {step === 2 && (
-          <div className="form-step">
-           <label>Officer<span className="required">*</span></label>
-<select
-  name="officer_id"
-  value={formData.officer_id}
-  onChange={handleChange}
-  required
-  disabled={loadingOfficers}
->
-  {/* Default Option */}
-  <option value="">
-    {loadingOfficers
-      ? "Loading officers..."
-      : officers.length === 0
-      ? "No officers available"
-      : "Select Officer"}
-  </option>
+{step === 2 && (
+  <div className="step2-panel">
 
-  {/* Render Officer Names */}
-  {officers.map((officer) => (
-    <option key={officer.officer_id} value={officer.officer_id}>
-      {officer.full_name}
-    </option>
-  ))}
-</select>
-{getError(formData.officer_id, "Officer is required")}
+    <div className="step2-field">
+      <label>
+        Officer <span className="required">*</span>
+      </label>
 
+      <select
+        name="officer_id"
+        value={formData.officer_id}
+        onChange={handleChange}
+        required
+        disabled={loadingOfficers}
+      >
+        <option value="">
+          {loadingOfficers
+            ? "Loading officers..."
+            : officers.length === 0
+            ? "No officers available"
+            : "Select Officer"}
+        </option>
 
-            <label>Appointment Date<span className="required">*</span></label>
-<input
-  type="date"
-  name="appointment_date"
-  value={formData.appointment_date}
-  onChange={handleChange}
-  onKeyDown={(e) => e.preventDefault()}
- // typing detected
-  onPaste={(e) => e.preventDefault()}
-   // paste detected
-  min={today} 
-  required
-  // 🔴 Detect manual typing / paste
-  // onKeyDown={() => setIsManualDateEntry(true)}
-  // onPaste={() => setIsManualDateEntry(true)}
+        {officers.map((officer) => (
+          <option
+            key={officer.officer_id}
+            value={officer.officer_id}
+          >
+            {officer.full_name}
+          </option>
+        ))}
+      </select>
+
+      {getError(formData.officer_id, "Officer is required")}
+    </div>
+
+    <div className="step2-field">
+      <label>
+        Appointment Date <span className="required">*</span>
+      </label>
+
+      <input
+        type="date"
+        name="appointment_date"
+        value={formData.appointment_date}
+        onChange={handleChange}
+        min={today}
+        onKeyDown={(e) => e.preventDefault()}
+        onPaste={(e) => e.preventDefault()}
+        required
+      />
 
   // // ✅ Picker selection
   // onChange={(e) => {
@@ -937,51 +1035,72 @@ const getError = (condition, message) => {
           </div>
         )}
 
+=======
+>>>>>>> Stashed changes
         {/* Step 3 */}
-        {step === 3 && (
-          <div className="form-step">
-            <label>Purpose<span className="required">*</span></label>
-            <textarea
-              name="purpose"
-              value={formData.purpose}
-              onChange={handleChange}
-              required
-            />
-{getError(formData.purpose, "Purpose is required")}
-            {/* <input
-  type="file"
-  name="documents"
-  multiple
-  onChange={(e) => setFormData({...formData, documents: Array.from(e.target.files)})}
-/> */}
+{step === 3 && (
+  <div className="step3-panel">
 
-<input
-  type="file"
-  name="documents"
-  multiple
-  accept="application/pdf"   // <-- Only allow PDF files
-  onChange={(e) => {
-    const files = Array.from(e.target.files);
+    {/* Purpose */}
+    <div className="step3-field">
+      <label>
+        Purpose <span className="required">*</span>
+      </label>
 
-    // Validate each file
-    const invalid = files.some(file => file.type !== "application/pdf");
+      <textarea
+        name="purpose"
+        value={formData.purpose}
+        onChange={handleChange}
+        rows={4}
+        required
+      />
 
-    if (invalid) {
-      Swal.fire({
-        icon: "error",
-        title: "Invalid File!",
-        text: "Only PDF files are allowed.",
-      });
-      e.target.value = ""; // Clear invalid selection
-      return;
-    }
+      {getError(formData.purpose, "Purpose is required")}
+    </div>
 
-    setFormData({ ...formData, documents: files });
-  }}
-/>
-{getError(formData.documents, "Document is required")}
-          </div>
-        )}
+    {/* Document Upload */}
+    <div className="step3-field">
+      <label>
+        Supporting Documents (PDF only)
+        <span className="required">*</span>
+      </label>
+
+      <input
+        type="file"
+        name="documents"
+        multiple
+        accept="application/pdf"
+        onChange={(e) => {
+          const files = Array.from(e.target.files);
+
+          const invalid = files.some(
+            (file) => file.type !== "application/pdf"
+          );
+
+          if (invalid) {
+            Swal.fire({
+              icon: "error",
+              title: "Invalid File!",
+              text: "Only PDF files are allowed.",
+            });
+            e.target.value = "";
+            return;
+          }
+
+          setFormData({ ...formData, documents: files });
+        }}
+      />
+
+      <small className="hint-text">
+        Upload scanned documents in PDF format only
+      </small>
+
+      {getError(formData.documents, "Document is required")}
+    </div>
+
+  </div>
+)}
+
 
         {/* Step 4 */}
         {/* {step === 4 && (
@@ -1013,45 +1132,73 @@ const getError = (condition, message) => {
             </p>
           </div>
         )} */}
+{/* Step 4 */}
 {step === 4 && (
-  <div className="form-step">
-    <h3>Confirm Details</h3>
+  <div className="step4-panel">
 
-    <p>
-      <strong>Organization:</strong>{" "}
-      {selectedOrganization ? selectedOrganization.organization_name : "N/A"}
-    </p>
+    <h3 className="confirm-title">Confirm Appointment Details</h3>
 
-    <p>
-      <strong>Department:</strong>{" "}
-      {selectedDepartment ? selectedDepartment.department_name : "N/A"}
-    </p>
+    <div className="confirm-grid">
 
-    <p>
-      <strong>Service:</strong>{" "}
-      {selectedService ? selectedService.service_name : "N/A"}
-    </p>
+      <div className="confirm-row">
+        <span className="label">Organization</span>
+        <span className="value">
+          {selectedOrganization
+            ? selectedOrganization.organization_name
+            : "N/A"}
+        </span>
+      </div>
 
-    <p>
-      <strong>Officer:</strong>{" "}
-      {selectedOfficer ? selectedOfficer.full_name : "N/A"}
-    </p>
+      <div className="confirm-row">
+        <span className="label">Department</span>
+        <span className="value">
+          {selectedDepartment
+            ? selectedDepartment.department_name
+            : "N/A"}
+        </span>
+      </div>
 
-    <p>
-      <strong>Date:</strong> {formData.appointment_date}
-    </p>
+      <div className="confirm-row">
+        <span className="label">Service</span>
+        <span className="value">
+          {selectedService
+            ? selectedService.service_name
+            : "N/A"}
+        </span>
+      </div>
 
-    <p>
-      <strong>Time Slot:</strong> {formData.slot_time}
-    </p>
+      <div className="confirm-row">
+        <span className="label">Officer</span>
+        <span className="value">
+          {selectedOfficer
+            ? selectedOfficer.full_name
+            : "N/A"}
+        </span>
+      </div>
 
-    <p>
-      <strong>Purpose:</strong> {formData.purpose}
-    </p>
+      <div className="confirm-row">
+        <span className="label">Appointment Date</span>
+        <span className="value">{formData.appointment_date}</span>
+      </div>
 
-    <p>
-      <strong>Documents:</strong> {formData.documents.length} file(s)
-    </p>
+      <div className="confirm-row">
+        <span className="label">Time Slot</span>
+        <span className="value">{formData.slot_time}</span>
+      </div>
+
+      <div className="confirm-row full-width">
+        <span className="label">Purpose</span>
+        <span className="value">{formData.purpose}</span>
+      </div>
+
+      <div className="confirm-row">
+        <span className="label">Documents Uploaded</span>
+        <span className="value">
+          {formData.documents.length} file(s)
+        </span>
+      </div>
+
+    </div>
   </div>
 )}
 

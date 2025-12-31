@@ -119,7 +119,7 @@ console.log("Username from localStorage:", username);
     <div className="profile-page">
       <div className="profile-header-banner">
         <h1>Visitor Profile</h1>
-        <p>Government of India — Digital Visitor Management System (DVMS)</p>
+        <p>Government of India — Visitor Appointment Management Portal</p>
       </div>
 
       <div className="profile-card">
