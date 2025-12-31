@@ -133,7 +133,8 @@ export const fetchDepartmentsByOrg = (orgId) =>
   safeRequest(api.get(`/departments/${orgId}`));
 
 export const fetchServicesByDept = (orgId, deptId) =>
-  safeRequest(api.get(`/services/${orgId}/${deptId}`));
+  safeRequest(api.get(`/fetch/services/${orgId}/${deptId}`));
+
 
 export const fetchOfficers = () =>
   safeRequest(api.get("/officers"));
