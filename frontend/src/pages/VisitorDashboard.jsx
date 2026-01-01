@@ -3,6 +3,12 @@ import { Link, useNavigate } from "react-router-dom";
 import "../css/VisitorDashboard.css";
 import { getVisitorDashboard } from "../services/api";
 import VisitorNavbar from "./VisitorNavbar";
+// import Header from '../Components/Header';
+// import NavbarMain from '../Components/NavbarMain';
+// import Footer from '../Components/Footer';
+// import './MainPage.css';
+// import NavbarTop from '../Components/NavbarTop';
+
 import Header from '../Components/Header';
 import NavbarMain from '../Components/NavbarMain';
 import Footer from '../Components/Footer';
@@ -168,6 +174,7 @@ const VisitorDashboard = () => {
       </div>
       </div>
     </>
+      
   );
 };
 

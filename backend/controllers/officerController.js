@@ -423,6 +423,12 @@ exports.getOfficersByLocation = async (req, res) => {
     district_code = district_code || null;
     taluka_code = taluka_code || null;
     department_id = department_id || null;
+    
+
+    // 🚨 Mandatory validation
+    
+    // ✅ Convert empty strings to NULL
+    
 
     const query = `
       SELECT * FROM get_officers_same_location($1, $2, $3, $4, $5, $6);
@@ -432,11 +438,13 @@ exports.getOfficersByLocation = async (req, res) => {
       state_code,
       division_code,
       organization_id,
+      organization_id,
       district_code,
       taluka_code,
       department_id
     ];
 
+    
     console.log("📤 SQL Params:", values);
 
     const result = await pool.query(query, values);
@@ -454,7 +462,9 @@ exports.getOfficersByLocation = async (req, res) => {
       success: true,
       message: "Officers fetched successfully",
       data: result.rows
+      
     });
+
 
   } catch (error) {
     console.error("❌ Error fetching officers by location:", error);

@@ -276,14 +276,31 @@ export default function OfficerForm() {
     let newErrors = {};
 
     requiredFields.forEach((field) => {
-      if (!form[field] || form[field].trim() === "") {
-        newErrors[field] = "This field is required";
-        hasError = true;
-      } else {
-        validateField(field, form[field]);
-        if (errors[field]) hasError = true;
-      }
-    });
+  const value = form[field];
+
+  // 🔹 Special handling for photo
+  if (field === "photo") {
+    if (!value) {
+      newErrors.photo = "Photo is required";
+      hasError = true;
+    }
+    return;
+  }
+
+  // 🔹 Handle strings safely
+  if (
+    value === undefined ||
+    value === null ||
+    (typeof value === "string" && value.trim() === "")
+  ) {
+    newErrors[field] = "This field is required";
+    hasError = true;
+    return;
+  }
+
+  validateField(field, value);
+  if (errors[field]) hasError = true;
+});
 
     setErrors((prev) => ({ ...prev, ...newErrors }));
 
