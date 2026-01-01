@@ -105,8 +105,8 @@ background-attachment: fixed;
   align-items: center;
   justify-content: center;
   border-radius: 10px;
-  background: var(--gray-100);
-  color: var(--gray-700);
+  /* background: var(--gray-100); */
+  color: white;
   border: none;
   cursor: pointer;
   transition: all 0.2s;
@@ -911,12 +911,16 @@ button, .view-btn {
 }
 
 .modal-content {
-  background: white;
-  border-radius: 16px;
-  width: 90%;
-  max-width: 450px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
-  animation: modalSlideIn 0.3s ease;
+    background: #fff;
+    width: 90%;
+    max-width: 500px;
+
+    max-height: 95vh;          /* ✅ limits height */
+    overflow-y: auto;          /* ✅ scroll inside modal */
+
+    padding: 20px;
+    border-radius: 10px;
+    animation: scaleIn 0.2s ease;
 }
 
 .modal-header {

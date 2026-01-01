@@ -39,8 +39,8 @@
   color:white;
   text-decoration: none;
   font-weight: 500;
-  padding: 6px 12px;           /* Add padding to create shape */
-  border-radius: 20px;         /* Rounded edges (pill shape) */
+  /* padding: 6px 12px;           Add padding to create shape */
+  /* border-radius: 20px;         Rounded edges (pill shape) */
   transition: background-color 0.3s ease, color 0.3s ease;
 }
 

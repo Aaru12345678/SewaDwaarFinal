@@ -2,6 +2,12 @@ import React from "react";
 import { useNavigate } from "react-router-dom";
 import "../css/Logout.css";
 import logo from "../assets/logo.png";
+import Header from "../Components/Header";
+import Footer from "../Components/Footer";
+import NavbarMain from '../Components/NavbarMain';
+import NavbarTop from '../Components/NavbarTop';
+import VisitorNavbar from "./VisitorNavbar";
+// import NavbarMain from "../Components/NavbarMain";
 
 const Logout = () => {
   const navigate = useNavigate();
@@ -11,6 +17,15 @@ const Logout = () => {
   };
 
   return (
+    <>
+    <div className="fixed-header">
+        <NavbarTop/>
+        <Header />
+        <NavbarMain/>
+        
+      </div>
+      <div className="main-layout">
+  <div className="content-below">
     <div className="logout-page fade-in">
       {/* Header Section */}
       <header className="logout-header fade-in-delay">
@@ -38,6 +53,9 @@ const Logout = () => {
         </button>
       </div>
     </div>
+    </div>
+    </div>
+    </>
   );
 };
 

@@ -439,6 +439,7 @@ exports.getOfficersByLocation = async (req, res) => {
       division_code,
       organization_id,
       organization_id,
+      organization_id,
       district_code,
       taluka_code,
       department_id

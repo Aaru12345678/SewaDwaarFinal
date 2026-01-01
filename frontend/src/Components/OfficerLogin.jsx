@@ -92,6 +92,11 @@ localStorage.setItem("username", data.username);
       </div>
 
       <div ref={boxRef} className="login-box">
+        <span>
+    <button className="back-btn" onClick={() => navigate(-1)}>
+                ← Back
+              </button>
+  </span>
         <h2 className="login-title">Officer's Login</h2>
 
         <form className="form" onSubmit={handleOfficerLogin}>

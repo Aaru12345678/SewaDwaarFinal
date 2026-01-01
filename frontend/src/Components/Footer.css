@@ -2,7 +2,7 @@
   background-color: #111;
   color: #fff;
   font-family: "Segoe UI", Arial, sans-serif;
-  padding: 25px 10px 0;  /* reduced padding on sides */
+  padding: 25px 10px 13px;  /* reduced padding on sides */
 }
 
 .footer-container {

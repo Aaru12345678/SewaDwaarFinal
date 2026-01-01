@@ -16,6 +16,7 @@ import "../css/Dashboard.css";
 import NavbarTop from '../Components/NavbarTop';
 import Header from '../Components/Header';
 import OfficerNavbar from "./OfficerNavbar";
+import "../pages/MainPage.css"
 
 const OfficerNotifications = () => {
   const navigate = useNavigate();
@@ -299,7 +300,7 @@ const OfficerNotifications = () => {
           display: flex;
           align-items: center;
           justify-content: center;
-          background: var(--gray-100);
+          // background: var(--gray-100);
           border-radius: 10px;
           flex-shrink: 0;
         }

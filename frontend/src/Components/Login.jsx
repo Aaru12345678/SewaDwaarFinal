@@ -103,9 +103,7 @@ export default function Login() {
       </div>
 
       <div ref={boxRef} className="login-box">
-        <span
-    
-  >
+        <span>
     <button className="back-btn" onClick={() => navigate(-1)}>
                 ← Back
               </button>

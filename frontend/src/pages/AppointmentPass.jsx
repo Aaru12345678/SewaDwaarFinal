@@ -119,17 +119,25 @@ const AppointmentPass = () => {
             {appointmentDetails.department_name || "N/A"}
           </div>
 
-          {/* QR Code */}
-          {isApproved && appointmentDetails.qr_code_path && (
+  {isApproved && (
   <div className="details-card-row full-width">
-    <QRCodeSVG
-      value={appointmentDetails.qr_code_path}
-      size={160}
-      level="H"
-    />
-    <p>Scan to open appointment</p>
+    <div className="qr-code">
+      <QRCodeSVG
+        value={JSON.stringify({
+          appointment_id: appointmentDetails.appointment_id,
+          visitor_id: appointmentDetails.visitor_id,
+          officer_id: appointmentDetails.officer_id,
+          generated_at: Date.now(), // 🔥 makes QR dynamic every load
+        })}
+        size={160}
+        level="H"
+        includeMargin
+      />
+      <p>Scan QR for Check-in</p>
+    </div>
   </div>
 )}
+
 
 
 
