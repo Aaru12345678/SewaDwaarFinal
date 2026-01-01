@@ -25,6 +25,10 @@ import {
   FaPercentage
 } from "react-icons/fa";
 import "../css/Dashboard.css";
+import NavbarTop from '../Components/NavbarTop';
+import Header from '../Components/Header';
+import OfficerNavbar from "./OfficerNavbar";
+
 
 const COLORS = ['#10b981', '#ef4444', '#f59e0b', '#6366f1', '#8b5cf6', '#3b82f6'];
 const STATUS_COLORS = {
@@ -495,9 +499,19 @@ const OfficerReports = () => {
   }
 
   return (
+    <>    
+    <div className="fixed-header">
+        <NavbarTop/>
+        <Header />
+      <OfficerNavbar fullName={fullName} />
+        
+      </div>
+      <div className="main-layout">
+  <div className="content-below">
+    
     <div className="dashboard-container">
       {/* Top Navigation Bar */}
-      <nav className="dashboard-nav">
+      {/* <nav className="dashboard-nav">
         <div className="nav-brand">
           <span className="brand-icon">🏛️</span>
           <span className="brand-text">SewaDwaar</span>
@@ -514,7 +528,7 @@ const OfficerReports = () => {
             <FaSignOutAlt />
           </button>
         </div>
-      </nav>
+      </nav> */}
 
       <div className="dashboard-content" ref={reportRef}>
         {/* Header */}
@@ -1077,6 +1091,10 @@ const OfficerReports = () => {
         }
       `}</style>
     </div>
+    </div>
+    </div>
+    </>
+
   );
 };
 

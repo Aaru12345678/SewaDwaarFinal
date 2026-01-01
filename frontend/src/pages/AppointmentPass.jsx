@@ -4,6 +4,8 @@ import { QRCodeSVG } from "qrcode.react";
 import "../css/AppointmentPass.css";
 import VisitorNavbar from "./VisitorNavbar";
 import { getVisitorDashboard } from "../services/api";
+// import { QRCodeSVG } from "qrcode.react";
+
 
 const AppointmentPass = () => {
   const { id } = useParams();
@@ -118,21 +120,18 @@ const AppointmentPass = () => {
           </div>
 
           {/* QR Code */}
-          {isApproved && (
-            <div className="details-card-row full-width">
-              <div className="qr-code">
-                <QRCodeSVG
-                  value={JSON.stringify({
-                    appointment_id: appointmentDetails.appointment_id,
-                    visitor_id: appointmentDetails.visitor_id,
-                    officer_id: appointmentDetails.officer_id,
-                  })}
-                  size={150}
-                />
-                <p>Scan QR for Check-in</p>
-              </div>
-            </div>
-          )}
+          {isApproved && appointmentDetails.qr_code_path && (
+  <div className="details-card-row full-width">
+    <QRCodeSVG
+      value={appointmentDetails.qr_code_path}
+      size={160}
+      level="H"
+    />
+    <p>Scan to open appointment</p>
+  </div>
+)}
+
+
 
           {/* Image Capture */}
           {isApproved && (

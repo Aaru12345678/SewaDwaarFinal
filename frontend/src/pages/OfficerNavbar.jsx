@@ -226,7 +226,7 @@ const refreshDashboard = async () => {
   return (
     <nav className="navbar">
       <ul className="nav-links">
-        <li><Link to="/dashboard1"><FaHome /> Home</Link></li>
+        <li><Link to="/dashboard"><FaHome /> Home</Link></li>
         {/* <li><Link to="/appointment-wizard"><FaCalendarAlt /> Appointments Booking</Link></li>
         <li><Link to="/appointments"><FaHistory /> Appointment History</Link></li> */}
         <li className="notification-icon">
