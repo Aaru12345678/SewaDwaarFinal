@@ -182,6 +182,20 @@ useEffect(() => {
   //   { id: "officer1", name: "John Doe" },
   //   { id: "officer2", name: "Jane Smith" }
   // ];
+//   const slots = [
+//   "09:00",
+//   "10:00",
+//   "11:00",
+//   "14:00",
+//   "15:00"
+// ];
+const formatTimeAMPM = (time24) => {
+  let [hours, minutes] = time24.split(":").map(Number);
+  const ampm = hours >= 12 ? "PM" : "AM";
+  hours = hours % 12 || 12;
+  return `${hours}:${minutes.toString().padStart(2, "0")} ${ampm}`;
+};
+
   const slots = [
   "09:00",
   "10:00",
@@ -189,12 +203,12 @@ useEffect(() => {
   "14:00",
   "15:00"
 ];
-const formatTimeAMPM = (time24) => {
-  let [hours, minutes] = time24.split(":").map(Number);
-  const ampm = hours >= 12 ? "PM" : "AM";
-  hours = hours % 12 || 12;
-  return `${hours}:${minutes.toString().padStart(2, "0")} ${ampm}`;
-};
+// const formatTimeAMPM = (time24) => {
+//   let [hours, minutes] = time24.split(":").map(Number);
+//   const ampm = hours >= 12 ? "PM" : "AM";
+//   hours = hours % 12 || 12;
+//   return `${hours}:${minutes.toString().padStart(2, "0")} ${ampm}`;
+// };
 
 
  const handleNext = () => {
@@ -214,6 +228,13 @@ const formatTimeAMPM = (time24) => {
 
   const handleBack = () => setStep(step - 1);
 
+// const formatDateDDMMYYYY = (dateStr) => {
+//   if (!dateStr) return "";
+//   const [yyyy, mm, dd] = dateStr.split("-");
+//   return `${dd}-${mm}-${yyyy}`;
+// };
+
+
 const formatDateDDMMYYYY = (dateStr) => {
   if (!dateStr) return "";
   const [yyyy, mm, dd] = dateStr.split("-");
@@ -221,10 +242,6 @@ const formatDateDDMMYYYY = (dateStr) => {
 };
 
 
-<<<<<<< Updated upstream
-
-=======
->>>>>>> Stashed changes
 const handleSubmit = async (e) => {
   e.preventDefault();
 
@@ -947,96 +964,6 @@ const getError = (condition, message) => {
 )}
 
 
-<<<<<<< Updated upstream
-
-        {/* Step 2 */}
-{step === 2 && (
-  <div className="step2-panel">
-
-    <div className="step2-field">
-      <label>
-        Officer <span className="required">*</span>
-      </label>
-
-      <select
-        name="officer_id"
-        value={formData.officer_id}
-        onChange={handleChange}
-        required
-        disabled={loadingOfficers}
-      >
-        <option value="">
-          {loadingOfficers
-            ? "Loading officers..."
-            : officers.length === 0
-            ? "No officers available"
-            : "Select Officer"}
-        </option>
-
-        {officers.map((officer) => (
-          <option
-            key={officer.officer_id}
-            value={officer.officer_id}
-          >
-            {officer.full_name}
-          </option>
-        ))}
-      </select>
-
-      {getError(formData.officer_id, "Officer is required")}
-    </div>
-
-    <div className="step2-field">
-      <label>
-        Appointment Date <span className="required">*</span>
-      </label>
-
-      <input
-        type="date"
-        name="appointment_date"
-        value={formData.appointment_date}
-        onChange={handleChange}
-        min={today}
-        onKeyDown={(e) => e.preventDefault()}
-        onPaste={(e) => e.preventDefault()}
-        required
-      />
-
-  // // ✅ Picker selection
-  // onChange={(e) => {
-  //   setIsManualDateEntry(false); // picker used
-  //   setFormData(prev => ({
-  //     ...prev,
-  //     appointment_date: e.target.value
-  //   }));
-  
-/>
-<small className="error-text">
-  Select date using calendar only
-</small>
-{getError(formData.appointment_date, "Date is required")}
-
-<label>Time Slot<span className="required">*</span></label>
-<select
-  name="slot_time"
-  value={formData.slot_time}
-  onChange={handleChange}
-  required
->
-  <option value="">Select Slot</option>
-  {getAvailableSlots().map((slot) => (
-  <option key={slot} value={slot}>
-    {formatTimeAMPM(slot)}
-  </option>
-))}
-
-</select>
-{getError(formData.slot_time, "Time is required")}
-          </div>
-        )}
-
-=======
->>>>>>> Stashed changes
         {/* Step 3 */}
 {step === 3 && (
   <div className="step3-panel">

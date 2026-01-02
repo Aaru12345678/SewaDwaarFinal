@@ -13,6 +13,9 @@ import {
   FaCalendarCheck
 } from "react-icons/fa";
 import "../css/Dashboard.css";
+import NavbarTop from '../Components/NavbarTop';
+import Header from '../Components/Header';
+import OfficerNavbar from "./OfficerNavbar";
 
 const OfficerNotifications = () => {
   const navigate = useNavigate();
@@ -138,9 +141,19 @@ const OfficerNotifications = () => {
   }
 
   return (
+    <>
+    <div className="fixed-header">
+        <NavbarTop/>
+        <Header />
+      <OfficerNavbar fullName={fullName} />
+        
+      </div>
+      <div className="main-layout">
+  <div className="content-below">
+      
     <div className="dashboard-container">
       {/* Top Navigation Bar */}
-      <nav className="dashboard-nav">
+      {/* <nav className="dashboard-nav">
         <div className="nav-brand">
           <span className="brand-icon">🏛️</span>
           <span className="brand-text">SewaDwaar</span>
@@ -157,7 +170,7 @@ const OfficerNotifications = () => {
             <FaSignOutAlt />
           </button>
         </div>
-      </nav>
+      </nav> */}
 
       <div className="dashboard-content">
         {/* Header */}
@@ -374,6 +387,9 @@ const OfficerNotifications = () => {
         }
       `}</style>
     </div>
+    </div>
+    </div>
+    </>
   );
 };
 

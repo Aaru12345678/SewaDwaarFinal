@@ -38,6 +38,8 @@ import AdminDashboard from "./pages/AdminDash";
 import ApprovalList from "./pages/ApprovalList";
 import Dashboard1 from "./pages/admin";
 
+
+
 // Officer pages
 import TodayAppointments from "./pages/TodayAppointments";
 import AppointmentAction from "./pages/AppointmentAction";
@@ -104,7 +106,7 @@ function App() {
 
         {/* Admin Dashboard (nested) */}
         <Route path="/admin/*" element={<Dashboard1 />} />
-
+    
         {/* Add Type Modal */}
         <Route path="/addtype" element={<AddTypeEntry />} />
 

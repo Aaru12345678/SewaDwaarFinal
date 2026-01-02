@@ -1615,7 +1615,7 @@ BEGIN
     RETURN appointment_id;
 END;
 $$ LANGUAGE plpgsql;
--- demo 5
+-- demo 5 working current in use
 CREATE OR REPLACE FUNCTION insert_appointment(
     p_visitor_id VARCHAR,
     p_organization_id VARCHAR,
@@ -2723,9 +2723,124 @@ END;
 $$ LANGUAGE plpgsql;
 
 SELECT get_officer_dashboard_by_username('OFF005');
--- 
 
 
+
+--deleete appointment function
+CREATE OR REPLACE FUNCTION delete_appointment(
+    p_appointment_id TEXT
+)
+RETURNS JSON AS $$
+DECLARE
+    v_count INT;
+BEGIN
+    SELECT COUNT(*)
+    INTO v_count
+    FROM appointments
+    WHERE appointment_id::TEXT = p_appointment_id
+      AND is_active = TRUE;
+
+    IF v_count = 0 THEN
+        RETURN json_build_object(
+            'success', false,
+            'message', 'Appointment not found or already deleted'
+        );
+    END IF;
+
+    UPDATE appointments
+    SET is_active = FALSE
+    WHERE appointment_id::TEXT = p_appointment_id;
+
+    RETURN json_build_object(
+        'success', true,
+        'message', 'Appointment deleted successfully'
+    );
+END;
+$$ LANGUAGE plpgsql;
+
+-- new one summary
+CREATE OR REPLACE FUNCTION get_appointments_summary(
+    p_from_date DATE DEFAULT NULL,
+    p_to_date   DATE DEFAULT NULL
+)
+RETURNS JSON AS $$
+DECLARE
+    total_count INT;
+    total_pages INT;
+    pending_count INT;
+    approved_count INT;
+    rejected_count INT;
+    completed_count INT;
+    appointment_list JSON;
+    page_size INT := 10;
+BEGIN
+    /* ===============================
+       TOTAL COUNT
+    =============================== */
+    SELECT COUNT(*)
+    INTO total_count
+    FROM appointments a
+    WHERE a.is_active = TRUE
+      AND (p_from_date IS NULL OR a.appointment_date >= p_from_date)
+      AND (p_to_date   IS NULL OR a.appointment_date <= p_to_date);
+
+    /* TOTAL PAGES */
+    total_pages := CEIL(total_count::DECIMAL / page_size);
+
+    /* ===============================
+       STATUS COUNTS
+    =============================== */
+    SELECT COUNT(*) INTO pending_count
+    FROM appointments WHERE is_active = TRUE AND status = 'pending';
+
+    SELECT COUNT(*) INTO approved_count
+    FROM appointments WHERE is_active = TRUE AND status = 'approved';
+
+    SELECT COUNT(*) INTO rejected_count
+    FROM appointments WHERE is_active = TRUE AND status = 'rejected';
+
+    SELECT COUNT(*) INTO completed_count
+    FROM appointments WHERE is_active = TRUE AND status = 'completed';
+
+    /* ===============================
+       APPOINTMENT LIST (CORRECT WAY)
+    =============================== */
+    SELECT json_agg(row_data)
+    INTO appointment_list
+    FROM (
+        SELECT
+            json_build_object(
+                'appointment_id', a.appointment_id,
+                'visitor_name', vs.full_name,
+                'appointment_date', a.appointment_date,
+                'slot_time', a.slot_time,
+                'officer_name', off.full_name,
+                'status', a.status
+            ) AS row_data
+        FROM appointments a
+        LEFT JOIN m_visitors_signup vs ON vs.visitor_id = a.visitor_id
+        LEFT JOIN m_officers off ON off.officer_id = a.officer_id
+        WHERE a.is_active = TRUE
+          AND (p_from_date IS NULL OR a.appointment_date >= p_from_date)
+          AND (p_to_date   IS NULL OR a.appointment_date <= p_to_date)
+        ORDER BY a.appointment_date DESC
+        LIMIT page_size
+    ) sub;
+
+    /* ===============================
+       FINAL JSON
+    =============================== */
+    RETURN json_build_object(
+        'total', total_count,
+        'pending', pending_count,
+        'approved', approved_count,
+        'rejected', rejected_count,
+        'completed', completed_count,
+        'appointments', COALESCE(appointment_list, '[]'::json),
+        'total_pages', total_pages
+    );
+END;
+$$ LANGUAGE plpgsql;
 
 CREATE OR REPLACE FUNCTION get_appointments_summary()
 RETURNS JSON AS $$

@@ -239,56 +239,91 @@ html::before {
 
 
 .modal-title {
-  font-size: 30px;
+  font-size: 26px;        /* reduced from 30px */
   font-weight: 700;
-  margin-bottom: 30px;
-  color: #0b2c4d;      /* Govt dark blue */
-  letter-spacing: 0.3px;
-}
-
-
-/* GRID: 2 x 2 tiles */
-.modal-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 24px;          /* ⬅️ slightly more space */
-  margin-bottom: 30px;
-}
-
-/* Tiles */
-.modal-tile {
-  padding: 18px 15px;
-  background: #ffffff;
-  border-radius: 16px;
-  border: 1px solid #d9e1ea;
-  box-shadow: 0 5px 20px rgba(0,0,0,0.10);
-  cursor: pointer;
-
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: flex-start;
-
-  transition: 0.2s ease;
-}
-
-.modal-tile:hover {
-  box-shadow: 0 8px 25px rgba(0,0,0,0.15);
-}
-
-/* ACTIVE TILE */
-.modal-tile.active {
-  background: #1a73e8;
-  color: #ffffff;
-  border-color: #1a73e8;
-  box-shadow: 0 10px 30px rgba(26,115,232,0.35);
+  margin-bottom: 26px;
+  color: #0b2c4d;
 }
 
 .modal-tile .tile-title {
-  width: 100%;              /* ⬅️ KEY FIX */
-  font-size: 18px;
+  font-size: 17px;
   font-weight: 700;
+}
+
+.modal-tile .tile-sub {
+  font-size: 14px;
+  margin-top: 4px;
+}
+
+
+
+/* GRID: 2 x 2 tiles */
+/* ===============================
+   LOGIN TYPE GRID FIX
+=============================== */
+.modal-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;                 /* balanced gap */
+  margin-bottom: 28px;
+}
+
+/* TILE BASE */
+.modal-tile {
+  background: #ffffff;
+  border: 1px solid #d6dee7;
   color: #0b2c4d;
+
+  transition: 
+    background-color 0.25s ease,
+    box-shadow 0.25s ease,
+    transform 0.2s ease;
+}
+
+
+
+/* ===============================
+   TILE HOVER EFFECT (GOVT STYLE)
+=============================== */
+/* DARKER GOVT HOVER */
+.modal-tile:hover {
+  background: #d6e4ff;          /* darker than before */
+  border-color: #0b5ed7;        /* strong govt blue */
+
+  box-shadow: 0 12px 32px rgba(11, 94, 215, 0.35);
+  transform: translateY(-2px);
+}
+
+/* Keep text sharp & readable */
+.modal-tile:hover .tile-title {
+  color: #0b2c4d;               /* deep navy */
+}
+
+.modal-tile:hover .tile-sub {
+  color: #123f7a;
+}
+
+
+.modal-tile.disabled {
+  opacity: 0.6;
+  pointer-events: none;
+  background: #f5f7fa;
+}
+/* ACTIVE TILE */
+/* ===============================
+   ACTIVE TILE (SELECTED)
+=============================== */
+.modal-tile.active {
+  background: #1a73e8;
+  border-color: #1a73e8;
+  color: #ffffff;
+
+  box-shadow: 0 12px 32px rgba(26,115,232,0.45);
+}
+
+.modal-tile.active .tile-title,
+.modal-tile.active .tile-sub {
+  color: #ffffff;
 }
 
 .modal-tile .tile-sub {
@@ -366,15 +401,19 @@ html::before {
 }
 
 /* ✅ BIG WHITE BOX */
+/* ===============================
+   MODAL BOX – SIZE FIX
+=============================== */
 .modal-box {
-  width: 900px;
-  max-width: 94vw;
-  min-height: 480px;
+  width: 640px;          /* ⬅️ smaller & cleaner */
+  max-width: 96vw;
+  min-height: 360px;     /* ⬅️ compact height */
 
-  background-color: #ffffff !important; /* 🔥 force white */
-  border-radius: 26px;
-  padding: 44px 50px;
+  background-color: #ffffff;
+  border-radius: 20px;
+  padding: 30px 34px;    /* ⬅️ tighter but comfortable */
 
-  box-shadow: 0 18px 60px rgba(0,0,0,0.35);
+  box-shadow: 0 14px 38px rgba(0,0,0,0.26);
   text-align: center;
 }
+

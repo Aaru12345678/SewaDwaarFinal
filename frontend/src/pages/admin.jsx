@@ -1,6 +1,8 @@
 import React, { useEffect } from "react";
 import { Routes, Route, Link, useNavigate } from "react-router-dom";
 import "../css/admin.css";
+import ViewAppointment from "./ViewAppointment";
+
 
 import Cards from "../pages/Cards";
 import Departments from "../pages/Departments";
@@ -190,6 +192,7 @@ const Admin = () => {
             <Route path="departments" element={<Departments />} />
             <Route path="slot-config" element={<SlotConfig />} />
             <Route path="appointments" element={<Appointments />} />
+            <Route path="appointments/view" element={<ViewAppointment />} />
             <Route path="analytics" element={<Analytics />} />
             <Route path="user-roles" element={<UserRoles />} />
           </Routes>

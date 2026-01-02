@@ -16,9 +16,10 @@ router.get("/departments/:organization_id", getDepartmentsByOrg);
 
 // Services by department
 router.get(
-  "/services/:organization_id/:department_id",
+  "/fetch/services/:organization_id/:department_id",
   getServicesByDepartment
 );
+
 
 // Officers
 router.get("/officers", getAllOfficers);

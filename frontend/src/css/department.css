@@ -1,194 +1,153 @@
-/* === PAGE SCROLL CONTAINER === */
-/* FULL PAGE WRAPPER */
+/* ✅ FIX SCROLL ISSUE */
+html, body {
+  height: 100%;
+  overflow-y: auto;
+}
+
+/* Main admin content area should scroll */
 .page-scroll {
-  width: 100%;
   min-height: calc(100vh - 60px);
   overflow-y: auto;
-  display: flex;
-  justify-content: center;   /* Only horizontal center */
-  align-items: flex-start;   /* Do NOT vertical center */
-  background: #f5f7fa;
-  padding: 40px 0;
+  align-items: flex-start; /* 🔥 THIS FIXES SCROLL */
 }
+
+/* DO NOT vertically center forms */
+.center-wrapper {
+  align-items: flex-start;
+}
+
+/* ===============================
+   FINAL ALIGNMENT FIXES
+   =============================== */
+
+/* Main wrapper alignment */
 .center-wrapper {
   width: 100%;
   display: flex;
-  justify-content: center;   /* Centers horizontally */
-}
-/* FIX CENTERING */
-.dept-page {
-  width: 100%;
-  max-width: 900px;   /* Prevents full width stretching */
-  display: flex;
   justify-content: center;
+  padding: 30px 20px;
 }
 
-/* Card itself */
+/* Limit page width properly */
+.dept-wrapper {
+  width: 100%;
+  max-width: 900px;
+}
+
+/* Card refinement */
 .dept-card {
   width: 100%;
-  max-width: 780px;
-  background: white;
-  padding: 32px;
-  border-radius: 12px;
-  box-shadow: 0 3px 8px rgba(0,0,0,0.1);
+  background: #ffffff;
+  padding: 32px 36px;
+  border-radius: 14px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
 }
 
-
-/* === TITLE & BREADCRUMB === */
-.dept-breadcrumb {
-  font-size: 0.9rem;
-  color: #6c757d;
-  margin-bottom: 8px;
-}
-
+/* Title spacing */
 .dept-title {
-  color: #2b3a67;
-  font-size: 1.4rem;
-  font-weight: bold;
-  margin-bottom: 18px;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #1f2a50;
+  margin-bottom: 22px;
 }
 
-/* === LABELS === */
-.section-label {
+/* Labels */
+.dept-card label {
   font-weight: 600;
-  color: #003366;
-  margin-top: 20px;
-  margin-bottom: 6px;
+  color: #1f3a60;
+  margin-top: 14px;
+  display: block;
 }
 
-/* === FORM INPUTS === */
-input,
-select {
+/* Inputs & dropdown */
+.dept-card input,
+.dept-card select {
   width: 100%;
-  padding: 10px;
-  margin-top: 4px;
-  margin-bottom: 18px;
-  border: 1px solid #ccc;
+  padding: 10px 12px;
   border-radius: 6px;
+  border: 1px solid #cfd6e0;
   font-size: 0.95rem;
 }
 
-input:focus,
-select:focus {
-  border-color: #2b3a67;
-  outline: none;
+/* Department list table */
+.dept-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 18px 0;
 }
 
-/* === SWITCH ROW === */
-.toggle-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-top: 10px;
+.dept-table th {
+  background: #1f3a60;
+  color: #fff;
+  padding: 10px;
+  font-size: 0.9rem;
+  text-align: left;
 }
 
-/* === SWITCH BUTTON === */
-.switch {
-  position: relative;
-  display: inline-block;
-  width: 44px;
-  height: 22px;
+.dept-table td {
+  padding: 10px;
+  border-bottom: 1px solid #e5e9f0;
+  font-size: 0.9rem;
 }
 
-.switch input {
-  display: none;
-}
-
-.slider {
-  position: absolute;
+/* Action buttons inside table */
+.dept-table button {
+  margin-right: 6px;
+  padding: 6px 12px;
+  border-radius: 5px;
+  border: none;
   cursor: pointer;
-  background: #ccc;
-  border-radius: 22px;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  transition: .3s;
 }
 
-.slider:before {
-  content: "";
-  position: absolute;
-  width: 18px;
-  height: 18px;
-  left: 2px;
-  bottom: 2px;
-  background: #fff;
-  border-radius: 50%;
-  transition: .3s;
+.dept-table button:first-child {
+  background: #007bff;
+  color: #fff;
 }
 
-input:checked + .slider {
-  background: #28a745;
+.dept-table button:last-child {
+  background: #dc3545;
+  color: #fff;
 }
 
-input:checked + .slider:before {
-  transform: translateX(22px);
+/* Services section spacing */
+.section-label {
+  margin-top: 26px;
+  margin-bottom: 10px;
+  font-weight: 700;
+  color: #1f3a60;
 }
 
-/* === BUTTON ROW === */
+/* Service editor card */
+.service-card {
+  background: #f8fafc;
+  padding: 16px;
+  border-radius: 10px;
+  margin-top: 12px;
+  border: 1px solid #e2e8f0;
+}
+
+/* Bottom buttons alignment */
 .button-row {
   display: flex;
   justify-content: flex-end;
-  gap: 12px;
-  margin-top: 25px;
-  padding-bottom: 20px;
+  gap: 14px;
+  margin-top: 28px;
 }
 
-.cancel-btn,
-.submit-btn {
-  cursor: pointer;
-  border: none;
-  padding: 10px 20px;
-  border-radius: 6px;
+.button-row button {
+  padding: 10px 22px;
   font-size: 0.95rem;
-  font-weight: 500;
-  transition: 0.2s;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
 }
 
-.cancel-btn {
+.button-row button:first-child {
   background: #6c757d;
-  color: white;
+  color: #fff;
 }
 
-.submit-btn {
-  background: #2b3a67;
-  color: white;
-}
-
-.cancel-btn:hover {
-  background: #5a6268;
-}
-
-.submit-btn:hover {
-  background: #1d2747;
-}
-
-/* ✅ SCROLL ALWAYS */
-body {
-  overflow-y: auto !important;
-}
-
-/* Override admin dashboard centering force */
-.dashboard {
-  display: block !important;
-}
-
-/* Change table heading text color */
-.table-container h2 {
-    color: #333; /* dark grey/black */
-    font-weight: 600; /* optional: make it bolder */
-    margin-bottom: 0.5rem;
-}
-
-.table-container table th {
-    color: white;
-    background-color: #1f3a60;
-    font-weight: 600;
-}
-
-.field-error {
-  color: #d32f2f;
-  font-size: 12px;
-  margin-top: 4px;
+.button-row .submit-btn {
+  background: #1f3a60;
+  color: #fff;
 }

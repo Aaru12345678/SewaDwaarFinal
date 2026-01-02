@@ -1,0 +1,162 @@
+/* ===============================
+   PAGE
+================================ */
+.view-page {
+  padding: 32px 40px;
+  background: #f4f6fb;
+  min-height: 100vh;
+  font-family: "Segoe UI", Roboto, Arial, sans-serif;
+}
+
+.page-title {
+  max-width: 900px;          /* same as card */
+  margin: 0 auto 24px;       /* center like card */
+  padding-left: 10px;        /* aligns with card content */
+  font-size: 22px;
+  font-weight: 700;
+  color: #1f2a50;
+}
+
+/* ===============================
+   CENTERED DETAILS CONTAINER
+================================ */
+
+.details-wrapper {
+  max-width: 900px;            /* 🔥 KEY FIX */
+  margin: 0 auto;              /* 🔥 center */
+  background: #ffffff;
+  border-radius: 14px;
+  padding: 32px;
+  box-shadow: 0 12px 30px rgba(0,0,0,0.08);
+  border-left: 6px solid #1f2a50;
+}
+
+/* ===============================
+   GRID (COMPACT & BALANCED)
+================================ */
+.details-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 24px;
+}
+
+/* ===============================
+   FIELD BOX
+================================ */
+.detail-box {
+  background: #f9fafc;
+  border: 1px solid #e3e7ef;
+  border-radius: 10px;
+  padding: 18px 20px;
+  min-height: 88px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+/* Label */
+.label {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #6b7280;
+  margin-bottom: 6px;
+}
+
+/* Value */
+.value {
+  font-size: 15px;
+  font-weight: 600;
+  color: #111827;
+}
+
+/* ===============================
+   STATUS ROW
+================================ */
+.status-row {
+  grid-column: span 2;
+  background: #ffffff;
+  border: none;
+  padding-left: 0;
+}
+
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 36px;
+  padding: 0 22px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 700;
+  width: fit-content;
+}
+
+/* Status colors */
+.status-badge.pending {
+  background: #fff7ed;
+  color: #9a3412;
+  border: 1px solid #fdba74;
+}
+
+.status-badge.approved {
+  background: #dcfce7;
+  color: #065f46;
+  border: 1px solid #86efac;
+}
+
+.status-badge.completed {
+  background: #d1fae5;
+  color: #065f46;
+  border: 1px solid #6ee7b7;
+}
+
+.status-badge.rejected {
+  background: #fee2e2;
+  color: #991b1b;
+  border: 1px solid #fca5a5;
+}
+
+/* ===============================
+   ACTION BAR
+================================ */
+.action-bar {
+  max-width: 900px;
+  margin: 24px auto 0;
+}
+
+.btn-back {
+  background: #1f2a50;
+  color: #ffffff;
+  border: none;
+  padding: 12px 26px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.btn-back:hover {
+  background: #111827;
+}
+
+/* ===============================
+   RESPONSIVE
+================================ */
+@media (max-width: 768px) {
+  .view-page {
+    padding: 20px;
+  }
+
+  .details-wrapper {
+    padding: 22px;
+  }
+
+  .details-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .status-row {
+    grid-column: span 1;
+  }
+}

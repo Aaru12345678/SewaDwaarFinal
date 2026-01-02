@@ -66,7 +66,17 @@ export const getRoles = () => safeRequest(api.get("/roles"));
 // ================= APPOINTMENTS =================
 export const submitAppointment = (payload) => safeRequest(api.post("/appointments", payload));
 
-export const getAppointmentsSummary=()=>safeRequest(api.get("/appointments/summary"));
+export const getAppointmentsSummary = (params) =>
+  safeRequest(api.get("/appointments/summary", { params }));
+
+
+// =============================
+// DELETE APPOINTMENT (ADMIN)
+// =============================
+export const deleteAppointment = (appointmentId) =>
+  safeRequest(
+    api.delete(`/appointments/${appointmentId}`)
+  );
 
 export const getRolesSummary=()=>safeRequest(api.get("/appointments/usersummary"));
 // ================= VISITOR DASHBOARD =================
@@ -127,13 +137,15 @@ export const cancelAppointment = (id, reason) =>
 // ADMIN DASHBOARD (FETCH)
 // =============================
 export const fetchOrganizations = () =>
-  safeRequest(api.get("/organization"));
+  safeRequest(api.get("/organizations"));
+
 
 export const fetchDepartmentsByOrg = (orgId) =>
   safeRequest(api.get(`/departments/${orgId}`));
 
 export const fetchServicesByDept = (orgId, deptId) =>
-  safeRequest(api.get(`/services/${orgId}/${deptId}`));
+  safeRequest(api.get(`/fetch/services/${orgId}/${deptId}`));
+
 
 export const fetchOfficers = () =>
   safeRequest(api.get("/officers"));

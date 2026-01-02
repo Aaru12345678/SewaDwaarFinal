@@ -1,48 +1,130 @@
+/* ===============================
+   GOVT STYLE OFFICER FORM CSS
+   =============================== */
+
 .officer-form-container {
-  max-width: 600px;
-  margin: 40px auto;
-  padding: 20px 30px;
-  background-color: #fff;
-  border-radius: 12px;
-  box-shadow: 0px 4px 10px rgba(0,0,0,0.1);
-}
-
-.officer-form-container h2 {
-  text-align: center;
-  color: #1f3a60;
-  margin-bottom: 20px;
-}
-
-.officer-form .form-row {
-  display: flex;
-  flex-direction: column;
-  margin-bottom: 15px;
-}
-
-.officer-form label {
-  font-weight: 600;
-  margin-bottom: 5px;
+  max-width: 900px;
+  margin: 30px auto;
+  background: #ffffff;
+  padding: 25px 35px;
+  border: 1px solid #dcdcdc;
+  border-radius: 4px;
+  font-family: "Segoe UI", Tahoma, Arial, sans-serif;
   color: #333;
 }
 
-.officer-form input {
-  padding: 8px 10px;
-  border: 1px solid #ccc;
-  border-radius: 6px;
-  font-size: 14px;
-}
-
-.submit-btn {
-  width: 100%;
-  background-color: #1f3a60;
-  color: white;
-  padding: 10px;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
+/* Page Title */
+.officer-form-container h2 {
+  text-align: center;
+  font-size: 22px;
   font-weight: 600;
+  margin-bottom: 25px;
+  color: #0b3c5d;
+  border-bottom: 2px solid #0b3c5d;
+  padding-bottom: 10px;
 }
 
-.submit-btn:hover {
-  background-color: #2b4b80;
+/* Section Headers */
+.officer-form-container h3 {
+  margin-top: 25px;
+  margin-bottom: 15px;
+  font-size: 16px;
+  font-weight: 600;
+  color: #0b3c5d;
+  border-left: 4px solid #0b3c5d;
+  padding-left: 10px;
+}
+
+/* Label */
+.officer-form-container label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 6px;
+  color: #333;
+}
+
+/* Inputs & Selects */
+.officer-form-container input,
+.officer-form-container select,
+.officer-form-container textarea {
+  width: 100%;
+  padding: 8px 10px;
+  font-size: 13px;
+  border: 1px solid #bfc5c9;
+  border-radius: 3px;
+  outline: none;
+  background-color: #fff;
+}
+
+/* Textarea */
+.officer-form-container textarea {
+  resize: vertical;
+}
+
+/* Focus State */
+.officer-form-container input:focus,
+.officer-form-container select:focus,
+.officer-form-container textarea:focus {
+  border-color: #0b3c5d;
+  box-shadow: 0 0 0 1px rgba(11, 60, 93, 0.15);
+}
+
+/* Error Message */
+.error {
+  font-size: 12px;
+  color: #c62828;
+  margin-top: 3px;
+  margin-bottom: 10px;
+}
+
+/* Field Spacing */
+.officer-form-container input,
+.officer-form-container select,
+.officer-form-container textarea {
+  margin-bottom: 2px;
+}
+
+/* Submit Button */
+.officer-form-container button {
+  margin-top: 25px;
+  width: 100%;
+  padding: 10px;
+  background-color: #0b3c5d;
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 600;
+  border: none;
+  border-radius: 3px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+/* Button Hover */
+.officer-form-container button:hover {
+  background-color: #092f48;
+}
+
+/* Disabled Button */
+.officer-form-container button:disabled {
+  background-color: #9fa8b0;
+  cursor: not-allowed;
+}
+
+/* ===============================
+   RESPONSIVE (MOBILE FRIENDLY)
+   =============================== */
+@media (max-width: 768px) {
+  .officer-form-container {
+    padding: 20px;
+    margin: 15px;
+  }
+
+  .officer-form-container h2 {
+    font-size: 20px;
+  }
+
+  .officer-form-container h3 {
+    font-size: 15px;
+  }
 }

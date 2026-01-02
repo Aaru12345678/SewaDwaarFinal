@@ -1,144 +1,310 @@
-/* General page styles */
+/* ===============================
+   BASE PAGE
+=============================== */
 .departments-page {
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  padding: 24px;
-  background-color: #f9fafb;
+  font-family: "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  padding: 24px 32px;
+  background-color: #f4f6f9;
+  color: #1c1c1c;
 }
 
-/* Header / Title */
+/* ===============================
+   HEADER
+=============================== */
 .departments-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 24px;
+  margin-bottom: 28px;
+  padding-bottom: 12px;
+  border-bottom: 2px solid #e5e7eb;
 }
 
 .departments-header h1 {
-  font-size: 28px;
+  font-size: 26px;
   font-weight: 700;
   display: flex;
   align-items: center;
   gap: 10px;
+  color: #1f3a60;
 }
 
 .departments-header button {
-  padding: 8px 16px;
+  padding: 8px 18px;
   border-radius: 6px;
   border: none;
-  color: #fff;
-  font-weight: 500;
+  font-weight: 600;
   cursor: pointer;
-  transition: 0.3s;
+  transition: background-color 0.2s ease;
 }
 
-.departments-header button:hover {
-  opacity: 0.9;
-}
-
+/* Government button style */
 .departments-header .add-department {
-  background-color: #2563eb; /* blue */
+  background-color: #1f3a60;
+  color: #ffffff;
+}
+
+.departments-header .add-department:hover {
+  background-color: #163152;
 }
 
 .departments-header .add-officer {
-  background-color: #16a34a; /* green */
+  background-color: #2e7d32;
+  color: #ffffff;
 }
 
-/* Search Bar */
+.departments-header .add-officer:hover {
+  background-color: #1b5e20;
+}
+
+/* ===============================
+   SEARCH BAR
+=============================== */
+.departments-search {
+  margin-bottom: 20px;
+}
+
 .departments-search input {
   width: 100%;
-  padding: 10px 12px;
+  padding: 10px 14px;
   border-radius: 6px;
-  border: 1px solid #d1d5db;
-  outline: none;
-  transition: 0.3s;
+  border: 1px solid #cbd5e1;
+  font-size: 14px;
+  background-color: #ffffff;
 }
 
 .departments-search input:focus {
-  border-color: #2563eb;
-  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2);
+  border-color: #1f3a60;
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(31, 58, 96, 0.15);
 }
 
-/* Quick Stats Cards */
+/* ===============================
+   STATS CARDS
+=============================== */
 .stats-cards {
   display: flex;
-  gap: 16px;
-  margin-bottom: 24px;
+  gap: 18px;
+  margin-bottom: 28px;
 }
 
 .stats-card {
   flex: 1;
   background-color: #ffffff;
-  padding: 16px;
+  padding: 18px;
   border-radius: 8px;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+  border: 1px solid #e5e7eb;
   text-align: center;
 }
 
 .stats-card h2 {
-  font-size: 22px;
+  font-size: 24px;
   font-weight: 700;
-  margin-bottom: 4px;
+  color: #1f3a60;
+  margin-bottom: 6px;
 }
 
 .stats-card p {
-  color: #6b7280; /* gray-500 */
   font-size: 14px;
+  color: #6b7280;
 }
 
-/* Table Styles */
+/* ===============================
+   TABLE
+=============================== */
 .table-container {
+  background: #ffffff;
+  border-radius: 8px;
+  border: 1px solid #d0d7de;
   overflow-x: auto;
 }
 
 table {
   width: 100%;
   border-collapse: collapse;
-  margin-bottom: 24px;
 }
 
 thead tr {
-  background-color: #e5e7eb; /* gray-200 */
+  background-color: #e9ecef;
 }
 
-th, td {
+th {
+  padding: 14px 16px;
+  font-size: 14px;
+  font-weight: 700;
+  color: #1f3a60;
+  border-bottom: 2px solid #cbd5e1;
+}
+
+td {
   padding: 12px 16px;
-  text-align: left;
-  border: 1px solid #d1d5db;
+  font-size: 14px;
+  border-bottom: 1px solid #e5e7eb;
 }
 
 tbody tr:hover {
-  background-color: #f3f4f6; /* gray-100 */
-  cursor: pointer;
+  background-color: #f8fafc;
 }
 
+/* Icons in table */
 td .icon {
   margin-right: 6px;
-  vertical-align: middle;
+  color: #1f3a60;
 }
 
+/* ===============================
+   ACTION BUTTONS
+=============================== */
 .actions button {
   border: none;
   background: transparent;
   cursor: pointer;
-  margin-right: 8px;
+  margin-right: 10px;
   font-size: 16px;
+  transition: transform 0.15s ease;
+}
+
+.actions button:hover {
+  transform: scale(1.1);
 }
 
 .actions button.edit {
-  color: #3b82f6; /* blue-500 */
+  color: #1d4ed8;
 }
 
 .actions button.delete {
-  color: #ef4444; /* red-500 */
+  color: #dc2626;
 }
 
-/* Responsive */
+/* ===============================
+   RESPONSIVE
+=============================== */
 @media (max-width: 768px) {
   .stats-cards {
     flex-direction: column;
   }
-  
+
   th, td {
-    padding: 10px 8px;
+    padding: 10px 12px;
+  }
+
+  .departments-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
   }
 }
+<<<<<<< Updated upstream
+
+=======
+>>>>>>> Stashed changes
+/* Modal Overlay */
+.role-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.3); /* lighter overlay */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  backdrop-filter: blur(4px);
+}
+
+/* Modal Content */
+.role-modal-content {
+  background: #fff;
+  padding: 30px 40px;
+  border-radius: 16px;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.2);
+  max-width: 500px;
+  width: 90%;
+  animation: modalPop 0.3s ease-out;
+  text-align: center;
+}
+
+/* Pop animation */
+@keyframes modalPop {
+  0% {
+    opacity: 0;
+    transform: scale(0.85);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Modal heading */
+.role-heading {
+  font-size: 22px;
+  font-weight: 700;
+  margin-bottom: 25px;
+  color: #111827;
+}
+
+/* Grid of buttons */
+.role-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+/* Individual role button card */
+.role-btn {
+  background-color: #f9fafb; /* light gray background */
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 20px 15px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.2s ease;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.role-btn:hover {
+  background-color: #2563eb; /* blue on hover */
+  color: #fff;
+  transform: translateY(-3px);
+  box-shadow: 0 8px 15px rgba(0, 0, 0, 0.15);
+}
+
+.role-btn .role-title {
+  font-size: 16px;
+  margin-bottom: 6px;
+}
+
+.role-btn .role-desc {
+  font-size: 12px;
+  color: #00040a; /* gray description */
+}
+
+/* Cancel button */
+.role-actions {
+  margin-top: 10px;
+}
+
+.role-cancel {
+  background-color: #ef4444; /* red */
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 24px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: 0.2s;
+}
+
+.role-cancel:hover {
+  opacity: 0.9;
+}
+<<<<<<< Updated upstream
+=======
+
+>>>>>>> Stashed changes

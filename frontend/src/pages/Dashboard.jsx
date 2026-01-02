@@ -602,7 +602,6 @@ try {
     }
 
     return (
-      
       <div className="appointments-table-wrapper">
         <table className="appointments-table">
           <thead>
@@ -1152,6 +1151,6 @@ try {
     </div>
     </div>
   );
-}
 
+}
 export default OfficerDashboard;

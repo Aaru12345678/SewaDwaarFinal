@@ -17,6 +17,22 @@ import {
   getDistricts,
   getTalukas,
 } from "../services/api";
+import { Link } from "react-router-dom";
+import {
+  FaBuilding,
+  FaCalendarAlt,
+  FaUsers,
+  FaChartBar,
+  FaUserCog,
+} from "react-icons/fa";
+import Swal from "sweetalert2";
+
+import {
+  getStates,
+  getDivisions,
+  getDistricts,
+  getTalukas,
+} from "../services/api";
 
 export default function AddOrganization() {
   const navigate = useNavigate();

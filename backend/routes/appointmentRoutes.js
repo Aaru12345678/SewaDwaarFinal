@@ -2,29 +2,37 @@
 const express = require("express");
 const router = express.Router();
 
-const { cancelAppointment } = require("../controllers/appointmentController");
 const {
-  getAppointmentsSummary
+  cancelAppointment,
+  getAppointmentsSummary,
+  getRolesSummary,
+  getAppointmentDetails,
+  deleteAppointment
 } = require("../controllers/appointmentController");
-const { getRolesSummary } = require("../controllers/appointmentController");
-const {getAppointmentDetails} = require("../controllers/appointmentController");
 
+// ============================
 // GET roles summary
+// ============================
 router.get("/usersummary", getRolesSummary);
 
-
-// GET appointments summary
+// ============================
+// GET appointments summary (with date filters)
+// ============================
 router.get("/summary", getAppointmentsSummary);
 
-// PUT /api/appointments/cancel/:id
+// ============================
+// PUT cancel appointment
+// ============================
 router.put("/cancel/:id", cancelAppointment);
 
+// ============================
 // GET appointment details
-router.get(
-  "/:appointmentId",
-  getAppointmentDetails
-);
+// ============================
+router.get("/:appointmentId", getAppointmentDetails);
+
+// ============================
+// DELETE appointment (ADMIN)
+// ============================
+router.delete("/:id", deleteAppointment);
 
 module.exports = router;
-
-

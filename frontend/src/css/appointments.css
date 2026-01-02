@@ -1,13 +1,15 @@
 /* ===============================
-   DATE ROW (SIDE BY SIDE)
+   DATE FILTER ROW (FINAL FIX)
 ================================ */
+
 .date-row {
   display: grid;
-  grid-template-columns: 240px 240px;
+  grid-template-columns: 240px 240px 140px;
   gap: 24px;
   margin-bottom: 22px;
 }
 
+/* Date fields */
 .date-field {
   display: flex;
   flex-direction: column;
@@ -22,24 +24,65 @@
 
 .date-field input {
   height: 40px;
-  padding: 8px 12px;
+  line-height: 40px;
+  padding: 0 12px;
   border-radius: 6px;
   border: 1px solid #cfd6e0;
   font-size: 14px;
   background: #ffffff;
+  box-sizing: border-box;
 }
 
-/* Small visual polish */
 .date-field input:focus {
   outline: none;
   border-color: #2b3a67;
   box-shadow: 0 0 0 2px rgba(43, 58, 103, 0.12);
 }
 
+/* Button column */
+.date-action {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Invisible label space to align with date labels */
+.date-action::before {
+  content: "";
+  height: 19px;      /* same height as label */
+  margin-bottom: 6px;
+}
+
+/* Search button */
+.date-action button {
+  height: 40px;
+  line-height: 40px;
+  width: 140px;
+  padding: 0;
+  background: #2b3a67;
+  color: #ffffff;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.date-action button:hover {
+  background: #555e92;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
   .date-row {
     grid-template-columns: 1fr;
+  }
+
+  .date-action::before {
+    display: none;
+  }
+
+  .date-action button {
+    width: 100%;
   }
 }
 
@@ -69,116 +112,65 @@
 .appointment-table th,
 .appointment-table td {
   padding: 12px 10px;
-  text-align: left;
   font-size: 14px;
   border-bottom: 1px solid #e5e7eb;
 }
 
-/* ===============================
-   TABLE HEADER
-================================ */
 .appointment-table thead th {
   background-color: #2b3a67;
   color: #ffffff;
   font-weight: 600;
-  font-size: 14px;
   letter-spacing: 0.2px;
 }
 
-/* ===============================
-   TABLE BODY
-================================ */
 .appointment-table tbody tr:hover {
   background-color: #f2f6fc;
 }
 
-.appointment-table tbody td {
-  color: #333;
-}
-
 /* ===============================
-   BUTTONS
+   STATUS COLUMN
 ================================ */
-button {
-  margin: 0 4px;
-  padding: 6px 12px;
-  border: none;
-  background: #2b3a67;
-  color: #ffffff;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 13px;
-  transition: background 0.2s ease;
+.appointment-table th:nth-child(5),
+.appointment-table td:nth-child(5) {
+  text-align: center;
 }
 
-button:hover {
-  background: #1f2a50;
-}
-
-button:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-/* ===============================
-   STATUS BADGES (GOV STYLE)
-================================ */
 .status {
-  display: inline-block;
-  padding: 4px 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 90px;
+  height: 26px;
+  padding: 0 10px;
   border-radius: 6px;
   font-size: 12px;
   font-weight: 600;
   text-transform: capitalize;
 }
 
-/* Pending */
 .status.pending {
   background: #fff7ed;
   color: #9a3412;
 }
 
-/* Accepted / Approved */
-.status.accepted {
-  background: #e0f2fe;
-  color: #075985;
-}
-
-/* Completed */
+.status.accepted,
 .status.completed {
   background: #d1fae5;
   color: #065f46;
 }
 
-/* Cancelled */
 .status.cancelled {
   background: #fee2e2;
   color: #991b1b;
 }
 
 /* ===============================
-   RESPONSIVE
-================================ */
-@media (max-width: 768px) {
-  .appointment-table th,
-  .appointment-table td {
-    padding: 10px 8px;
-    font-size: 13px;
-  }
-
-  button {
-    padding: 5px 10px;
-    font-size: 12px;
-  }
-}
-
-/* ===============================
-   PAGINATION (CENTER ALIGN)
+   PAGINATION
 ================================ */
 .pagination {
   display: flex;
-  justify-content: center;   /* 🔹 center horizontally */
-  align-items: center;       /* 🔹 center vertically */
+  justify-content: center;
+  align-items: center;
   gap: 14px;
   margin-top: 24px;
 }
@@ -193,23 +185,13 @@ button:disabled {
   cursor: pointer;
 }
 
-.pagination button:hover {
-  background: #1f2a50;
-}
-
 .pagination button:disabled {
   background: #9ca3af;
   cursor: not-allowed;
 }
 
-.pagination span {
-  font-size: 14px;
-  font-weight: 500;
-  color: #374151;
-}
-
 /* ===============================
-   SEARCH INPUT WITH ICON
+   SEARCH INPUT
 ================================ */
 .search-input-wrapper {
   position: relative;
@@ -220,17 +202,16 @@ button:disabled {
   position: absolute;
   right: 12px;
   top: 50%;
-  transform: translateY(-80%);
+  transform: translateY(-50%);
   font-size: 16px;
   color: #6b7280;
   pointer-events: none;
-  
 }
 
 .search-input-wrapper input {
   width: 100%;
   height: 40px;
-  padding: 8px 12px 8px 36px; /* space for icon */
+  padding: 8px 36px 8px 12px;
   border-radius: 6px;
   border: 1px solid #cfd6e0;
   font-size: 14px;
