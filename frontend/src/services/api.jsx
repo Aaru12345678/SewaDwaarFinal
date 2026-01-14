@@ -36,6 +36,7 @@ export const getTalukas = (stateCode, divisionCode, districtCode) =>
   safeRequest(api.get("/talukas", { params: { state_code: stateCode, division_code: divisionCode, district_code: districtCode } }));
 export const getDesignations = () => safeRequest(api.get("/designations"));
 export const getOrganization = () => safeRequest(api.get("/organization"));
+export const getOrganizationById = (organization_id) => safeRequest(api.get(`/organization/${organization_id}`));
 export const getOrganizationbyLocation = (params) =>
   safeRequest(
     api.get("/organizationbylocation", { params })
@@ -69,7 +70,7 @@ export const submitAppointment = (payload) => safeRequest(api.post("/appointment
 export const getAppointmentsSummary = (params) =>
   safeRequest(api.get("/appointments/summary", { params }));
 
-
+export const submitWalkinAppointment=(payload)=>safeRequest(api.post("/walkin_appointments",payload))
 // =============================
 // DELETE APPOINTMENT (ADMIN)
 // =============================
@@ -118,6 +119,9 @@ export const uploadAppointmentDocuments = (appointmentId, files, uploaded_by, do
 export const getOfficersByLocation = (payload) => 
   safeRequest(api.post("/getOfficersByLocation", payload));
 
+export const getServicesById = (services_id) =>
+  safeRequest(api.get(`/services/${services_id}`));
+
 
 
 export const insertServices = (data) =>
@@ -128,6 +132,9 @@ export const insertDepartments = (payload) =>
 
 export const getActiveDepartment = () =>
   safeRequest(api.get("/department/activedepartments"));
+
+// export const getDepartmentById = (department_id) =>
+//   safeRequest(api.get(`/department/${department_id}`));
 
 
 export const cancelAppointment = (id, reason) =>
@@ -140,12 +147,15 @@ export const fetchOrganizations = () =>
   safeRequest(api.get("/organizations"));
 
 
+
 export const fetchDepartmentsByOrg = (orgId) =>
-  safeRequest(api.get(`/departments/${orgId}`));
+  safeRequest(api.get(`/organizations/${orgId}/departments`));
 
 export const fetchServicesByDept = (orgId, deptId) =>
   safeRequest(api.get(`/fetch/services/${orgId}/${deptId}`));
 
+export const getDepartmentById = (department_id) =>
+  safeRequest(api.get(`/departments/${department_id}`));
 
 export const fetchOfficers = () =>
   safeRequest(api.get("/officers"));
@@ -153,3 +163,139 @@ export const fetchOfficers = () =>
 // ================= OFFICER DASHBOARD =================
 export const getOfficerDashboard = (officerId) =>
   safeRequest(api.get(`/officer/${officerId}/dashboard`));
+
+// ===========Analytics(Online)=======================
+
+// ---------------- KPI ----------------
+export const fetchApplicationAppointmentKpis = async (filters) => {
+  const res = await axios.get(
+    `${BASE_URL}/appointment-analytics/application/kpis`,
+    { params: filters }
+  );
+  return res.data;
+};
+
+// ---------------- TREND ----------------
+export const fetchApplicationAppointmentsTrend = async (filters) => {
+  const res = await axios.get(
+    `${BASE_URL}/appointment-analytics/application/trend`,
+    { params: filters }
+  );
+  return res.data;
+};
+
+// ---------------- DEPARTMENT ----------------
+export const fetchAppointmentsByDepartment = async (filters) => {
+  const cleanFilters = { ...filters };
+  delete cleanFilters.service_id;
+
+  const res = await axios.get(
+    `${BASE_URL}/appointment-analytics/application/by-department`,
+    { params: cleanFilters }
+  );
+  console.log("API Dept Response:", res.data);
+  return res.data;
+};
+
+
+// ---------------- SERVICE ----------------
+export const fetchAppointmentsByService = async (filters) => {
+  const res = await axios.get(
+    `${BASE_URL}/appointment-analytics/application/by-service`,
+    { params: filters }
+  );
+  return res.data;
+};
+
+// ---------------- WALK-IN KPIs ----------------
+// ---------------- WALK-IN KPIs ----------------
+export const fetchWalkinKpis = async (filters) => {
+  const res = await axios.get(
+    `${BASE_URL}/walkin-analytics/kpis`,
+    { params: filters  || {} }
+  );
+  return res.data;
+};
+
+/* ---------------- TREND ---------------- */
+export const fetchWalkinsTrend = async (filters = {}) => {
+  const res = await axios.get(
+    `${BASE_URL}/walkin-analytics/trend`,
+    { params: filters }
+  );
+  return res.data;
+};
+
+/* ---------------- DEPARTMENT ---------------- */
+export const fetchWalkinsByDepartment = async (filters = {}) => {
+  const cleanFilters = { ...filters };
+
+  // ❌ department chart should NOT filter by service
+  delete cleanFilters.service_id;
+
+  const res = await axios.get(
+    `${BASE_URL}/walkin-analytics/by-department`,
+    { params: cleanFilters }
+  );
+
+  console.log("Walk-in Dept Response:", res.data);
+  return res.data;
+};
+
+/* ---------------- SERVICE ---------------- */
+export const fetchWalkinsByService = async (filters = {}) => {
+  const res = await axios.get(
+    `${BASE_URL}/walkin-analytics/by-service`,
+    { params: filters }
+  );
+  return res.data;
+};
+// get users info by mobile no:
+export const getUserByMobileno=(mobileno)=>safeRequest(api.get(`/helpdesk/users/mobile/${mobileno}`))
+
+export const getVisitorDetails = (params) =>
+  safeRequest(
+    api.get("/helpdesk/visitor", {
+      params
+    })
+  );
+
+  export const getHelpdeskDashboardCounts = (helpdesk_id) =>
+  safeRequest(
+    api.get(`/helpdesk/helpdeskdashboard/${helpdesk_id}`)
+  );
+
+
+  /* =====================================================
+   SLOT CONFIG – ADMIN
+===================================================== */
+
+/* 🔹 Get all slot configurations (table) */
+export const getSlotConfigs = () =>
+  safeRequest(api.get("/slot-config/configs"));
+
+/* 🔹 Preview generated slots before save */
+export const previewSlots = (payload) =>
+  safeRequest(api.post("/slot-config/preview", payload));
+
+/* 🔹 Create slot configuration */
+export const createSlotConfig = (payload) =>
+  safeRequest(api.post("/slot-config/create", payload));
+
+/* 🔹 Update slot configuration */
+export const updateSlotConfig = (payload) =>
+  safeRequest(api.put("/slot-config/update", payload));
+
+/* 🔹 Deactivate slot configuration */
+export const deactivateSlotConfig = (slot_config_id) =>
+  safeRequest(api.delete(`/slot-config/deactivate/${slot_config_id}`));
+
+/* =====================================================
+   SLOT AVAILABILITY – BOOKING / WALK-IN
+===================================================== */
+
+/* 🔹 Get available slots (appointments + walk-ins) */
+export const getAvailableSlots = (params) =>
+  safeRequest(
+    api.get("/slot-config/available-slots", { params })
+  );

@@ -1,0 +1,38 @@
+.appointments-container {
+  background: #f4f6f9;
+  padding: 20px;
+  min-height: 100vh;
+  font-family: "Segoe UI", Arial, sans-serif;
+}
+
+.page-title {
+  margin-bottom: 12px;
+  color: #1a2d4f;
+  font-weight: 600;
+}
+
+.tab-buttons {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 15px;
+}
+
+.tab-buttons button {
+  padding: 8px 16px;
+  border: 1px solid #cfd8dc;
+  background: #e9ecef;
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.tab-buttons button.active {
+  background: #1a73e8;
+  color: white;
+  border-color: #1a73e8;
+}
+
+.tab-content {
+  background: white;
+  padding: 20px;
+  border: 1px solid #dcdcdc;
+}

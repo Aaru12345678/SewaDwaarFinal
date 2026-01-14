@@ -8,7 +8,7 @@ import Cards from "../pages/Cards";
 import Departments from "../pages/Departments";
 import SlotConfig from "../pages/SlotConfig";
 import Appointments from "../pages/Appointments";
-import Analytics from "../pages/Analytics";
+import Analytics1 from "../pages/Analytics1";
 import UserRoles from "../pages/UserRoles";
 import { toast } from "react-toastify";
 
@@ -31,6 +31,8 @@ import {
   FaChartBar,
   FaUserCog,
 } from "react-icons/fa";
+import AppointmentsTab from "./AppointmentsTab";
+import SlotConfiguration from "./SlotConfiguration";
 
 // Chart Data
 const data = [
@@ -190,10 +192,10 @@ const Admin = () => {
 
             {/* Other Pages */}
             <Route path="departments" element={<Departments />} />
-            <Route path="slot-config" element={<SlotConfig />} />
+            <Route path="slot-config" element={<SlotConfiguration />} />
             <Route path="appointments" element={<Appointments />} />
             <Route path="appointments/view" element={<ViewAppointment />} />
-            <Route path="analytics" element={<Analytics />} />
+            <Route path="analytics" element={<AppointmentsTab />} />
             <Route path="user-roles" element={<UserRoles />} />
           </Routes>
         </main>

@@ -1,0 +1,288 @@
+/* ================= KPI CARDS ================= */
+.kpi-container {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.kpi-card {
+  background: #fff;
+  border: 1px solid #d0d7de;
+  border-radius: 6px;
+  padding: 16px 12px;
+  text-align: center;
+  position: relative;
+  min-height: 90px;
+}
+
+.kpi-card::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 6px;
+  height: 100%;
+  border-radius: 6px 0 0 6px;
+}
+
+/* KPI Colors */
+.kpi-blue::before { background: #1a73e8; }
+.kpi-indigo::before { background: #3f51b5; }
+.kpi-green::before { background: #2e7d32; }
+.kpi-orange::before { background: #ef6c00; }
+.kpi-red::before { background: #c62828; }
+
+.kpi-value {
+  font-size: 26px;
+  font-weight: 700;
+  color: #0d47a1;
+}
+
+.kpi-label {
+  font-size: 13px;
+  color: #455a64;
+  margin-top: 6px;
+}
+
+/* ================= CHARTS ================= */
+.chart-card {
+  margin-top: 24px;
+  background: #fff;
+  border: 1px solid #dcdcdc;
+  border-radius: 6px;
+  padding: 16px 20px;
+}
+
+.chart-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.chart-title {
+  margin-right: auto;
+}
+
+.charts-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 16px;
+}
+
+.chart-loading {
+  text-align: center;
+  padding: 2rem;
+  color: #666;
+}
+
+/* ================= HEADER ================= */
+.analytics-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.print-btn {
+  background: #1f4ed8;
+  color: #fff;
+  border: none;
+  padding: 8px 14px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.walkin-kpis-wrapper .kpi-container {
+  display: flex;
+  flex-wrap: nowrap;
+  justify-content: space-between;
+  gap: 16px;
+  overflow-x: auto;
+  padding: 10px 0;
+}
+
+.walkin-kpis-wrapper .kpi-card {
+  flex: 1 1 0;
+  min-width: 120px;
+  padding: 16px;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  text-align: center;
+}
+
+@media print {
+
+  @page {
+    size: A4;
+    margin: 10mm;
+  }
+
+  /* Force exact colors (KPI bars fix) */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Hide unwanted UI */
+  .sidebar,
+  .topbar,
+  .navbar,
+  .filters-bar,
+  .analytics-header,
+  .print-btn {
+    display: none !important;
+  }
+
+  /* Print area only */
+  .print-area {
+    width: 100%;
+    overflow: visible !important;
+  }
+
+  /* Prevent page breaks inside cards */
+  .kpi-card,
+  .chart-card {
+    box-shadow: none !important;
+    border: 1px solid #ccc !important;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  /* Remove viewport forcing */
+  html, body {
+    height: auto !important;
+    min-height: auto !important;
+    overflow: visible !important;
+    background: #fff !important;
+    font-size: 12px;
+  }
+
+  h2, h3 {
+    color: #000 !important;
+  }
+}
+
+@media (max-width: 768px) {
+  .walkin-kpis-wrapper .kpi-card {
+    min-width: 100px;
+    padding: 12px;
+  }
+}
+
+/* ================= ROOT ================= */
+.walkin-analytics {
+  padding: 16px;
+  background: #f6f8fa;
+}
+
+/* ================= SECTION ================= */
+.wa-section {
+  margin-bottom: 20px;
+}
+
+.wa-title {
+  margin-bottom: 12px;
+}
+
+/* ================= KPIs ================= */
+.wa-kpis {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 16px;
+}
+
+.wa-kpi {
+  background: #fff;
+  border-radius: 6px;
+  padding: 14px;
+  text-align: center;
+  border-left: 6px solid transparent;
+}
+
+.wa-kpi-value {
+  font-size: 22px;
+  font-weight: 700;
+}
+
+.wa-kpi-label {
+  font-size: 13px;
+  color: #555;
+  margin-top: 6px;
+}
+
+/* KPI COLORS */
+.wa-blue   { border-left-color: #2563eb; }
+.wa-indigo{ border-left-color: #4f46e5; }
+.wa-green { border-left-color: #16a34a; }
+.wa-orange{ border-left-color: #ea580c; }
+.wa-red   { border-left-color: #dc2626; }
+
+/* ================= CARDS ================= */
+.wa-card {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  padding: 12px;
+  min-height: 300px;
+}
+
+.wa-card h3 {
+  margin-bottom: 10px;
+  font-size: 16px;
+}
+
+.wa-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.wa-select {
+  padding: 4px 8px;
+  font-size: 13px;
+  border-radius: 4px;
+  border: 1px solid #d0d7de;
+  background: #fff;
+  cursor: pointer;
+}
+
+/* ================= CHART AREA ================= */
+.wa-chart {
+  height: 320px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #9ca3af;
+  background: #f9fafb;
+  border-radius: 4px;
+}
+
+/* ================= GRID ================= */
+.wa-grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.full {
+  width: 100%;
+}
+
+/* ================= RESPONSIVE ================= */
+@media (max-width: 1200px) {
+  .wa-kpis {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .wa-kpis {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .wa-grid-2 {
+    grid-template-columns: 1fr;
+  }
+}

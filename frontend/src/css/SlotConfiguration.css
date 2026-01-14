@@ -1,0 +1,232 @@
+/* ===========================
+   PAGE LAYOUT
+=========================== */
+.slot-page {
+  padding: 20px;
+  background: #f4f6f9;
+  min-height: 100vh;
+}
+
+.slot-page h2 {
+  margin-bottom: 16px;
+  font-size: 22px;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+/* ===========================
+   CARD
+=========================== */
+.card {
+  background: #ffffff;
+  padding: 18px;
+  margin-bottom: 18px;
+  border-radius: 8px;
+  border: 1px solid #d0d7de;
+}
+
+.card h4 {
+  margin-bottom: 14px;
+  font-size: 16px;
+  font-weight: 600;
+  color: #374151;
+}
+
+/* ===========================
+   GRID SYSTEM
+=========================== */
+.grid-4 {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+  margin-bottom: 16px;
+}
+
+/* ===========================
+   FORM CONTROLS
+=========================== */
+label {
+  font-size: 13px;
+  font-weight: 500;
+  color: #374151;
+}
+
+select,
+input[type="time"],
+input[type="number"],
+input[type="date"] {
+  width: 100%;
+  padding: 8px 10px;
+  font-size: 14px;
+  border-radius: 6px;
+  border: 1px solid #cfd8e3;
+  background: #ffffff;
+}
+
+select:disabled,
+input:disabled {
+  background: #f1f5f9;
+  cursor: not-allowed;
+}
+
+select:focus,
+input:focus {
+  outline: none;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.15);
+}
+
+/* ===========================
+   DAYS CHECKBOXES
+=========================== */
+.days {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: 16px 0;
+}
+
+.days label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  background: #f1f5f9;
+  padding: 6px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.days input {
+  cursor: pointer;
+}
+
+/* ===========================
+   BUTTONS
+=========================== */
+button {
+  border: none;
+  cursor: pointer;
+  font-size: 14px;
+  border-radius: 6px;
+  padding: 8px 14px;
+  transition: 0.2s ease;
+}
+
+button:hover {
+  opacity: 0.9;
+}
+
+button:active {
+  transform: scale(0.98);
+}
+
+/* Save / Update */
+.save {
+  background: #2563eb;
+  color: #ffffff;
+  margin-top: 12px;
+}
+
+/* Preview */
+.card button {
+  background: #0ea5e9;
+  color: #ffffff;
+}
+
+/* Table action buttons */
+table button:first-child {
+  background: #2563eb;
+  color: #ffffff;
+  margin-right: 6px;
+}
+
+table button:last-child {
+  background: #ef4444;
+  color: #ffffff;
+}
+
+/* ===========================
+   PREVIEW SLOTS
+=========================== */
+.preview {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.preview span {
+  background: #e0f2fe;
+  color: #0369a1;
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-size: 13px;
+  border: 1px solid #bae6fd;
+}
+
+/* ===========================
+   TABLE
+=========================== */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+thead {
+  background: #f1f5f9;
+}
+
+th,
+td {
+  border: 1px solid #d0d7de;
+  padding: 10px;
+  text-align: center;
+}
+
+th {
+  font-weight: 600;
+  color: #374151;
+}
+
+tbody tr:hover {
+  background: #f9fafb;
+}
+
+/* ===========================
+   STATUS COLUMN (generic)
+=========================== */
+td:last-child {
+  white-space: nowrap;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.form-group label {
+  font-size: 12px;
+  font-weight: 500;
+  color: #6b7280;   /* subtle gray */
+  margin-bottom: 4px;
+}
+
+/* ===========================
+   RESPONSIVE
+=========================== */
+@media (max-width: 1024px) {
+  .grid-4 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 640px) {
+  .grid-4 {
+    grid-template-columns: 1fr;
+  }
+
+  table {
+    font-size: 13px;
+  }
+}

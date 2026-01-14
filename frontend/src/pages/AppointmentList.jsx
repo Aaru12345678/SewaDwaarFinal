@@ -133,7 +133,7 @@ const AppointmentList = () => {
                 <tr key={appt.appointment_id}>
                   <td>{appt.appointment_id}</td>
                   <td>{appt.officer_name || "Helpdesk" }</td>
-                  <td>{appt.department_name}</td>
+                  <td>{appt.department_name || "Booked by service"}</td>
                   <td>{appt.service_name}</td>
                   <td>
                     {appt.appointment_date} {appt.slot_time}

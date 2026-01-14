@@ -99,7 +99,7 @@ const AppointmentDetails = () => {
             </div>
             <div className="detail-item">
               <span className="label">Department</span>
-              <span className="value">{appointment.department_name}</span>
+              <span className="value">{appointment.department_name||"Searched by service"}</span>
             </div>
             <div className="detail-item">
               <span className="label">Organization</span>
@@ -191,12 +191,12 @@ const AppointmentDetails = () => {
             </div>
 
             {/* QR section only if not cancelled */}
-            {!isCancelled && (
+            {/* {!isCancelled && (
               <div className="qr-box">
                 <p>Appointment QR</p>
                 <div className="qr-placeholder">QR</div>
               </div>
-            )}
+            )} */}
           </div>
 
         </div>

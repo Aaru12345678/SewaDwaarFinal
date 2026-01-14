@@ -15,11 +15,18 @@ const Departments = () => {
   const [departments, setDepartments] = useState([]);
   const [services, setServices] = useState([]);
   const [officers, setOfficers] = useState([]);
+const [showOrgModal, setShowOrgModal] = useState(false);
+const [viewOrg, setViewOrg] = useState(null);
 
   const [showAddModal, setShowAddModal] = useState(false);
   const [selectedOrg, setSelectedOrg] = useState(null);
   const [selectedDept, setSelectedDept] = useState(null);
   const [loading, setLoading] = useState(true);
+  const handleViewOrg = (org) => {
+  setViewOrg(org);
+  setShowOrgModal(true);
+};
+
 
   const navigate = useNavigate();
   const firstTypeRef = useRef(null);
@@ -236,12 +243,13 @@ setOrganizations(orgMapped);
                       <td>{org.status}</td>
                       <td className="actions">
                         <button
-                          className="view"
-                          onClick={() => navigate(`/organization/${org.id}`)}
-                          title="View"
-                        >
-                          <FaEye color="blue" size={16} />
-                        </button>
+  className="view"
+  onClick={() => handleViewOrg(org)}
+  title="View"
+>
+  <FaEye color="blue" size={16} />
+</button>
+
                         <button
                           className="edit"
                           onClick={() =>
@@ -474,6 +482,48 @@ setOrganizations(orgMapped);
           </div>
         </>
       )}
+      {showOrgModal && viewOrg && (
+  <div className="modal-overlay" onClick={() => setShowOrgModal(false)}>
+    <div
+      className="modal-content"
+      onClick={(e) => e.stopPropagation()}
+    >
+      <h2>🏢 Organization Details</h2>
+
+      <div className="modal-row">
+        <strong>ID:</strong> {viewOrg.id}
+      </div>
+
+      <div className="modal-row">
+        <strong>Name:</strong> {viewOrg.name}
+      </div>
+
+      <div className="modal-row">
+        <strong>Status:</strong> {viewOrg.status}
+      </div>
+
+      <div className="modal-row">
+        <strong>Total Departments:</strong>{" "}
+        {departments.filter(d => d.organizationId === viewOrg.id).length}
+      </div>
+
+      <div className="modal-row">
+        <strong>Total Services:</strong>{" "}
+        {services.filter(s => s.organizationId === viewOrg.id).length}
+      </div>
+
+      <div className="modal-actions">
+        <button
+          className="btn-close"
+          onClick={() => setShowOrgModal(false)}
+        >
+          Close
+        </button>
+      </div>
+    </div>
+  </div>
+)}
+
     </div>
   );
 };

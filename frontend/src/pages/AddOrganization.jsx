@@ -1,22 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import "../css/AddOrganization.css";
-// import { Link } from "react-router-dom";
-// import {
-//   FaBuilding,
-//   FaCalendarAlt,
-//   FaUsers,
-//   FaChartBar,
-//   FaUserCog,
-// } from "react-icons/fa";
-// import Swal from "sweetalert2";
-
-// import {
-//   getStates,
-//   getDivisions,
-//   getDistricts,
-//   getTalukas,
-// } from "../services/api";
 import { Link } from "react-router-dom";
 import {
   FaBuilding,
@@ -363,114 +347,262 @@ const handleLogout = () => {
 
 
   // ========= UI =========
- return (
+  return (
   <div className="admin-layout">
-    {/* ===== SIDEBAR ===== */}
+    {/* Sidebar */}
     <aside className="sidebar">
       <h2 className="logo">ADMINISTRATIVE</h2>
       <ul>
-        <li><Link to="/admin/departments"><FaBuilding /> Departments & Officers</Link></li>
-        <li><Link to="/admin/slot-config"><FaCalendarAlt /> Slot & Holiday Config</Link></li>
-        <li><Link to="/admin/appointments"><FaUsers /> Appointments & Walk In Summary</Link></li>
-        <li><Link to="/admin/analytics"><FaChartBar /> Analytics & Reports</Link></li>
-        <li><Link to="/admin/user-roles"><FaUserCog /> User Roles & Access</Link></li>
+        <li>
+          <Link to="/admin/departments">
+            <FaBuilding /> Departments & Officers
+          </Link>
+        </li>
+        <li>
+          <Link to="/admin/slot-config">
+            <FaCalendarAlt /> Slot & Holiday Config
+          </Link>
+        </li>
+        <li>
+          <Link to="/admin/appointments">
+            <FaUsers /> Appointments & Walk In Summary
+          </Link>
+        </li>
+        <li>
+          <Link to="/admin/analytics">
+            <FaChartBar /> Analytics & Reports
+          </Link>
+        </li>
+        <li>
+          <Link to="/admin/user-roles">
+            <FaUserCog /> User Roles & Access
+          </Link>
+        </li>
       </ul>
     </aside>
 
-    {/* ===== MAIN ===== */}
+    {/* Main Content */}
     <div className="main">
-      {/* TOPBAR */}
-      <header className="topbar">
-        <button className="back-btn" onClick={() => navigate(-1)}>← Back</button>
-        <div className="top-actions">
-          <span>👤 Admin Profile</span>
-          <button className="logout-btn" onClick={handleLogout}>Logout</button>
-        </div>
-      </header>
-
-      {/* ===== PAGE BODY ===== */}
-      <div className="org-page">
-        <div className="org-card wide">
-
-          {/* HEADER */}
-          <div className="org-header">
-            <h1>Register Government Organization</h1>
-            <p>Administrative Onboarding Form</p>
+        {/* Top Header */}
+        <header className="topbar">
+          <button
+    className="back-btn"
+    onClick={() => navigate(-1)}
+  >
+    ← Back
+  </button>
+          <div className="top-actions">
+            <span>👤 Admin Profile</span>
+            {/* ✅ Clickable Logout Button */}
+            <button className="logout-btn" onClick={handleLogout}>
+              Logout
+            </button>
           </div>
+        </header>
 
-          <form onSubmit={handleSubmit}>
+    <div className="org-page">
+      <div className="org-card">
+        <h2 className="org-title">Register Government Organization</h2>
 
-            {/* ===== BASIC INFO ===== */}
-            <div className="org-section">
-              <h3>1. Basic Information</h3>
+        <form onSubmit={handleSubmit}>
+          <h3>Basic Information</h3>
 
-              <label>Organization Name *</label>
-              <input name="organization_name" value={form.organization_name} onChange={handleChange} />
+          <label>Organization Name *</label>
+          <input
+            name="organization_name"
+            value={form.organization_name}
+            onChange={handleChange}
+            required
+          />
+          {errors.organization_name && (
+            <div className="error-text">{errors.organization_name}</div>
+          )}
 
-              <label>Organization Name (Local Language)</label>
-              <input name="organization_name_ll" value={form.organization_name_ll} onChange={handleChange} />
-            </div>
+          <label>Organization Name (Local Language)</label>
+          <input
+            name="organization_name_ll"
+            value={form.organization_name_ll}
+            onChange={handleChange}
+          />
 
-            {/* ===== ADDRESS ===== */}
-            <div className="org-section">
-              <h3>2. Address Details</h3>
+          <h3>Address Details</h3>
 
-              <label>Address *</label>
-              <textarea name="address_line" rows="3" value={form.address_line} onChange={handleChange} />
+          <label>Address *</label>
+          <textarea
+            name="address_line"
+            value={form.address_line}
+            onChange={handleChange}
+            rows="3"
+            required
+          />
 
-              <div className="grid-2">
+          <label>State *</label>
+          <select
+            name="state_code"
+            value={form.state_code}
+            onChange={handleChange}
+            required
+          >
+            <option value="">Select State</option>
+            {renderOptions(states, "state_code", "state_name")}
+          </select>
+
+          <label>Division</label>
+          <select
+            name="division_code"
+            value={form.division_code}
+            onChange={handleChange}
+            disabled={!divisions.length}
+          >
+            <option value="">Select Division</option>
+            {renderOptions(divisions, "division_code", "division_name")}
+          </select>
+
+          <label>District</label>
+          <select
+            name="district_code"
+            value={form.district_code}
+            onChange={handleChange}
+            disabled={!districts.length}
+          >
+            <option value="">Select District</option>
+            {renderOptions(districts, "district_code", "district_name")}
+          </select>
+
+          <label>Taluka</label>
+          <select
+            name="taluka_code"
+            value={form.taluka_code}
+            onChange={handleChange}
+            disabled={!talukas.length}
+          >
+            <option value="">Select Taluka</option>
+            {renderOptions(talukas, "taluka_code", "taluka_name")}
+          </select>
+
+          <label>Pincode *</label>
+          <input
+            name="pincode"
+            value={form.pincode}
+            onChange={handleChange}
+            maxLength="6"
+            inputMode="numeric"
+            required
+          />
+          {errors.pincode && (
+            <div className="error-text">{errors.pincode}</div>
+          )}
+
+          <h3>Departments</h3>
+
+          {departments.map((dept, i) => (
+            <div className="dept-card" key={i}>
+              <div className="dept-header">
+                <strong>Department #{i + 1}</strong>
                 <div>
-                  <label>State *</label>
-                  <select name="state_code" value={form.state_code} onChange={handleChange}>
-                    <option value="">Select State</option>
-                    {renderOptions(states, "state_code", "state_name")}
-                  </select>
-                </div>
-
-                <div>
-                  <label>Pincode *</label>
-                  <input name="pincode" value={form.pincode} onChange={handleChange} />
+                  <button type="button" onClick={() => toggleDept(i)}>
+                    {dept.isOpen ? "▲" : "▼"}
+                  </button>
+                  <button type="button" onClick={() => removeDepartment(i)}>
+                    ✕
+                  </button>
                 </div>
               </div>
 
-              <div className="grid-3">
-                <select name="division_code" value={form.division_code} onChange={handleChange}>
-                  <option value="">Select Division</option>
-                  {renderOptions(divisions, "division_code", "division_name")}
-                </select>
+              {dept.isOpen && (
+                <div className="dept-body">
+                  <label>Department Name</label>
+                  <input
+                    value={dept.dept_name}
+                    onChange={(e) =>
+                      handleDeptChange(i, "dept_name", e.target.value)
+                    }
+                  />
+                  {errors.departments?.[i]?.dept_name && (
+                    <div className="error-text">
+                      {errors.departments[i].dept_name}
+                    </div>
+                  )}
 
-                <select name="district_code" value={form.district_code} onChange={handleChange}>
-                  <option value="">Select District</option>
-                  {renderOptions(districts, "district_code", "district_name")}
-                </select>
+                  <label>Department Name (Local Language)</label>
+                  <input
+                    value={dept.dept_name_ll}
+                    onChange={(e) =>
+                      handleDeptChange(i, "dept_name_ll", e.target.value)
+                    }
+                  />
 
-                <select name="taluka_code" value={form.taluka_code} onChange={handleChange}>
-                  <option value="">Select Taluka</option>
-                  {renderOptions(talukas, "taluka_code", "taluka_name")}
-                </select>
-              </div>
+                  <h4>Services</h4>
+
+                  {dept.services.map((srv, si) => (
+                    <div className="service-card" key={si}>
+                      <div className="service-header">
+                        <strong>Service #{si + 1}</strong>
+                        <div>
+                          <button
+                            type="button"
+                            onClick={() => toggleService(i, si)}
+                          >
+                            {srv.isOpen ? "▲" : "▼"}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => removeService(i, si)}
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      </div>
+
+                      {srv.isOpen && (
+                        <div className="service-body">
+                          <label>Service Name</label>
+                          <input
+                            value={srv.name}
+                            onChange={(e) =>
+                              handleServiceChange(i, si, "name", e.target.value)
+                            }
+                          />
+                          {errors.departments?.[i]?.services?.[si]?.name && (
+                            <div className="error-text">
+                              {errors.departments[i].services[si].name}
+                            </div>
+                          )}
+
+                          <label>Service Name (Local Language)</label>
+                          <input
+                            value={srv.name_ll}
+                            onChange={(e) =>
+                              handleServiceChange(i, si, "name_ll", e.target.value)
+                            }
+                          />
+                        </div>
+                      )}
+                    </div>
+                  ))}
+
+                  <button type="button" onClick={() => addService(i)}>
+                    + Add Service
+                  </button>
+                </div>
+              )}
             </div>
+          ))}
 
-            {/* ===== DEPARTMENTS ===== */}
-            <div className="org-section">
-              <h3>3. Departments & Services</h3>
+          <button type="button" onClick={addDepartment}>
+            + Add Department
+          </button>
 
-              <button type="button" className="add-btn" onClick={addDepartment}>
-                + Add Department
-              </button>
-            </div>
-
-            {/* ===== ACTIONS ===== */}
-            <div className="org-actions">
-              <button type="button" className="cancel" onClick={() => navigate(-1)}>Cancel</button>
-              <button type="submit" className="submit">Submit</button>
-            </div>
-
-          </form>
-        </div>
+          <div className="org-actions">
+            <button type="button" onClick={() => navigate(-1)}>
+              Cancel
+            </button>
+            <button type="submit">Submit</button>
+          </div>
+        </form>
       </div>
     </div>
-  </div>
-);
-
+    </div>
+    </div>
+  );
 }

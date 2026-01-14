@@ -29,7 +29,7 @@
 .nav-links {
   display: flex;
   list-style: none;
-  gap: 10px;
+  gap: 30px;
   margin: 0;
   padding: 0;
   /* border-radius: 2px; */

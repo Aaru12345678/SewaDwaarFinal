@@ -1,0 +1,153 @@
+/* ===== Helpdesk Sidebar ===== */
+:root {
+  --primary: #595a96;
+  --primary-dark: #474856;
+  --primary-light: #d4d5e3;
+  --success: #10b981;
+  --success-light: #d1fae5;
+  --warning: #f59e0b;
+  --warning-light: #fef3c7;
+  --danger: #ef4444;
+  --danger-light: #fee2e2;
+  --info: #6366f1;
+  --info-light: #e0e7ff;
+  --gray-50: #f9fafb;
+  --gray-100: #f3f4f6;
+  --gray-200: #e5e7eb;
+  --gray-300: #d1d5db;
+  --gray-500: #6b7280;
+  --gray-700: #374151;
+  --gray-900: #111827;
+}
+
+.helpdesk-sidebar {
+  width: 260px;
+  background: linear-gradient(180deg, #e6e6fa 0%, #e6e6fa 100%);
+  color: var(--gray-900);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  box-shadow: 2px 0 8px rgba(89, 90, 150, 0.1);
+  border-right: 2px solid #595a96;
+}
+
+.sidebar-header {
+  padding: 24px 20px;
+  font-size: 1.1rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  color: #ffffff;
+  border-bottom: 2px solid #595a96;
+  background: linear-gradient(135deg, #595a96 0%, #474856 100%);
+}
+
+.sidebar-logo {
+  font-size: 2.2rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  padding: 8px;
+  border-radius: 10px;
+}
+
+.sidebar-logo:hover {
+  background: #474856;
+  transform: scale(1.1);
+}
+
+.sidebar-title {
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  color: #595a96;
+}
+
+.sidebar-menu {
+  flex: 1;
+  padding: 16px 0;
+}
+
+.sidebar-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 20px;
+  margin: 6px 12px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  color: #333333;
+  font-size: 0.95rem;
+  border-radius: 10px;
+}
+
+.sidebar-item:hover {
+  background: #d4d5e3;
+  color: #333333;
+  transform: translateX(4px);
+}
+
+.sidebar-item.active {
+  background: linear-gradient(135deg, #595a96 0%, #474856 100%);
+  color: white;
+  font-weight: 600;
+  box-shadow: 0 4px 12px rgba(89, 90, 150, 0.3);
+}
+
+.sidebar-item.active .label {
+  color: white;
+}
+
+.sidebar-item .icon {
+  font-size: 1.3rem;
+  width: 28px;
+  text-align: center;
+}
+
+.sidebar-item .label {
+  font-weight: 500;
+  color: #000000;
+}
+
+.sidebar-separator {
+  height: 1px;
+  background: #bfdbfe;
+  margin: 8px 16px;
+}
+
+.sidebar-footer {
+  padding: 12px 0;
+  border-top: 1px solid #bfdbfe;
+}
+
+.sidebar-item.footer-item {
+  color: #64748b;
+}
+
+.sidebar-item.footer-item:hover {
+  color: #595a96;
+  background: #d4d5e3;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .helpdesk-sidebar {
+    width: 60px;
+  }
+  
+  .sidebar-header,
+  .sidebar-item .label {
+    display: none;
+  }
+  
+  .sidebar-item {
+    justify-content: center;
+    padding: 16px;
+  }
+  
+  .sidebar-item .icon {
+    width: auto;
+  }
+}
+

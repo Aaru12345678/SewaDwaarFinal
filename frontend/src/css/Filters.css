@@ -1,0 +1,151 @@
+/* Filters Bar Container */
+.filters-bar {
+  display: flex;
+  flex-direction: column;
+  padding: 12px;
+  background-color: #f9f9f9;
+  border: 1px solid #d0d7de;
+  border-radius: 6px;
+  margin-bottom: 16px;
+  gap: 10px; /* space between rows */
+}
+
+/* Row 1: State → Division → District → Taluka */
+.filter-row.row-1 {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  align-items: center;
+}
+
+/* Row 2: Organization → Department → Service → Date → Apply */
+.filter-row.row-2 {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  align-items: center;
+}
+
+/* Selects and Inputs */
+.filter-row select,
+.filter-row input {
+  padding: 8px 10px;
+  font-size: 14px;
+  border: 1px solid #b0bec5;
+  border-radius: 4px;
+  background-color: #fff;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* Apply Button */
+.filter-row button.apply-btn {
+  padding: 8px 18px;
+  background-color: #007bff;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.filter-row button.apply-btn:hover {
+  background-color: #0056b3;
+}
+
+/* Custom Date Row */
+.custom-date-row {
+  display: flex;
+  gap: 10px;
+  padding: 10px 12px;
+  background-color: #ffffff;
+  border: 1px solid #d0d7de;
+  border-radius: 6px;
+  margin-bottom: 16px;
+}
+
+.custom-date-row input {
+  padding: 8px 10px;
+  font-size: 14px;
+  border: 1px solid #b0bec5;
+  border-radius: 4px;
+  min-width: 150px;
+}
+
+/* Responsive Adjustments */
+@media (max-width: 768px) {
+  .filter-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .filter-row select,
+  .filter-row input,
+  .filter-row button.apply-btn {
+    width: 100%; /* full width on small screens */
+  }
+
+  .custom-date-row {
+    flex-direction: column;
+  }
+
+  .custom-date-row input {
+    width: 100%;
+  }
+}
+
+.filters-container {
+  background: #ffffff;
+  border: 1px solid #d0d7de;
+  padding: 12px;
+  margin-bottom: 16px;
+}
+
+/* Shared row layout */
+.filters-bar {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr) auto;
+  gap: 10px;
+  margin-bottom: 10px;
+  align-items: center;
+}
+
+/* Row 1 has no button */
+.row-1 {
+  grid-template-columns: repeat(4, 1fr);
+}
+
+/* Row 2 includes Apply */
+.row-2 {
+  grid-template-columns: repeat(4, 1fr) auto;
+}
+
+.filters-bar select,
+.custom-date-row input {
+  padding: 8px 10px;
+  font-size: 14px;
+  border: 1px solid #b0bec5;
+  border-radius: 4px;
+}
+
+.apply-btn {
+  padding: 9px 20px;
+  background-color: #1a73e8;
+  color: #ffffff;
+  border: none;
+  border-radius: 4px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.apply-btn:hover {
+  background-color: #1558b0;
+}
+
+.custom-date-row {
+  display: flex;
+  gap: 10px;
+  padding-top: 6px;
+}
+

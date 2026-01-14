@@ -1,12 +1,13 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import "../css/Logout.css";
-import logo from "../assets/logo.png";
+import logo from "../assets/sewaimage.png";
 import Header from "../Components/Header";
 import Footer from "../Components/Footer";
 import NavbarMain from '../Components/NavbarMain';
 import NavbarTop from '../Components/NavbarTop';
 import VisitorNavbar from "./VisitorNavbar";
+
 // import NavbarMain from "../Components/NavbarMain";
 
 const Logout = () => {
@@ -31,7 +32,7 @@ const Logout = () => {
       <header className="logout-header fade-in-delay">
         <img src={logo} alt="Government Emblem" className="emblem" />
         <div className="header-text">
-          <h2>Visitor Appointment Management Portal</h2>
+          <h2>SevaDwaar Appointment Booking Portal</h2>
           <p>Government of India</p>
         </div>
       </header>

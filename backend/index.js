@@ -8,6 +8,7 @@ const bookAppointmentRoute=require('./routes/bookAppointmentRoute')
 const officerRoute=require('./routes/officerRoute');
 const visitorRoutes = require('./routes/visitorRoutes');
 const fetchRoutes = require("./routes/fetchRoutes"); // ⭐ VERY IMPORTANT
+const helpdeskRoutes=require("./routes/helpdeskRoute");
 const app = express();
 
 app.use(cors({
@@ -32,12 +33,12 @@ app.use('/api', locationRoutes);
 app.use('/api', signupRoutes);
 app.use('/api', bookAppointmentRoute);
 app.use('/api', officerRoute);
-
+app.use('/api/helpdesk',helpdeskRoutes);
 const servicesRoute = require("./routes/services");
 
 app.use("/api/services", servicesRoute);
 
-app.use("/api/department", require("./routes/departmentRoutes"));
+app.use("/api/departments", require("./routes/departmentRoutes"));
 
 
 const appointmentRoutes = require("./routes/appointmentRoutes");
@@ -51,6 +52,24 @@ app.use("/api", fetchRoutes);
 app.get('/', (req, res) => {
   res.send('Server is running!');
 });
+
+const appointmentAnalyticsRoutes = require("./routes/analyticsRoutes");
+
+app.use(
+  "/api/appointment-analytics",
+  appointmentAnalyticsRoutes
+);
+
+const walkinAnalyticsRoutes = require("./routes/walkinAnalyticsRoutes");
+
+app.use(
+  "/api/walkin-analytics",
+  walkinAnalyticsRoutes
+);
+
+const slotConfigRoutes = require("./routes/slotConfigRoutes");
+
+app.use("/api/slot-config", slotConfigRoutes);
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {

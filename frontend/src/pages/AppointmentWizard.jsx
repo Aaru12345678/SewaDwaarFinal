@@ -4,7 +4,7 @@ import "../css/AppointmentWizard.css"; // Link to basic CSS
 import { toast } from "react-toastify";
 import { Link } from "react-router-dom";
 import { getVisitorDashboard } from "../services/api";
-import { OfficerName,getOfficersByLocation,uploadAppointmentDocuments  } from "../services/api.jsx"; // ✅ Officer API
+import { OfficerName,getOfficersByLocation,uploadAppointmentDocuments,getSlotConfigs  } from "../services/api.jsx"; // ✅ Officer API
 import VisitorNavbar from "./VisitorNavbar.jsx";
 import Header from '../Components/Header';
 import NavbarMain from '../Components/NavbarMain';
@@ -25,8 +25,7 @@ import {
   getDepartment,
   getServices,
   submitAppointment,
-  getServices2
-} from '../services/api';
+  getServices2,getAvailableSlots} from '../services/api';
 // import Swal from "sweetalert2";
 
 const AppointmentWizard = () => {
@@ -35,6 +34,9 @@ const AppointmentWizard = () => {
     const [loadingDivisions, setLoadingDivisions] = useState(false);
     const [loadingDistricts, setLoadingDistricts] = useState(false);
     const [loadingTalukas, setLoadingTalukas] = useState(false);
+    const [availableSlots, setAvailableSlots] = useState([]);
+const [loadingSlots, setLoadingSlots] = useState(false);
+
 
 const [showErrors, setShowErrors] = useState(false);
 
@@ -196,19 +198,35 @@ const formatTimeAMPM = (time24) => {
   return `${hours}:${minutes.toString().padStart(2, "0")} ${ampm}`;
 };
 
-  const slots = [
-  "09:00",
-  "10:00",
-  "11:00",
-  "14:00",
-  "15:00"
-];
+//   const slots = [
+//   "09:00",
+//   "10:00",
+//   "11:00",
+//   "14:00",
+//   "15:00"
+// ];
 // const formatTimeAMPM = (time24) => {
 //   let [hours, minutes] = time24.split(":").map(Number);
 //   const ampm = hours >= 12 ? "PM" : "AM";
 //   hours = hours % 12 || 12;
 //   return `${hours}:${minutes.toString().padStart(2, "0")} ${ampm}`;
 // };
+useEffect(() => {
+  const fetchSlotConfigs = async () => {
+    try {
+      const res = await getSlotConfigs();
+      console.log("🕒 Slot Config API Response:", res);
+
+      if (res?.data) {
+        console.log("🕒 Slot Config Data:", res.data);
+      }
+    } catch (err) {
+      console.error("❌ Error fetching slot configs:", err);
+    }
+  };
+
+  fetchSlotConfigs();
+}, []);
 
 
  const handleNext = () => {
@@ -241,20 +259,100 @@ const formatDateDDMMYYYY = (dateStr) => {
   return `${dd}-${mm}-${yyyy}`;
 };
 
+const filterSlotsByCurrentTime = (slots, selectedDate) => {
+  if (!selectedDate) return slots;
+
+  const today = new Date();
+  const selected = new Date(selectedDate);
+
+  const isToday =
+    today.getFullYear() === selected.getFullYear() &&
+    today.getMonth() === selected.getMonth() &&
+    today.getDate() === selected.getDate();
+
+  if (!isToday) return slots; // future date → show all
+
+  const nowMinutes = today.getHours() * 60 + today.getMinutes();
+
+  return slots.filter(slot => {
+    const [hh, mm] = slot.slot_time.split(":").map(Number);
+    const slotMinutes = hh * 60 + mm;
+    return slotMinutes > nowMinutes; // only future slots
+  });
+};
+
+
+useEffect(() => {
+  const fetchSlots = async () => {
+    const {
+      appointment_date,
+      org_id,
+      dept_id,
+      service_id,
+      state,
+      division,
+      district,
+      taluka
+    } = formData;
+
+    if (!appointment_date || !org_id || !service_id || !state) {
+      setAvailableSlots([]);
+      return;
+    }
+
+    try {
+      setLoadingSlots(true);
+
+      const params = {
+        p_date: appointment_date,
+        p_organization_id: org_id,
+        p_service_id: service_id,
+        p_state_code: state,
+        p_division_code: division || null,
+        p_department_id: dept_id || null,
+        p_district_code: district || null,
+        p_taluka_code: taluka || null
+      };
+
+      const res = await getAvailableSlots(params);
+
+      setAvailableSlots(res?.data?.data ?? []);
+
+    } catch (err) {
+      console.error("❌ Error fetching slots:", err);
+      setAvailableSlots([]);
+    } finally {
+      setLoadingSlots(false);
+    }
+  };
+
+  fetchSlots();
+}, [
+  formData.appointment_date,
+  formData.org_id,
+  formData.service_id,
+  formData.state,
+  formData.division,
+  formData.dept_id,
+  formData.district,
+  formData.taluka
+]);
+
+
 
 const handleSubmit = async (e) => {
   e.preventDefault();
 
   // ✅ Validate required fields
   const requiredFields = [
-    formData.org_id,
-    formData.dept_id,
-    formData.service_id,
-    formData.officer_id,
-    formData.appointment_date,
-    formData.slot_time,
-    formData.purpose,
-  ];
+  formData.state,
+  formData.org_id,
+  formData.service_id,
+  formData.officer_id,
+  formData.appointment_date,
+  formData.slot_time,
+  formData.purpose,
+];
 
   if (requiredFields.includes("") || requiredFields.includes(null)) {
     toast.error("Please fill all required fields!");
@@ -266,17 +364,26 @@ const handleSubmit = async (e) => {
   try {
     // ✅ Step 1: Prepare appointment payload
     const payload = {
-      visitor_id: localStorage.getItem("username") || "VIS018",
-      organization_id: formData.org_id,
-      department_id: formData.dept_id,
-      service_id: formData.service_id,
-      officer_id: formData.officer_id,
-      appointment_date:formatDateDDMMYYYY(formData.appointment_date),
-      slot_time: formData.slot_time,
-      purpose: formData.purpose,
-      insert_by: localStorage.getItem("user_id") || "system",
-      insert_ip: "127.0.0.1",
-    };
+  visitor_id: localStorage.getItem("username") || "VIS018",
+  organization_id: formData.org_id,
+  department_id: formData.dept_id || null,   // ✅ optional
+  officer_id: formData.officer_id,
+  service_id: formData.service_id,
+  purpose: formData.purpose,
+  appointment_date: formData.appointment_date, // ✅ YYYY-MM-DD
+  slot_time: formData.slot_time,
+
+  // ✅ NEW (MANDATORY)
+  state_code: formData.state,
+
+  // ✅ OPTIONAL LOCATION
+  division_code: formData.division || null,
+  district_code: formData.district || null,
+  taluka_code: formData.taluka || null,
+
+  insert_by: localStorage.getItem("user_id") || "system",
+  insert_ip: "127.0.0.1",
+};
 
     // ✅ Step 2: Call API
     const response = await submitAppointment(payload);
@@ -625,27 +732,28 @@ const today = new Date().toISOString().split("T")[0];
 
 
 // filter for date or time:
-const getAvailableSlots = () => {
-  if (!formData.appointment_date) return slots;
+// // const getAvailableSlots = () => {
+//   if (!formData.appointment_date) return slots;
 
-  const selectedDate = new Date(formData.appointment_date);
-  const today = new Date();
+//   const selectedDate = new Date(formData.appointment_date);
+//   const today = new Date();
 
-  const isToday =
-    selectedDate.getFullYear() === today.getFullYear() &&
-    selectedDate.getMonth() === today.getMonth() &&
-    selectedDate.getDate() === today.getDate();
+//   const isToday =
+//     selectedDate.getFullYear() === today.getFullYear() &&
+//     selectedDate.getMonth() === today.getMonth() &&
+//     selectedDate.getDate() === today.getDate();
 
-  if (!isToday) return slots;
+//   if (!isToday) return slots;
 
-  const currentMinutes = today.getHours() * 60 + today.getMinutes();
+//   const currentMinutes = today.getHours() * 60 + today.getMinutes();
 
-  return slots.filter((slot) => {
-    const [hh, mm] = slot.split(":").map(Number);
-    const slotMinutes = hh * 60 + mm;
-    return slotMinutes > currentMinutes;
-  });
-};
+//   return slots.filter((slot) => {
+//     const [hh, mm] = slot.split(":").map(Number);
+//     const slotMinutes = hh * 60 + mm;
+//     return slotMinutes > currentMinutes;
+//   });
+// };
+
 const isStep1Valid = useMemo(() => {
   if (!formData.state || !formData.division) return false;
   if (!formData.org_id) return false;
@@ -856,8 +964,7 @@ const getError = (condition, message) => {
               <option value="">Select Department</option>
               {renderOptions(department, "department_id", "department_name")}
             </select>
-            {getError(formData.dept_id, "Department is required")}
-          </div>
+                      </div>
         )}
 
         <div className="form-field">
@@ -937,28 +1044,50 @@ const getError = (condition, message) => {
 
       {getError(formData.appointment_date, "Date is required")}
     </div>
+<div className="step2-field">
+  <label>
+    Time Slot <span className="required">*</span>
+  </label>
 
-    <div className="step2-field">
-      <label>
-        Time Slot <span className="required">*</span>
-      </label>
+  <select
+  name="slot_time"
+  value={formData.slot_time}
+  onChange={(e) => {
+    const selected = availableSlots.find(
+      s => s.slot_time === e.target.value
+    );
 
-      <select
-        name="slot_time"
-        value={formData.slot_time}
-        onChange={handleChange}
-        required
-      >
-        <option value="">Select Slot</option>
-        {getAvailableSlots().map((slot) => (
-          <option key={slot} value={slot}>
-            {formatTimeAMPM(slot)}
-          </option>
-        ))}
-      </select>
+    setFormData(prev => ({
+      ...prev,
+      slot_time: selected.slot_time,
+      slot_end_time: selected.slot_end_time
+    }));
+  }}
+>
+  <option value="">
+      {loadingSlots
+        ? "Loading slots..."
+        : availableSlots.length === 0
+        ? "No slots available"
+        : "Select Slot"}
+    </option>
 
-      {getError(formData.slot_time, "Time is required")}
-    </div>
+    {filterSlotsByCurrentTime(
+  availableSlots.filter(slot => slot.is_available),
+  formData.appointment_date
+).map(slot => (
+        <option
+          key={slot.slot_time}
+          value={slot.slot_time}          // ✅ backend expects slot_time
+        >
+          {formatTimeAMPM(slot.slot_time)} - {formatTimeAMPM(slot.slot_end_time)}
+        </option>
+      ))}
+  </select>
+
+  {getError(formData.slot_time, "Time is required")}
+</div>
+
 
   </div>
 )}
@@ -1110,7 +1239,10 @@ const getError = (condition, message) => {
 
       <div className="confirm-row">
         <span className="label">Time Slot</span>
-        <span className="value">{formData.slot_time}</span>
+       <span className="value">
+  {formatTimeAMPM(formData.slot_time)}
+</span>
+
       </div>
 
       <div className="confirm-row full-width">

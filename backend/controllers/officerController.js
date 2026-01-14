@@ -438,8 +438,6 @@ exports.getOfficersByLocation = async (req, res) => {
       state_code,
       division_code,
       organization_id,
-      organization_id,
-      organization_id,
       district_code,
       taluka_code,
       department_id
@@ -490,7 +488,7 @@ exports.getOfficerDashboard = async (req, res) => {
     }
 
     const { rows } = await pool.query(
-      "SELECT get_officer_dashboard($1) AS dashboard",
+      "SELECT get_officer_dashboard_by_username($1) AS dashboard",
       [officer_id]
     );
 

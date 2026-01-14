@@ -52,7 +52,7 @@ exports.getTalukas = async (req, res) => {
 
 exports.getOrganization = async(req,res)=>{
   try{
-    const result=await pool.query('SELECT * FROM get_organizations();');
+    const result=await pool.query('SELECT * FROM public.get_organizations();');
     res.json(result.rows);
   }
   catch(err){

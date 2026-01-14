@@ -96,3 +96,115 @@ exports.getActiveDepartmentsCount = async (req, res) => {
     });
   }
 };
+
+// const pool = require('../config/db');
+
+// controllers/departmentController.js
+// exports.getDepartmentById = async (req, res) => {
+//   try {
+//     const { department_id } = req.params;
+
+//     const { rows } = await pool.query(
+//       "SELECT * FROM get_department_by_id($1)",
+//       [department_id]
+//     );
+
+//     if (rows.length === 0) {
+//       return res.status(404).json({
+//         success: false,
+//         message: "Department not found",
+//       });
+//     }
+
+//     res.json({
+//       success: true,
+//       data: rows,
+//     });
+//   } catch (err) {
+//     res.status(500).json({
+//       success: false,
+//       message: err.message,
+//     });
+//   }
+// };
+
+// exports.getDepartmentById = async (req, res) => {
+//   try {
+//     const { department_id } = req.params;
+
+//     const { rows } = await pool.query(
+//       "SELECT * FROM get_department_by_id($1)",
+//       [department_id]
+//     );
+
+//     if (rows.length === 0) {
+//       return res.status(404).json({
+//         success: false,
+//         message: "Department not found",
+//       });
+//     }
+
+//     // 🟢 Build department object
+//     const department = {
+//       department_id: rows[0].department_id,
+//       organization_id: rows[0].organization_id,
+//       department_name: rows[0].department_name,
+//       department_name_ll: rows[0].department_name_ll,
+//       state_code: rows[0].state_code,
+//       services: rows
+//         .filter(r => r.service_id !== null)
+//         .map(r => ({
+//           service_id: r.service_id,
+//           service_name: r.service_name,
+//           service_name_ll: r.service_name_ll,
+//         })),
+//     };
+
+//     res.json({
+//       success: true,
+//       data: department,
+//     });
+//   } catch (err) {
+//     res.status(500).json({
+//       success: false,
+//       message: err.message,
+//     });
+//   }
+// };
+
+exports.getDepartmentById = async (req, res) => {
+  const { department_id } = req.params;
+  console.log("🔥 CONTROLLER HIT 🔥", req.originalUrl, req.params);
+  console.log("HIT CONTROLLER, department_id =", department_id);
+  try {
+    const { rows } = await pool.query(
+      "SELECT get_department_by_id_json($1) AS data",
+      [department_id]
+    );
+
+    console.log("DB rows:", rows);
+
+    // 🔑 CRITICAL FIX
+    if (!rows.length || !rows[0].data) {
+      return res.status(404).json({
+        success: false,
+        message: "Department not found",
+        data: null
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      data: rows[0].data
+    });
+
+  } catch (error) {
+    console.error("❌ Get department error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Server error"
+    });
+  }
+};
+
+

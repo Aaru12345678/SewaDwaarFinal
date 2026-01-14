@@ -19,6 +19,11 @@ import AppointmentDetails from "./pages/AppointmentDetails";
 import Profile from "./pages/Profile";
 import Logout from "./pages/Logout";
 
+// helpdesk
+import HelpdeskDashboard from "./pages/HelpdeskDashboard";
+import HelpdeskLogin from "./Components/HelpdeskLogin";
+import HelpdeskProtectedRoute from "./Components/HelpdeskProtectedRoute";
+
 // Password flow
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
@@ -53,7 +58,12 @@ import AddHoliday from "./pages/AddHoliday";
 import EditProfile from "./pages/EditProfile";
 import AppointmentWizard2 from "./pages/AppointmentWizard2";
 import OfficerNotifications from "./pages/OfficerNotifications";
-
+import EditOrganization from "./pages/EditOrganization";
+import EditDepartment from './pages/EditDepartment';
+import EditServices from "./pages/EditServices";
+import OfficerAvailability from "./pages/OfficerAvailability";
+import SearchUserByMobile from './pages/SearchUserByMobile';
+import HelpdeskBooking from "./pages/HelpdeskBooking";
 function App() {
   const loggedIn = !!localStorage.getItem("token");
 
@@ -92,6 +102,17 @@ function App() {
         <Route path="/forgot" element={<ForgotPassword />} />
         <Route path="/reset" element={<ResetPassword />} />
 
+ {/* Helpdesk login */}
+        <Route path="/login/helpdesklogin" element={<HelpdeskLogin />} />
+        {/* Helpdesk Routes - Protected */}
+        <Route path="/helpdesk/dashboard" element={<HelpdeskProtectedRoute><HelpdeskDashboard /></HelpdeskProtectedRoute>} />
+        <Route path="/helpdesk/availability" element={<OfficerAvailability />} />
+        {/* <Route path="/helpdesk/bookappointment" element={<HelpdeskBooking />} /> */}
+
+
+
+
+      
         {/* Visitor Routes */}
         <Route path="/dashboard1" element={<VisitorDashboard />} />
         <Route path="/appointment-wizard" element={<AppointmentWizard />} />
@@ -116,7 +137,11 @@ function App() {
         <Route path="/add/services" element={<AddServices />} />
 
         <Route path="/add/holiday" element={<AddHoliday/>}/>
-        
+        {/* Edit organization,department,services pages */}
+        <Route path="/edit-organization/:id" element={<EditOrganization/>}/>
+        <Route path="/edit-department/:department_id" element={<EditDepartment/>}/>
+        <Route path="/edit-service/:service_id" element={<EditServices/>}/>
+        {/*  */}
         {/* Officer Routes */}
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/officer/today" element={<TodayAppointments />} />
@@ -144,6 +169,7 @@ function App() {
             />
           ))}
         </Route>
+        <Route path="/helpdesk/search-user" element={<SearchUserByMobile />} />
       </Routes>
 
       <ToastContainer position="top-right" autoClose={3000} />

@@ -12,7 +12,7 @@ const {
 router.get("/organizations", getAllOrganizations);
 
 // Departments by organization
-router.get("/departments/:organization_id", getDepartmentsByOrg);
+router.get("/organizations/:organization_id/departments", getDepartmentsByOrg);
 
 // Services by department
 router.get(

@@ -45,19 +45,20 @@ const Appointments = () => {
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
   const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
+
 
   // pagination
   const [page, setPage] = useState(1);
   const limit = 10;
   const [totalPages, setTotalPages] = useState(1);
 
-  // ===============================
-  // FETCH APPOINTMENTS
+ // ===============================
+  // FETCH APPOINTMENTS (NO HOOKS HERE)
   // ===============================
   const fetchAppointments = async () => {
     try {
       const params = {};
-
       if (fromDate) params.from_date = fromDate;
       if (toDate) params.to_date = toDate;
 
@@ -74,9 +75,6 @@ const Appointments = () => {
         });
 
         setAppointments(summary.appointments || []);
-
-        const total = summary.total || 0;
-        setTotalPages(Math.max(1, Math.ceil(total / limit)));
       } else {
         setAppointments([]);
       }
@@ -91,7 +89,38 @@ const Appointments = () => {
   // ===============================
   useEffect(() => {
     fetchAppointments();
-  }, [page]);
+  }, []);
+
+  // ===============================
+  // FILTERING
+  // ===============================
+  const filteredAppointments = appointments.filter((a) => {
+    const matchSearch = a.visitor_name
+      ?.toLowerCase()
+      .includes(search.toLowerCase());
+
+    const matchStatus = statusFilter ? a.status === statusFilter : true;
+
+    return matchSearch && matchStatus;
+  });
+
+  // ===============================
+  // PAGINATION LOGIC (CORRECT PLACE)
+  // ===============================
+  useEffect(() => {
+    const pages = Math.max(1, Math.ceil(filteredAppointments.length / limit));
+    setTotalPages(pages);
+
+    if (page > pages) {
+      setPage(1);
+    }
+  }, [filteredAppointments, limit]);
+
+  const startIndex = (page - 1) * limit;
+  const paginatedAppointments = filteredAppointments.slice(
+    startIndex,
+    startIndex + limit
+  );
 
   // ===============================
   // ACTION HANDLERS
@@ -124,12 +153,6 @@ const Appointments = () => {
     }
   };
 
-  // ===============================
-  // SEARCH FILTER
-  // ===============================
-  const filteredAppointments = appointments.filter(a =>
-    a.visitor_name?.toLowerCase().includes(search.toLowerCase())
-  );
 
   // ===============================
   // UI
@@ -169,18 +192,33 @@ const Appointments = () => {
       </div>
 
       {/* Search */}
-      <div className="search-section">
-        <label className="search-label">Search</label>
-        <div className="search-input-wrapper">
-          <span className="search-icon">🔎</span>
-          <input
-            type="text"
-            placeholder="Search visitor"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-        </div>
-      </div>
+      <div className="search-filter-row">
+  {/* Search */}
+  <div className="search-box">
+    <span className="search-icon">🔎</span>
+    <input
+      type="text"
+      placeholder="Search visitor"
+      value={search}
+      onChange={(e) => setSearch(e.target.value)}
+    />
+  </div>
+
+  {/* Status Dropdown */}
+  <div className="status-filter">
+    <select
+      value={statusFilter}
+      onChange={(e) => setStatusFilter(e.target.value)}
+    >
+      <option value="">All Status</option>
+      <option value="pending">Pending</option>
+      <option value="approved">Approved</option>
+      <option value="completed">Completed</option>
+      <option value="rejected">Rejected</option>
+    </select>
+  </div>
+</div>
+
 
       {/* Table */}
       <div className="table-container">

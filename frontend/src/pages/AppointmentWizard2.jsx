@@ -3,48 +3,244 @@ import { useNavigate } from "react-router-dom";
 import "../css/AppointmentWizard.css"; // Link to basic CSS
 import { toast } from "react-toastify";
 import { Link } from "react-router-dom";
+import { getVisitorDashboard } from "../services/api";
 import { OfficerName,getOfficersByLocation,uploadAppointmentDocuments  } from "../services/api.jsx"; // ✅ Officer API
 import VisitorNavbar from "./VisitorNavbar.jsx";
+import Header from '../Components/Header';
+import NavbarMain from '../Components/NavbarMain';
+import Footer from '../Components/Footer';
+import './MainPage.css';
+import Swal from "sweetalert2";
+import NavbarTop from '../Components/NavbarTop';
+import {
+  getStates,
+  getDivisions,
+  getDistricts,
+  getTalukas,
+} from "../services/api";
+
 import {
   getOrganization,
+  getOrganizationbyLocation,
   getDepartment,
   getServices,
   submitAppointment,
   getServices2
 } from '../services/api';
-import Swal from "sweetalert2";
+// import Swal from "sweetalert2";
 
 const AppointmentWizard2 = () => {
+
+  const [loadingStates, setLoadingStates] = useState(false);
+    const [loadingDivisions, setLoadingDivisions] = useState(false);
+    const [loadingDistricts, setLoadingDistricts] = useState(false);
+    const [loadingTalukas, setLoadingTalukas] = useState(false);
+
+const [showErrors, setShowErrors] = useState(false);
+
+
   const [step, setStep] = useState(1);
   const [mode, setMode] = useState("department");
+
   const [officers, setOfficers] = useState([]);
 const [loadingOfficers, setLoadingOfficers] = useState(false);
+
+const [states, setStates] = useState([]);
+  const [divisions, setDivisions] = useState([]);
+  const [districts, setDistricts] = useState([]);
+  const [talukas, setTalukas] = useState([]);
+
+  // ✅ Step-wise validation
+
+const [isManualDateEntry, setIsManualDateEntry] = useState(false);
+
+const fetchDivisions = useCallback(async (stateCode) => {
+    if (!stateCode) return;
+    setLoadingDivisions(true);
+    const { data } = await getDivisions(stateCode);
+    setLoadingDivisions(false);
+    data ? setDivisions(data) : toast.error("Failed to load divisions.");
+  }, []);
+
+  const fetchDistricts = useCallback(async (stateCode, divisionCode) => {
+    if (!stateCode || !divisionCode) return;
+    setLoadingDistricts(true);
+    const { data } = await getDistricts(stateCode, divisionCode);
+    setLoadingDistricts(false);
+    data ? setDistricts(data) : toast.error("Failed to load districts.");
+  }, []);
+
+  const fetchTalukas = useCallback(
+    async (stateCode, divisionCode, districtCode) => {
+      if (!stateCode || !divisionCode || !districtCode) return;
+      setLoadingTalukas(true);
+      const { data } = await getTalukas(stateCode, divisionCode, districtCode);
+      setLoadingTalukas(false);
+      data ? setTalukas(data) : toast.error("Failed to load talukas.");
+    },
+    []
+  );
+
+  useEffect(() => {
+    (async () => {
+      setLoadingStates(true);
+      const { data } = await getStates();
+      setLoadingStates(false);
+      data ? setStates(data) : toast.error("Failed to load states.");
+    })();
+  }, []);
+
+const handleChange2 = (e) => {
+    const { name, value } = e.target;
+
+    setFormData((prev) => {
+      const updated = { ...prev, [name]: value };
+
+      // if (name === "dob") {
+      //   validateAge(value);
+      // }
+
+      // if (name === "password") {
+      //   setPasswordStrength(passwordRegex.test(value));
+      //   setPasswordMatch(value === prev.confirmPassword);
+      // }
+
+      // if (name === "confirmPassword") {
+      //   setPasswordMatch(prev.password === value);
+      // }
+
+      if (name === "state") {
+        updated.division = "";
+        updated.district = "";
+        updated.taluka = "";
+        setDivisions([]);
+        setDistricts([]);
+        setTalukas([]);
+        if (value) fetchDivisions(value);
+      }
+
+      if (name === "division") {
+        updated.district = "";
+        updated.taluka = "";
+        setDistricts([]);
+        setTalukas([]);
+        if (value) fetchDistricts(prev.state, value);
+      }
+
+      if (name === "district") {
+        updated.taluka = "";
+        setTalukas([]);
+        if (value) fetchTalukas(prev.state, prev.division, value);
+      }
+
+      return updated;
+    });
+  };
+
   const [fullName, setFullName] = useState("");
 const [isMetric, setIsMetric] = useState(true); // Our condition state
+const username = localStorage.getItem("username");
+
 useEffect(() => {
-  setFullName(localStorage.getItem("fullName") || "");
-}, []);
+  const fetchVisitorName = async () => {
+    if (!username) return;
+
+    const { data, error } = await getVisitorDashboard(username);
+
+    if (error) {
+      console.error("Failed to fetch visitor dashboard");
+      return;
+    }
+
+    if (data?.success) {
+      setFullName(data.data.full_name || username);
+    }
+  };
+
+  fetchVisitorName();
+}, [username]);
+
 
   const [formData, setFormData] = useState({
-    org_id: "",
-    dept_id: "",
-    service_id: "",
-    officer_id: "",
-    appointment_date: "",
-    slot_time: "",
-    purpose: "",
-    documents: []
-  });
+  state: "",
+  division: "",
+  district: "",
+  taluka: "",
+  org_id: "",
+  dept_id: "",
+  service_id: "",
+  officer_id: "",
+  appointment_date: "",
+  slot_time: "",
+  purpose: "",
+  documents: []
+});
+
   const navigate = useNavigate();
   
   // const officers = [
   //   { id: "officer1", name: "John Doe" },
   //   { id: "officer2", name: "Jane Smith" }
   // ];
-  const slots = ["09:00", "10:00", "11:00", "14:00", "15:00"];
+//   const slots = [
+//   "09:00",
+//   "10:00",
+//   "11:00",
+//   "14:00",
+//   "15:00"
+// ];
+const formatTimeAMPM = (time24) => {
+  let [hours, minutes] = time24.split(":").map(Number);
+  const ampm = hours >= 12 ? "PM" : "AM";
+  hours = hours % 12 || 12;
+  return `${hours}:${minutes.toString().padStart(2, "0")} ${ampm}`;
+};
 
-  const handleNext = () => setStep(step + 1);
+  const slots = [
+  "09:00",
+  "10:00",
+  "11:00",
+  "14:00",
+  "15:00"
+];
+// const formatTimeAMPM = (time24) => {
+//   let [hours, minutes] = time24.split(":").map(Number);
+//   const ampm = hours >= 12 ? "PM" : "AM";
+//   hours = hours % 12 || 12;
+//   return `${hours}:${minutes.toString().padStart(2, "0")} ${ampm}`;
+// };
+
+
+ const handleNext = () => {
+  setShowErrors(true); // 🔴 force show errors
+
+  if (
+    (step === 1 && !isStep1Valid) ||
+    (step === 2 && !isStep2Valid) ||
+    (step === 3 && !isStep3Valid)
+  ) {
+    return; // ❌ stop navigation
+  }
+
+  setShowErrors(false); // reset for next step
+  setStep(step + 1);
+};
+
   const handleBack = () => setStep(step - 1);
+
+// const formatDateDDMMYYYY = (dateStr) => {
+//   if (!dateStr) return "";
+//   const [yyyy, mm, dd] = dateStr.split("-");
+//   return `${dd}-${mm}-${yyyy}`;
+// };
+
+
+const formatDateDDMMYYYY = (dateStr) => {
+  if (!dateStr) return "";
+  const [yyyy, mm, dd] = dateStr.split("-");
+  return `${dd}-${mm}-${yyyy}`;
+};
+
 
 const handleSubmit = async (e) => {
   e.preventDefault();
@@ -75,7 +271,7 @@ const handleSubmit = async (e) => {
       department_id: formData.dept_id,
       service_id: formData.service_id,
       officer_id: formData.officer_id,
-      appointment_date: formData.appointment_date,
+      appointment_date:formatDateDDMMYYYY(formData.appointment_date),
       slot_time: formData.slot_time,
       purpose: formData.purpose,
       insert_by: localStorage.getItem("user_id") || "system",
@@ -111,6 +307,13 @@ const handleSubmit = async (e) => {
         console.log("📂 Documents uploaded:", docData);
       }
     }
+
+    // ✅ Step 4: Success message + notify navbar
+window.dispatchEvent(
+  new CustomEvent("notification:new", {
+    detail: { incrementBy: 1 }
+  })
+);
 
     // ✅ Step 4: Success message + redirect
     Swal.fire({
@@ -194,20 +397,55 @@ console.log(data)
 
   
 
-useEffect(()=>{
-  (
-    async()=>{
+useEffect(() => {
+  if (!formData.state || !formData.division) {
+    setOrganization([]);
+    return;
+  }
+
+  const fetchOrganizations = async () => {
+    try {
       setLoadingOrganization(true);
-      const {data}=await getOrganization();
+
+      const params = {
+        state_code: formData.state,
+        division_code: formData.division,
+        district_code: formData.district || null,
+        taluka_code: formData.taluka || null
+      };
+
+      console.log("📤 Organization params:", params);
+
+      const res = await getOrganizationbyLocation(params);
+      console.log("📥 Organization response:", res);
+
+      // ✅ FIXED
+      if (res && !res.error) {
+        setOrganization(res.data || []);
+      } else {
+        setOrganization([]);
+        console.error(res?.error || "Failed to fetch organizations");
+      }
+
+    } catch (error) {
+      console.error("Error fetching organizations:", error);
+      setOrganization([]);
+    } finally {
       setLoadingOrganization(false);
-      data ? setOrganization(data):toast.error("Failed to load organization.");
     }
-  )();
-},[])     
+  };
+
+  fetchOrganizations();
+}, [
+  formData.state,
+  formData.division,
+  formData.district,
+  formData.taluka
+]);
 
 const handleChange = (e) => {
   const { name, value } = e.target;
-
+//  setIsManualDateEntry(false); // picker selection
   setFormData((prev) => {
     let updated = { ...prev, [name]: value };
 
@@ -304,23 +542,26 @@ const handleChange = (e) => {
 //   fetchOfficers();
 // }, [formData.org_id, formData.dept_id]);
 
+// const HELPDESK_OFFICER = {
+//   officer_id: "HELPDESK",
+//   full_name: "Helpdesk Officer"
+// };
 
 useEffect(() => {
-  const state_code = localStorage.getItem("userstate_code");
-  const division_code = localStorage.getItem("userdivision_code");
-  const district_code = localStorage.getItem("userdistrict_code");
-  const taluka_code = localStorage.getItem("usertaluka_code");
+  const state_code = formData.state;
+  const division_code = formData.division;
+  const district_code = formData.district || null;
+  const taluka_code = formData.taluka || null;
+  const organization_id = formData.org_id;
+  const department_id = formData.dept_id || null;
 
-  // Only stop if location or organization is missing
-  if (
-    !state_code ||
-    !division_code ||
-    !district_code ||
-    !taluka_code ||
-    !formData.org_id
-  ) {
+  // 🚫 Mandatory fields
+  if (!state_code || !division_code || !organization_id) {
+    setOfficers([]);
     return;
   }
+
+  let isMounted = true;
 
   const fetchOfficers = async () => {
     try {
@@ -331,33 +572,45 @@ useEffect(() => {
         division_code,
         district_code,
         taluka_code,
-        organization_id: formData.org_id,
-        department_id: formData.dept_id || null,   // ✅ send null if no department selected
+        organization_id,
+        department_id
       };
 
-      console.log("Fetching officers with payload:", payload);
-
       const { data } = await getOfficersByLocation(payload);
+      if (!isMounted) return;
 
-      if (data.success) {
+      if (data?.success && Array.isArray(data.data)) {
         setOfficers(data.data);
       } else {
         setOfficers([]);
-        toast.info(data.message || "No officers found");
       }
+
     } catch (err) {
-      console.error("Error fetching officers:", err);
-      toast.error("Error fetching officers");
+      console.error("❌ Error fetching officers:", err);
+      setOfficers([]);
+      Swal.fire({
+        icon: "error",
+        title: "Error",
+        text: "Failed to fetch officers. Please try again."
+      });
     } finally {
-      setLoadingOfficers(false);
+      if (isMounted) setLoadingOfficers(false);
     }
   };
 
   fetchOfficers();
-}, [formData.org_id, formData.dept_id]);
 
-
-
+  return () => {
+    isMounted = false;
+  };
+}, [
+  formData.state,
+  formData.division,
+  formData.district,
+  formData.taluka,
+  formData.org_id,
+  formData.dept_id
+]);
 
 
   // 
@@ -383,235 +636,398 @@ const getAvailableSlots = () => {
     selectedDate.getMonth() === today.getMonth() &&
     selectedDate.getDate() === today.getDate();
 
-  if (!isToday) return slots; // All slots for future dates
+  if (!isToday) return slots;
 
-  // For today: show only upcoming slots
   const currentMinutes = today.getHours() * 60 + today.getMinutes();
 
-  return slots.filter(slot => {
-    const [hh, mm] = slot.split(":");
-    const slotMinutes = parseInt(hh) * 60 + parseInt(mm);
-    return slotMinutes > currentMinutes; // future only
+  return slots.filter((slot) => {
+    const [hh, mm] = slot.split(":").map(Number);
+    const slotMinutes = hh * 60 + mm;
+    return slotMinutes > currentMinutes;
   });
 };
+const isStep1Valid = useMemo(() => {
+  if (!formData.state || !formData.division) return false;
+  if (!formData.org_id) return false;
+  if (mode === "department" && !formData.dept_id) return false;
+  if (!formData.service_id) return false;
+  return true;
+}, [formData, mode]);
 
+const isStep2Valid = useMemo(() => {
+  return (
+    !!formData.officer_id &&
+    !!formData.appointment_date &&
+    !!formData.slot_time
+  );
+}, [formData]);
+
+const isStep3Valid = useMemo(() => {
+  return !!formData.purpose;
+}, [formData]);
+
+const handleStepClick = (targetStep) => {
+  // Step 1 is always accessible
+  if (targetStep === 1) {
+    setStep(1);
+    return;
+  }
+
+  if (targetStep === 2 && !isStep1Valid) {
+    toast.error("Please complete Step 1 first");
+    return;
+  }
+
+  if (targetStep === 3 && (!isStep1Valid || !isStep2Valid)) {
+    toast.error("Please complete previous steps first");
+    return;
+  }
+
+  if (
+    targetStep === 4 &&
+    (!isStep1Valid || !isStep2Valid || !isStep3Valid)
+  ) {
+    toast.error("Please complete all previous steps first");
+    return;
+  }
+
+  // ✅ Allowed navigation
+  setStep(targetStep);
+};
+
+const getError = (condition, message) => {
+  if (!showErrors) return null;
+  return condition ? null : <span className="error-text">{message}</span>;
+};
 
   return (
     <>
-      {/* <VisitorNavbar fullName={fullName} /> */}
-
+    <div className="fixed-header">
+        <NavbarTop/>
+        <Header />
+      <VisitorNavbar fullName={fullName} />
+        
+      </div>
+      <div className="main-layout">
+  <div className="content-below">
     <div className="wizard-container">
+      
       <h2>Book an Appointment</h2>
 
       {/* Progress Bar */}
       <div className="progressbar">
-        {steps.map((label, index) => {
-          const stepNumber = index + 1;
-          return (
-            <div
-              key={stepNumber}
-              className={`progress-step ${step >= stepNumber ? "active" : ""}`}
-            >
-              <div className="step-number">{stepNumber}</div>
-              <div className="step-label">{label}</div>
-              {stepNumber < steps.length && (
-                <div className={`step-line ${step > stepNumber ? "filled" : ""}`}></div>
-              )}
-            </div>
-          );
-        })}
+  {steps.map((label, index) => {
+    const stepNumber = index + 1;
+
+    return (
+      <div
+        key={stepNumber}
+        className={`progress-step 
+          ${step === stepNumber ? "active" : ""} 
+          ${step > stepNumber ? "completed" : ""}`}
+        onClick={() => handleStepClick(stepNumber)}
+        style={{ cursor: "pointer" }}
+      >
+        <div className="step-number">{stepNumber}</div>
+        <div className="step-label">{label}</div>
       </div>
+    );
+  })}
+</div>
+
 
       {/* Form */}
       <form onSubmit={handleSubmit}>
   {/* Step 1 */}
   {step === 1 && (
-  <div className="form-step">
-    <div className="radio-group">
-      <label
-        className={`radio-option ${mode === "department" ? "selected" : ""}`}
-        htmlFor="byDept"
-      >
-        <input
-          id="byDept"
-          type="radio"
-          name="mode"
-          value="department"
-          checked={mode === "department"}
-          onChange={() => setMode("department")}
-        />
-        <span className="radio-text">Search by Department</span>
-      </label>
+  <div className="step-panel">
 
-      <label
-        className={`radio-option ${mode === "service" ? "selected" : ""}`}
-        htmlFor="byService"
-      >
-        <input
-          id="byService"
-          type="radio"
-          name="mode"
-          value="service"
-          checked={mode === "service"}
-          onChange={() => setMode("service")}
-        />
-        <span className="radio-text">Search by Service</span>
-      </label>
+    {/* SEARCH MODE */}
+    <div className="panel-section">
+      <div className="section-title">Search Type</div>
+
+      <div className="radio-group dashboard-radio">
+        <label className={`radio-option ${mode === "department" ? "selected" : ""}`}>
+          <input
+            type="radio"
+            checked={mode === "department"}
+            onChange={() => setMode("department")}
+          />
+          Search by Department
+        </label>
+
+        <label className={`radio-option ${mode === "service" ? "selected" : ""}`}>
+          <input
+            type="radio"
+            checked={mode === "service"}
+            onChange={() => setMode("service")}
+          />
+          Search by Service
+        </label>
+      </div>
     </div>
 
-    {/* Organization Dropdown - always shown */}
-    <label>Organization</label>
-    <select
-      name="org_id"
-      value={formData.org_id}
-      onChange={handleChange}
-      required
-    >
-      <option value="">
-        {loadingOrganization ? "Loading..." : "Select Organization"}
-      </option>
-      {renderOptions(organization, "organization_id", "organization_name")}
-    </select>
+    {/* LOCATION DETAILS */}
+    <div className="panel-section">
+      <div className="section-title">Location Details</div>
 
-    {/* Department Dropdown - only show if mode is "department" */}
-    {mode === "department" && (
-      <>
-        <label>Department</label>
-        <select
-          name="dept_id"
-          value={formData.dept_id}
-          onChange={handleChange}
-          disabled={!formData.org_id || loadingDepartment}
-        >
-          <option value="">
-            {loadingDepartment ? "Loading..." : "Select Department"}
+      <div className="grid-4">
+        <div className="form-field">
+          <label>State *</label>
+          <select name="state" value={formData.state} onChange={handleChange2}>
+            <option value="">Select State</option>
+            {renderOptions(states, "state_code", "state_name")}
+          </select>
+          {getError(formData.state, "State is required")}
+        </div>
+
+        <div className="form-field">
+          <label>Division *</label>
+          <select
+            name="division"
+            value={formData.division}
+            onChange={handleChange2}
+            disabled={!formData.state}
+          >
+            <option value="">Select Division</option>
+            {renderOptions(divisions, "division_code", "division_name")}
+          </select>
+          {getError(formData.division, "Division is required")}
+        </div>
+
+        <div className="form-field">
+          <label>District</label>
+          <select
+            name="district"
+            value={formData.district}
+            onChange={handleChange2}
+            disabled={!formData.division}
+          >
+            <option value="">Select District</option>
+            {renderOptions(districts, "district_code", "district_name")}
+          </select>
+        </div>
+
+        <div className="form-field">
+          <label>Taluka</label>
+          <select
+            name="taluka"
+            value={formData.taluka}
+            onChange={handleChange2}
+            disabled={!formData.district}
+          >
+            <option value="">Select Taluka</option>
+            {renderOptions(talukas, "taluka_code", "taluka_name")}
+          </select>
+        </div>
+      </div>
+    </div>
+
+    {/* OFFICE DETAILS */}
+    <div className="panel-section">
+      <div className="section-title">Office Details</div>
+
+      <div className="grid-2">
+        <div className="form-field">
+          <label>Organization *</label>
+          <select
+            name="org_id"
+            value={formData.org_id}
+            onChange={handleChange}
+          >
+            <option value="">Select Organization</option>
+            {organization.map(o => (
+              <option key={o.organization_id} value={o.organization_id}>
+                {o.organization_name}
+              </option>
+            ))}
+          </select>
+          {getError(formData.org_id, "Organization is required")}
+        </div>
+
+        {mode === "department" && (
+          <div className="form-field">
+            <label>Department *</label>
+            <select
+              name="dept_id"
+              value={formData.dept_id}
+              onChange={handleChange}
+            >
+              <option value="">Select Department</option>
+              {renderOptions(department, "department_id", "department_name")}
+            </select>
+            {getError(formData.dept_id, "Department is required")}
+          </div>
+        )}
+
+        <div className="form-field">
+          <label>Service *</label>
+          <select
+            name="service_id"
+            value={formData.service_id}
+            onChange={handleChange}
+          >
+            <option value="">Select Service</option>
+            {renderOptions(services, "service_id", "service_name")}
+          </select>
+          {getError(formData.service_id, "Service is required")}
+        </div>
+      </div>
+    </div>
+
+  </div>
+)}
+
+        {/* Step 2 */}
+{step === 2 && (
+  <div className="step2-panel">
+
+    <div className="step2-field">
+      <label>
+        Officer <span className="required">*</span>
+      </label>
+
+      <select
+        name="officer_id"
+        value={formData.officer_id}
+        onChange={handleChange}
+        required
+        disabled={loadingOfficers}
+      >
+        <option value="">
+          {loadingOfficers
+            ? "Loading officers..."
+            : officers.length === 0
+            ? "No officers available"
+            : "Select Officer"}
+        </option>
+
+        {officers.map((officer) => (
+          <option
+            key={officer.officer_id}
+            value={officer.officer_id}
+          >
+            {officer.full_name}
           </option>
-          {renderOptions(department, "department_id", "department_name")}
-        </select>
-      </>
-    )}
+        ))}
+      </select>
 
-    {/* Service Dropdown */}
-    <label>Service</label>
-    <select
-      name="service_id"
-      value={formData.service_id}
-      onChange={handleChange}
-      required
-      disabled={!formData.org_id || loadingServices}
-    >
-      <option value="">
-        {loadingServices ? "Loading..." : "Select Services"}
-      </option>
-      {renderOptions(services, "service_id", "service_name")}
-    </select>
+      {getError(formData.officer_id, "Officer is required")}
+    </div>
+
+    <div className="step2-field">
+      <label>
+        Appointment Date <span className="required">*</span>
+      </label>
+
+      <input
+        type="date"
+        name="appointment_date"
+        value={formData.appointment_date}
+        onChange={handleChange}
+        min={today}
+        onKeyDown={(e) => e.preventDefault()}
+        onPaste={(e) => e.preventDefault()}
+        required
+      />
+
+      <small className="hint-text">
+        Select date using calendar only
+      </small>
+
+      {getError(formData.appointment_date, "Date is required")}
+    </div>
+
+    <div className="step2-field">
+      <label>
+        Time Slot <span className="required">*</span>
+      </label>
+
+      <select
+        name="slot_time"
+        value={formData.slot_time}
+        onChange={handleChange}
+        required
+      >
+        <option value="">Select Slot</option>
+        {getAvailableSlots().map((slot) => (
+          <option key={slot} value={slot}>
+            {formatTimeAMPM(slot)}
+          </option>
+        ))}
+      </select>
+
+      {getError(formData.slot_time, "Time is required")}
+    </div>
+
   </div>
 )}
 
 
-
-        {/* Step 2 */}
-        {step === 2 && (
-          <div className="form-step">
-           <label>Officer</label>
-<select
-  name="officer_id"
-  value={formData.officer_id}
-  onChange={handleChange}
-  required
-  disabled={!formData.org_id || loadingOfficers}
->
-  {/* Default Option */}
-  <option value="">
-    {loadingOfficers
-      ? "Loading officers..."
-      : officers.length === 0
-      ? "No officers available"
-      : "Select Officer"}
-  </option>
-
-  {/* Render Officer Names */}
-  {officers.map((officer) => (
-    <option key={officer.officer_id} value={officer.officer_id}>
-      {officer.full_name}
-    </option>
-  ))}
-</select>
-
-
-
-            <label>Appointment Date</label>
-<input
-  type="date"
-  name="appointment_date"
-  value={formData.appointment_date}
-  onChange={handleChange}
-  min={today} 
-  required
-/>
-
-<label>Time Slot</label>
-<select
-  name="slot_time"
-  value={formData.slot_time}
-  onChange={handleChange}
-  required
->
-  <option value="">Select Slot</option>
-  {getAvailableSlots().map((slot) => (
-    <option key={slot} value={slot}>
-      {slot}
-    </option>
-  ))}
-</select>
-
-          </div>
-        )}
-
         {/* Step 3 */}
-        {step === 3 && (
-          <div className="form-step">
-            <label>Purpose</label>
-            <textarea
-              name="purpose"
-              value={formData.purpose}
-              onChange={handleChange}
-              required
-            />
+{step === 3 && (
+  <div className="step3-panel">
 
-            {/* <input
-  type="file"
-  name="documents"
-  multiple
-  onChange={(e) => setFormData({...formData, documents: Array.from(e.target.files)})}
-/> */}
-<input
-  type="file"
-  name="documents"
-  multiple
-  accept="application/pdf"   // <-- Only allow PDF files
-  onChange={(e) => {
-    const files = Array.from(e.target.files);
+    {/* Purpose */}
+    <div className="step3-field">
+      <label>
+        Purpose <span className="required">*</span>
+      </label>
 
-    // Validate each file
-    const invalid = files.some(file => file.type !== "application/pdf");
+      <textarea
+        name="purpose"
+        value={formData.purpose}
+        onChange={handleChange}
+        rows={4}
+        required
+      />
 
-    if (invalid) {
-      Swal.fire({
-        icon: "error",
-        title: "Invalid File!",
-        text: "Only PDF files are allowed.",
-      });
-      e.target.value = ""; // Clear invalid selection
-      return;
-    }
+      {getError(formData.purpose, "Purpose is required")}
+    </div>
 
-    setFormData({ ...formData, documents: files });
-  }}
-/>
+    {/* Document Upload */}
+    <div className="step3-field">
+      <label>
+        Supporting Documents (PDF only)
+        <span className="required">*</span>
+      </label>
 
-          </div>
-        )}
+      <input
+        type="file"
+        name="documents"
+        multiple
+        accept="application/pdf"
+        onChange={(e) => {
+          const files = Array.from(e.target.files);
+
+          const invalid = files.some(
+            (file) => file.type !== "application/pdf"
+          );
+
+          if (invalid) {
+            Swal.fire({
+              icon: "error",
+              title: "Invalid File!",
+              text: "Only PDF files are allowed.",
+            });
+            e.target.value = "";
+            return;
+          }
+
+          setFormData({ ...formData, documents: files });
+        }}
+      />
+
+      <small className="hint-text">
+        Upload scanned documents in PDF format only
+      </small>
+
+      {getError(formData.documents, "Document is required")}
+    </div>
+
+  </div>
+)}
+
 
         {/* Step 4 */}
         {/* {step === 4 && (
@@ -643,45 +1059,73 @@ const getAvailableSlots = () => {
             </p>
           </div>
         )} */}
+{/* Step 4 */}
 {step === 4 && (
-  <div className="form-step">
-    <h3>Confirm Details</h3>
+  <div className="step4-panel">
 
-    <p>
-      <strong>Organization:</strong>{" "}
-      {selectedOrganization ? selectedOrganization.organization_name : "N/A"}
-    </p>
+    <h3 className="confirm-title">Confirm Appointment Details</h3>
 
-    <p>
-      <strong>Department:</strong>{" "}
-      {selectedDepartment ? selectedDepartment.department_name : "N/A"}
-    </p>
+    <div className="confirm-grid">
 
-    <p>
-      <strong>Service:</strong>{" "}
-      {selectedService ? selectedService.service_name : "N/A"}
-    </p>
+      <div className="confirm-row">
+        <span className="label">Organization</span>
+        <span className="value">
+          {selectedOrganization
+            ? selectedOrganization.organization_name
+            : "N/A"}
+        </span>
+      </div>
 
-    <p>
-      <strong>Officer:</strong>{" "}
-      {selectedOfficer ? selectedOfficer.full_name : "N/A"}
-    </p>
+      <div className="confirm-row">
+        <span className="label">Department</span>
+        <span className="value">
+          {selectedDepartment
+            ? selectedDepartment.department_name
+            : "N/A"}
+        </span>
+      </div>
 
-    <p>
-      <strong>Date:</strong> {formData.appointment_date}
-    </p>
+      <div className="confirm-row">
+        <span className="label">Service</span>
+        <span className="value">
+          {selectedService
+            ? selectedService.service_name
+            : "N/A"}
+        </span>
+      </div>
 
-    <p>
-      <strong>Time Slot:</strong> {formData.slot_time}
-    </p>
+      <div className="confirm-row">
+        <span className="label">Officer</span>
+        <span className="value">
+          {selectedOfficer
+            ? selectedOfficer.full_name
+            : "N/A"}
+        </span>
+      </div>
 
-    <p>
-      <strong>Purpose:</strong> {formData.purpose}
-    </p>
+      <div className="confirm-row">
+        <span className="label">Appointment Date</span>
+        <span className="value">{formData.appointment_date}</span>
+      </div>
 
-    <p>
-      <strong>Documents:</strong> {formData.documents.length} file(s)
-    </p>
+      <div className="confirm-row">
+        <span className="label">Time Slot</span>
+        <span className="value">{formData.slot_time}</span>
+      </div>
+
+      <div className="confirm-row full-width">
+        <span className="label">Purpose</span>
+        <span className="value">{formData.purpose}</span>
+      </div>
+
+      <div className="confirm-row">
+        <span className="label">Documents Uploaded</span>
+        <span className="value">
+          {formData.documents.length} file(s)
+        </span>
+      </div>
+
+    </div>
   </div>
 )}
 
@@ -692,14 +1136,26 @@ const getAvailableSlots = () => {
               Back
             </button>
           )}
+          {/* {step ==1 && (<span>
+    <button className="back-btn" onClick={() => navigate(-1)}>
+                ← Back
+              </button>
+  </span>)}
+           */}
           {step < 4 && (
-            <button type="button" onClick={handleNext}>
-              Next
-            </button>
-          )}
-          {step === 4 && <button type="submit">Submit</button>}
+  <button
+    type="button"
+    onClick={handleNext}
+    disabled={step === 2 && isManualDateEntry}
+  >
+    Next
+  </button>
+)}
+{step === 4 && <button type="submit">Submit</button>}
         </div>
       </form>
+    </div>
+    </div>
     </div>
     </>
   );

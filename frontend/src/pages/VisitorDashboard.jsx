@@ -130,7 +130,7 @@ const VisitorDashboard = () => {
                     <tr key={appt.appointment_id}>
                       <td>{appt.appointment_id}</td>
                      <td>{appt.officer_name}</td>
-                      <td>{appt.department_name}</td>
+                      <td>{appt.department_name || "Search by service"}</td>
                       <td>{appt.service_name}</td>
                       <td>{appt.appointment_date} {appt.slot_time}</td>
                       <td className={`status ${appt.status.toLowerCase()}`}>{appt.status}</td>
@@ -138,7 +138,7 @@ const VisitorDashboard = () => {
                         <button
                           className="view-btn"
                           onClick={() => handleView(appt.appointment_id)}
-                          disabled={["cancelled", "rejected"].includes(appt.status.toLowerCase())}
+                          // disabled={["cancelled", "rejected"].includes(appt.status.toLowerCase())}
                         >
                           View
                         </button>
