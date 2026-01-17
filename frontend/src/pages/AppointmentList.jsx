@@ -87,6 +87,11 @@ const AppointmentList = () => {
 
   const handleViewPass = (id) => navigate(`/appointment-pass/${id}`);
   const handleView = (id) => navigate(`/appointment/${id}`);
+  const canCancel = (status) =>
+  ["pending", "rescheduled"].includes(status);
+
+const canViewPass = (status) =>
+  ["approved", "rescheduled"].includes(status);
 
   if (loading) return <p>Loading appointments...</p>;
 
@@ -133,7 +138,7 @@ const AppointmentList = () => {
                 <tr key={appt.appointment_id}>
                   <td>{appt.appointment_id}</td>
                   <td>{appt.officer_name || "Helpdesk" }</td>
-                  <td>{appt.department_name || "Booked by service"}</td>
+                  <td>{appt.department_name}</td>
                   <td>{appt.service_name}</td>
                   <td>
                     {appt.appointment_date} {appt.slot_time}
@@ -144,57 +149,55 @@ const AppointmentList = () => {
                   </td>
 
                   <td>
-                    {/* PENDING */}
-                    {appt.status === "pending" && (
-                      <>
-                        <button onClick={() => handleView(appt.appointment_id)}>
-                          View
-                        </button>
-                        <button
-                          onClick={() => handleCancel(appt.appointment_id)}
-                          style={{ marginLeft: "5px" }}
-                        >
-                          Cancel
-                        </button>
-                      </>
-                    )}
+  {/* VIEW (always allowed except rejected display-only) */}
+  {appt.status !== "rejected" && (
+    <button onClick={() => handleView(appt.appointment_id)}>
+      View
+    </button>
+  )}
 
-                    {/* APPROVED → VIEW PASS */}
-                    {appt.status === "approved" && (
-                      <button onClick={() => handleViewPass(appt.appointment_id)}>
-                        View Pass
-                      </button>
-                    )}
+  {/* VIEW PASS (approved + rescheduled) */}
+  {canViewPass(appt.status) && (
+    <button
+      style={{ marginLeft: "5px" }}
+      onClick={() => handleViewPass(appt.appointment_id)}
+    >
+      View Pass
+    </button>
+  )}
 
-                    {/* CANCELLED */}
-                    {appt.status === "cancelled" && (
-                      <>
-                        <button onClick={() => handleView(appt.appointment_id)}>
-                          View
-                        </button>
-                        <button
-                          disabled
-                          style={{
-                            cursor: "not-allowed",
-                            opacity: 0.5,
-                            marginLeft: "5px",
-                          }}
-                        >
-                          Cancel
-                        </button>
-                      </>
-                    )}
+  {/* CANCEL (pending + rescheduled) */}
+  {canCancel(appt.status) && (
+    <button
+      style={{ marginLeft: "5px" }}
+      onClick={() => handleCancel(appt.appointment_id)}
+    >
+      Cancel
+    </button>
+  )}
 
-                    {/* COMPLETED */}
-                    {appt.status === "completed" && (
-                      <button onClick={() => handleView(appt.appointment_id)}>
-                        View Details
-                      </button>
-                    )}
+  {/* CANCELLED */}
+  {appt.status === "cancelled" && (
+    <button
+      disabled
+      style={{
+        cursor: "not-allowed",
+        opacity: 0.5,
+        marginLeft: "5px",
+      }}
+    >
+      Cancelled
+    </button>
+  )}
 
-                    {/* REJECTED */}
-                    {appt.status === "rejected" && <span>❌ Cancelled</span>}
-                  </td>
+  {/* REJECTED */}
+  {appt.status === "rejected" && (
+    <span style={{ color: "#d9534f", fontWeight: 600 }}>
+      ❌ Rejected
+    </span>
+  )}
+</td>
+
                 </tr>
               ))
             )}

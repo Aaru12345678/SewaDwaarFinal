@@ -9,7 +9,7 @@ import {
   FaChartBar,
   FaUserCog,
 } from "react-icons/fa";
-import { getOrganization, insertDepartments, getDepartmentById } from "../services/api";
+import { getOrganization, insertDepartments, getDepartmentById, UpdateaddBulkDepartments } from "../services/api";
 
 const NAME_REGEX = /^[A-Za-z\s]+$/;
 
@@ -51,10 +51,15 @@ export default function EditDepartment() {
       setSelectedOrg(deptData.organization_id);
 
       const dept = {
-        department_name: deptData.department_name,
-        department_name_ll: deptData.department_name_ll,
-        services: deptData.services || [],
-      };
+  department_id: deptData.department_id,   // ✅ REQUIRED
+  department_name: deptData.department_name,
+  department_name_ll: deptData.department_name_ll,
+  services: (deptData.services || []).map(s => ({
+    service_id: s.service_id,               // ✅ REQUIRED
+    service_name: s.service_name,
+    service_name_ll: s.service_name_ll,
+  })),
+};
 
       setCurrentDept(dept);
       setDepartments([dept]);
@@ -125,16 +130,19 @@ export default function EditDepartment() {
     }
 
     try {
-      const res = await insertDepartments({
+      const res = await UpdateaddBulkDepartments({
         organization_id: selectedOrg,
         departments: departments.map(d => ({
-          dept_name: d.department_name,
-          dept_name_ll: d.department_name_ll,
-          services: d.services.map(s => ({
-            name: s.service_name,
-            name_ll: s.service_name_ll,
-          })),
-        })),
+  department_id: d.department_id,     // ✅ REQUIRED
+  dept_name: d.department_name,
+  dept_name_ll: d.department_name_ll,
+  services: d.services.map(s => ({
+    service_id: s.service_id || null, // ✅ update vs insert
+    name: s.service_name,
+    name_ll: s.service_name_ll,
+  })),
+}))
+
       });
 
       if (res.data.success) {
@@ -149,9 +157,10 @@ export default function EditDepartment() {
   };
 
   const handleEditDept = (i) => {
-    setCurrentDept(departments[i]);
-    setActiveDeptIndex(i);
-  };
+  setCurrentDept({ ...departments[i] }); // keep department_id
+  setActiveDeptIndex(i);
+};
+
 
   const handleDeleteDept = (i) => {
     setDepartments(departments.filter((_, idx) => idx !== i));
@@ -160,7 +169,11 @@ export default function EditDepartment() {
   const addService = () => {
     setCurrentDept({
       ...currentDept,
-      services: [...currentDept.services, { service_name: "", service_name_ll: "" }],
+      services: [
+  ...currentDept.services,
+  { service_id: null, service_name: "", service_name_ll: "" }
+]
+
     });
     setActiveServiceIndex(currentDept.services.length);
   };
@@ -302,7 +315,7 @@ export default function EditDepartment() {
 
               <div className="button-row">
                 <button onClick={handleSaveDepartment}>Save Department</button>
-                <button className="submit-btn" onClick={handleSubmit}>Submit All</button>
+                <button className="submit-btn" onClick={handleSubmit}>Update All</button>
               </div>
 
             </div>

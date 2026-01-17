@@ -63,9 +63,13 @@ const AppointmentDetails = () => {
   if (loading) return <p className="loading">Loading appointment details...</p>;
   if (error) return <p className="error">{error}</p>;
 
-  const isCancelled =
-    appointment.status.toLowerCase() === "cancelled" ||
-    appointment.status.toLowerCase() === "rejected";
+  const status = appointment.status.toLowerCase();
+
+const isCancelled = status === "cancelled";
+const isRejected = status === "rejected";
+const isRescheduled = status === "rescheduled";
+const isCompleted = status === "completed";
+
 
   return (
     <>
@@ -99,7 +103,7 @@ const AppointmentDetails = () => {
             </div>
             <div className="detail-item">
               <span className="label">Department</span>
-              <span className="value">{appointment.department_name||"Searched by service"}</span>
+              <span className="value">{appointment.department_name}</span>
             </div>
             <div className="detail-item">
               <span className="label">Organization</span>
@@ -127,52 +131,88 @@ const AppointmentDetails = () => {
           </div>
 
           {/* STATUS INFO */}
-          <h3 className="section-title">Status Information</h3>
-          <div className="status-container">
-            <span className={`status-badge ${appointment.status.toLowerCase()}`}>
-              {appointment.status.toUpperCase()}
-            </span>
+          {/* STATUS INFO */}
+<h3 className="section-title">Status Information</h3>
+<div className="status-container">
+  <span className={`status-badge ${status}`}>
+    {appointment.status.toUpperCase()}
+  </span>
 
-            {!isCancelled && (
-              <div className="status-timeline">
-                <div className="timeline-step active">
-                  <div className="circle"></div>
-                  <span>Pending</span>
-                </div>
+  {/* NORMAL FLOW (Pending → Approved → Completed) */}
+  {!isCancelled && !isRejected && !isRescheduled && (
+    <div className="status-timeline">
+      <div className="timeline-step active">
+        <div className="circle"></div>
+        <span>Pending</span>
+      </div>
 
-                <div
-                  className={`timeline-step ${
-                    appointment.status !== "pending" ? "active" : ""
-                  }`}
-                >
-                  <div className="circle"></div>
-                  <span>Approved</span>
-                </div>
+      <div className={`timeline-step ${status !== "pending" ? "active" : ""}`}>
+        <div className="circle"></div>
+        <span>Approved</span>
+      </div>
 
-                <div
-                  className={`timeline-step ${
-                    appointment.status === "completed" ? "active" : ""
-                  }`}
-                >
-                  <div className="circle"></div>
-                  <span>Completed</span>
-                </div>
-              </div>
-            )}
+      <div className={`timeline-step ${isCompleted ? "active" : ""}`}>
+        <div className="circle"></div>
+        <span>Completed</span>
+      </div>
+    </div>
+  )}
 
-            {isCancelled && (
-              <div className="cancelled-info">
-                <p className="cancelled-msg">
-                  This appointment has been cancelled.
-                </p>
-                {appointment.cancelled_reason && (
-                  <p className="cancelled-reason">
-                    <strong>Reason:</strong> {appointment.cancelled_reason}
-                  </p>
-                )}
-              </div>
-            )}
-          </div>
+  {/* ❌ CANCELLED */}
+  {isCancelled && (
+    <div className="cancelled-info">
+      <p className="cancelled-msg">
+        This appointment has been cancelled.
+      </p>
+      {appointment.cancelled_reason && (
+        <p className="cancelled-reason">
+          <strong>Reason:</strong> {appointment.cancelled_reason}
+        </p>
+      )}
+    </div>
+  )}
+
+  {/* ❌ REJECTED */}
+  {isRejected && (
+    <div className="cancelled-info">
+      <p className="cancelled-msg">
+        This appointment has been rejected.
+      </p>
+      {appointment.reschedule_reason && (
+        <p className="cancelled-reason">
+          <strong>Reason:</strong> {appointment.reschedule_reason}
+        </p>
+      )}
+    </div>
+  )}
+
+  {/* 🔁 RESCHEDULED */}
+  {isRescheduled && (
+    <div className="cancelled-info">
+      <p className="cancelled-msg">
+        This appointment has been rescheduled.
+      </p>
+      {appointment.reschedule_reason && (
+        <p className="cancelled-reason">
+          <strong>Reschedule Reason:</strong> {appointment.reschedule_reason}
+        </p>
+      )}
+    </div>
+  )}
+
+  {/* ✅ COMPLETED */}
+  {isCompleted && appointment.reschedule_reason && (
+    <div className="completed-info">
+      <p className="completed-msg">
+        This appointment has been completed.
+      </p>
+      <p className="completed-remark">
+        <strong>Remark:</strong> {appointment.reschedule_reason}
+      </p>
+    </div>
+  )}
+</div>
+
 
           {/* ACTIONS */}
           <div className="action-section">

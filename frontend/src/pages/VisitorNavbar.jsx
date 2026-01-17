@@ -112,11 +112,11 @@ const handleLogout = () => {
         <li className="notification-icon">
   <Link to="/notifications"  >
     <FaBell className={notificationCount > 0 ? "bell-active" : ""} onClick={handleNotificationClick}/>
-    {notificationCount > 0 && (
+    {/* {notificationCount > 0 && (
       <span className="notification-badge">
         {notificationCount}
       </span>
-    )}
+    )} */}
   </Link>
 </li>
 

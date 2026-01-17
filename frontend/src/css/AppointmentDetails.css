@@ -300,6 +300,30 @@
   background: #146c43;
 }
 
+.cancelled-info,
+.completed-info {
+  margin-top: 12px;
+  padding: 10px;
+  background: #f9f9f9;
+  border-left: 4px solid #d9534f;
+}
+
+.completed-info {
+  border-left-color: #28a745;
+}
+
+.cancelled-msg,
+.completed-msg {
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.cancelled-reason,
+.completed-remark {
+  font-size: 14px;
+  color: #444;
+}
+
 /* ===============================
    PRINT CLEANUP
 ================================ */
@@ -318,3 +342,4 @@
     border: none;
   }
 }
+

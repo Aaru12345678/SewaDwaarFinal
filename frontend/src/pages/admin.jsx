@@ -1,9 +1,10 @@
-import React, { useEffect } from "react";
+import React, { useEffect,useState } from "react";
 import { Routes, Route, Link, useNavigate } from "react-router-dom";
 import "../css/admin.css";
 import ViewAppointment from "./ViewAppointment";
-
-
+import WalkInAppointments from "./WalkInAppointments";
+import AppointmentFilters from "../Components/AppointmentFilters";
+import "../css/AppointmentsTab.css";
 import Cards from "../pages/Cards";
 import Departments from "../pages/Departments";
 import SlotConfig from "../pages/SlotConfig";
@@ -74,6 +75,14 @@ const Admin = () => {
       toast.error("Please log in first");
       navigate("/login");
       return;}},[username])
+   const [activeTab, setActiveTab] = useState("analytics");
+  
+    // Applied filters (after clicking Apply)
+    const [appliedFilters, setAppliedFilters] = useState(null);
+  
+    const handleApplyFilters = (filters) => {
+      setAppliedFilters(filters);
+    };
   
 
   return (
@@ -102,11 +111,11 @@ const Admin = () => {
               <FaChartBar /> Analytics & Reports
             </Link>
           </li>
-          <li>
+          {/* <li>
             <Link to="user-roles">
               <FaUserCog /> User Roles & Access
             </Link>
-          </li>
+          </li> */}
         </ul>
       </aside>
 
@@ -127,65 +136,61 @@ const Admin = () => {
         {/* Page Content */}
         <main className="dashboard">
           <Routes>
-            {/* Dashboard (default) */}
+            Dashboard (default)
             <Route
               path="/"
               element={
                 <>
-                  {/* Cards */}
-                  <div className="cards">
-                    <Cards number="115" label="Total Appointments" />
-                    <Cards number="23" label="Walk-ins Today" />
-                    <Cards number="04" label="Active Departments" />
-                    <Cards number="08" label="Active Officers" />
-                  </div>
+                  <div className="appointments-container">
+      {/* ================= PAGE HEADER ================= */}
+      <div className="page-header">
+        <h2 className="page-title">Appointments Analytics Dashboard</h2>
+      </div>
 
-                  {/* Charts */}
-                  <div className="charts">
-                    <div className="chart">
-                      <h3>Appointments Trend</h3>
-                      <div className="chart-content">
-                        <ResponsiveContainer width="100%" height="100%">
-                          <LineChart data={data}>
-                            <CartesianGrid strokeDasharray="3 3" />
-                            <XAxis dataKey="name" />
-                            <YAxis />
-                            <Tooltip />
-                            <Line
-                              type="monotone"
-                              dataKey="value"
-                              stroke="#4e73df"
-                              strokeWidth={2}
-                            />
-                          </LineChart>
-                        </ResponsiveContainer>
-                      </div>
-                    </div>
+      {/* ================= FILTERS ================= */}
+      <div className="filters-section">
+        <AppointmentFilters onApply={handleApplyFilters} />
+      </div>
 
-                    <div className="chart">
-                      <h3>Department-wise Appointments</h3>
-                      <div className="chart-content">
-                        <ResponsiveContainer width="100%" height="100%">
-                          <PieChart>
-                            <Pie
-                              data={pieData}
-                              dataKey="value"
-                              outerRadius={100}
-                              label
-                            >
-                              {pieData.map((entry, index) => (
-                                <Cell
-                                  key={index}
-                                  fill={COLORS[index % COLORS.length]}
-                                />
-                              ))}
-                            </Pie>
-                            <Tooltip />
-                          </PieChart>
-                        </ResponsiveContainer>
-                      </div>
-                    </div>
-                  </div>
+      {/* ================= TABS ================= */}
+      <div className="tab-buttons">
+        <button
+          className={activeTab === "analytics" ? "active" : ""}
+          onClick={() => setActiveTab("analytics")}
+        >
+          Application Appointments
+        </button>
+
+        <button
+          className={activeTab === "walkin" ? "active" : ""}
+          onClick={() => setActiveTab("walkin")}
+        >
+          Walk-in Appointments
+        </button>
+
+        {/* <button
+          className={activeTab === "total" ? "active" : ""}
+          onClick={() => setActiveTab("total")}
+        >
+          Combined Analysis
+        </button> */}
+      </div>
+
+      {/* ================= TAB CONTENT ================= */}
+      <div className="tab-content">
+        {activeTab === "analytics" && (
+          <Analytics1 filters={appliedFilters} />
+        )}
+
+        {activeTab === "walkin" && (
+          <WalkInAppointments filters={appliedFilters} />
+        )}
+
+        {/* {activeTab === "total" && (
+          <TotalAppointments filters={appliedFilters} />
+        )} */}
+      </div>
+    </div>
                 </>
               }
             />

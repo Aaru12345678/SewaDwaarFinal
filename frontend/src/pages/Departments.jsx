@@ -26,6 +26,20 @@ const [viewOrg, setViewOrg] = useState(null);
   setViewOrg(org);
   setShowOrgModal(true);
 };
+const [showDeptModal, setShowDeptModal] = useState(false);
+const [viewDept, setViewDept] = useState(null);
+
+const [showServiceModal, setShowServiceModal] = useState(false);
+const [viewService, setViewService] = useState(null);
+const handleViewDept = (dept) => {
+  setViewDept(dept);
+  setShowDeptModal(true);
+};
+
+const handleViewService = (service) => {
+  setViewService(service);
+  setShowServiceModal(true);
+};
 
 
   const navigate = useNavigate();
@@ -296,16 +310,13 @@ setOrganizations(orgMapped);
                                         <td>{dept.status}</td>
                                         <td className="actions">
                                           <button
-                                            className="view"
-                                            onClick={() =>
-                                              navigate(
-                                                `/department/${dept.id}`
-                                              )
-                                            }
-                                            title="View"
-                                          >
-                                            <FaEye color="green" size={14} />
-                                          </button>
+  className="view"
+  onClick={() => handleViewDept(dept)}
+  title="View"
+>
+  <FaEye color="green" size={14} />
+</button>
+
                                           <button
                                             className="edit"
                                             onClick={() =>
@@ -350,19 +361,13 @@ setOrganizations(orgMapped);
                                                         </td>
                                                         <td className="actions">
                                                           <button
-                                                            className="view"
-                                                            onClick={() =>
-                                                              navigate(
-                                                                `/service/${service.id}`
-                                                              )
-                                                            }
-                                                            title="View"
-                                                          >
-                                                            <FaEye
-                                                              color="orange"
-                                                              size={14}
-                                                            />
-                                                          </button>
+  className="view"
+  onClick={() => handleViewService(service)}
+  title="View"
+>
+  <FaEye color="orange" size={14} />
+</button>
+
                                                           <button
                                                             className="edit"
                                                             onClick={() =>
@@ -523,6 +528,77 @@ setOrganizations(orgMapped);
     </div>
   </div>
 )}
+{showDeptModal && viewDept && (
+  <div className="modal-overlay" onClick={() => setShowDeptModal(false)}>
+    <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+      <h2>🏬 Department Details</h2>
+
+      <div className="modal-row">
+        <strong>ID:</strong> {viewDept.id}
+      </div>
+
+      <div className="modal-row">
+        <strong>Name:</strong> {viewDept.name}
+      </div>
+
+      <div className="modal-row">
+        <strong>Status:</strong> {viewDept.status}
+      </div>
+
+      <div className="modal-row">
+        <strong>Organization:</strong>{" "}
+        {organizations.find(o => o.id === viewDept.organizationId)?.name || "-"}
+      </div>
+
+      <div className="modal-row">
+        <strong>Total Services:</strong>{" "}
+        {services.filter(s => s.departmentId === viewDept.id).length}
+      </div>
+
+      <div className="modal-actions">
+        <button className="btn-close" onClick={() => setShowDeptModal(false)}>
+          Close
+        </button>
+      </div>
+    </div>
+  </div>
+)}
+{showServiceModal && viewService && (
+  <div className="modal-overlay" onClick={() => setShowServiceModal(false)}>
+    <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+      <h2>🛎️ Service Details</h2>
+
+      <div className="modal-row">
+        <strong>ID:</strong> {viewService.id}
+      </div>
+
+      <div className="modal-row">
+        <strong>Name:</strong> {viewService.name}
+      </div>
+
+      <div className="modal-row">
+        <strong>Status:</strong> {viewService.status}
+      </div>
+
+      <div className="modal-row">
+        <strong>Organization:</strong>{" "}
+        {organizations.find(o => o.id === viewService.organizationId)?.name || "-"}
+      </div>
+
+      <div className="modal-row">
+        <strong>Department:</strong>{" "}
+        {departments.find(d => d.id === viewService.departmentId)?.name || "-"}
+      </div>
+
+      <div className="modal-actions">
+        <button className="btn-close" onClick={() => setShowServiceModal(false)}>
+          Close
+        </button>
+      </div>
+    </div>
+  </div>
+)}
+
 
     </div>
   );

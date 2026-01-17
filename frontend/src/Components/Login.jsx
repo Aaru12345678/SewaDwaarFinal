@@ -123,7 +123,7 @@ export default function Login() {
               </label>
               <input
                 type="text"
-                placeholder="Enter Username/Email/Mobile no."
+                placeholder="Enter UserId/Email/Mobile no."
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 required

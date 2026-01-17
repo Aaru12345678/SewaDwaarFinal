@@ -11,7 +11,7 @@ const Sidebar = ({ activeMenu, onMenuClick }) => {
     { key: "all-appointments", label: "Appointments", icon: "📅", to: "/helpdesk/dashboard", internal: true },
     { key: "booking", label: "Book Appointment", icon: "➕", to: "/helpdesk/dashboard", internal: true },
     { key: "user", label: "Search User", icon: "🔍", to: "/helpdesk/search-user", internal: true },
-    { key: "availability", label: "Officer Availability", icon: "⏰", to: "/helpdesk/availability", internal: false },
+    // { key: "availability", label: "Officer Availability", icon: "⏰", to: "/helpdesk/availability", internal: false },
   ];
 
   const isActive = (key) => activeMenu === key || location.pathname === menu.find(m => m.key === key)?.to;

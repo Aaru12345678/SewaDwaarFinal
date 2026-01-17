@@ -37,6 +37,8 @@ const HelpdeskBooking = () => {
     const [loadingDivisions, setLoadingDivisions] = useState(false);
     const [loadingDistricts, setLoadingDistricts] = useState(false);
     const [loadingTalukas, setLoadingTalukas] = useState(false);
+    const [showRegisterForm, setShowRegisterForm] = useState(false);
+
 
 const [showErrors, setShowErrors] = useState(false);
 
@@ -50,7 +52,7 @@ const [visitorDetails, setVisitorDetails] = useState({
 const [visitorLoading, setVisitorLoading] = useState(false);
 
   const [step, setStep] = useState(1);
-  const [mode, setMode] = useState("department");
+  // const [mode, setMode] = useState("department");
 
   const [officers, setOfficers] = useState([]);
 const [loadingOfficers, setLoadingOfficers] = useState(false);
@@ -174,23 +176,62 @@ const [isMetric, setIsMetric] = useState(true); // Our condition state
 
 //   fetchVisitorName();
 // }, [username]);
+// 🔐 Location from localStorage (single source of truth)
+
+const todayDate = useMemo(() => {
+  const today = new Date();
+  return today.toISOString().split("T")[0];
+}, []);
+
+const storedLocation = useMemo(() => ({
+  state: localStorage.getItem("state") || "",
+  division: localStorage.getItem("division") || "",
+  district: localStorage.getItem("district") || "",
+  taluka: localStorage.getItem("taluka") || ""
+}), []);
 
 
   const [formData, setFormData] = useState({
-  state: "",
-  division: "",
-  district: "",
-  taluka: "",
+  state: storedLocation.state,
+  division: storedLocation.division,
+  district: storedLocation.district,
+  taluka: storedLocation.taluka,
+
   org_id: "",
   dept_id: "",
   service_id: "",
   officer_id: "",
-  appointment_date: "",
+  appointment_date: todayDate,
   slot_time: "",
   purpose: "",
   documents: []
 });
 
+ 
+useEffect(() => {
+  if (!storedLocation.state) return;
+
+  (async () => {
+    await fetchDivisions(storedLocation.state);
+
+    if (storedLocation.division) {
+      await fetchDistricts(
+        storedLocation.state,
+        storedLocation.division
+      );
+    }
+
+    if (storedLocation.district) {
+      await fetchTalukas(
+        storedLocation.state,
+        storedLocation.division,
+        storedLocation.district
+      );
+    }
+  })();
+}, [storedLocation]);
+
+ 
   const navigate = useNavigate();
   
   // const officers = [
@@ -275,7 +316,7 @@ const payload = {
   purpose: formData.purpose,
 
   // ⚠️ MUST be YYYY-MM-DD
-  walkin_date: formData.appointment_date, 
+  walkin_date: todayDate, 
 
   slot_time: formData.slot_time,
 
@@ -345,70 +386,46 @@ const payload = {
     data ? setDepartment(data):toast.error("Failed!");
   },[])
 
-  const fetchServices = useCallback(async (organization_id, department_id = null) => {
-  if (!organization_id) return;   // Org required in all cases
+ const fetchServices = useCallback(
+  async (organization_id, department_id) => {
+    if (!organization_id || !department_id) return;
 
-  // Mode: Search by Department → department_id MUST exist
-  if (mode === "department" && !department_id) return;
+    setLoadingServices(true);
+    const { data } = await getServices(organization_id, department_id);
+    setLoadingServices(false);
 
-  setLoadingServices(true);
-
-  let data;
-
-  // Case 1: Search by Department → API needs org + dept
-  if (mode === "department") {
-    const response = await getServices(organization_id, department_id);
-    data = response.data;
-console.log(data)
-
-  }
-
-  // Case 2: Search by Service → API needs only organization_id
-  if (mode === "service") {
-    const response = await getServices2(organization_id); 
-    data = response.data;
-console.log(data)
-
-  }
-  setLoadingServices(false);
-
-  data ? setServices(data) : toast.error("Failed to load Services!");
-}, [mode]);
+    data ? setServices(data) : toast.error("Failed to load services");
+  },
+  []
+);
 
   
 
 useEffect(() => {
-  if (!formData.state || !formData.division) {
-    setOrganization([]);
-    return;
-  }
+  const { state, division, district, taluka } = storedLocation;
+
+  if (!state || !division) return;
 
   const fetchOrganizations = async () => {
     try {
       setLoadingOrganization(true);
 
       const params = {
-        state_code: formData.state,
-        division_code: formData.division,
-        district_code: formData.district || null,
-        taluka_code: formData.taluka || null
+        state_code: state,
+        division_code: division,
+        district_code: district || null,
+        taluka_code: taluka || null
       };
 
-      console.log("📤 Organization params:", params);
-
       const res = await getOrganizationbyLocation(params);
-      console.log("📥 Organization response:", res);
 
-      // ✅ FIXED
-      if (res && !res.error) {
-        setOrganization(res.data || []);
+      if (res?.data) {
+        setOrganization(res.data);
       } else {
         setOrganization([]);
-        console.error(res?.error || "Failed to fetch organizations");
       }
-
-    } catch (error) {
-      console.error("Error fetching organizations:", error);
+    } catch (err) {
+      console.error(err);
       setOrganization([]);
     } finally {
       setLoadingOrganization(false);
@@ -416,46 +433,36 @@ useEffect(() => {
   };
 
   fetchOrganizations();
-}, [
-  formData.state,
-  formData.division,
-  formData.district,
-  formData.taluka
-]);
+}, [storedLocation]);
 
 const handleChange = (e) => {
   const { name, value } = e.target;
-//  setIsManualDateEntry(false); // picker selection
+
   setFormData((prev) => {
     let updated = { ...prev, [name]: value };
 
-    if (mode === "department") {
-      // Reset when org changes
-      if (name === "org_id") {
-        updated.dept_id = "";
-        updated.service_id = "";
-        setDepartment([]);
-        setServices([]);
+    // Organization changed → reset dept & service
+    if (name === "org_id") {
+      updated.dept_id = "";
+      updated.service_id = "";
+      setDepartment([]);
+      setServices([]);
 
-        if (value) fetchDepartment(value);
-      }
-
-      // When department is selected → fetch services using UPDATED org_id
-      if (name === "dept_id") {
-        fetchServices(updated.org_id, value);
-      }
+      if (value) fetchDepartment(value);
     }
 
-    if (mode === "service") {
-      // Fetch services ONLY by org_id
-      if (name === "org_id") {
-        fetchServices(value, null);   // consistent usage
-      }
+    // Department changed → fetch services
+    if (name === "dept_id") {
+      updated.service_id = "";
+      setServices([]);
+
+      if (value) fetchServices(updated.org_id, value);
     }
 
     return updated;
   });
 };
+
 
 
 // console.log(formData.org_id,"org_id")
@@ -528,69 +535,43 @@ const handleChange = (e) => {
 // };
 
 useEffect(() => {
-  const state_code = formData.state;
-  const division_code = formData.division;
-  const district_code = formData.district || null;
-  const taluka_code = formData.taluka || null;
-  const organization_id = formData.org_id;
-  const department_id = formData.dept_id || null;
+  const { state, division, district, taluka } = storedLocation;
 
-  // 🚫 Mandatory fields
-  if (!state_code || !division_code || !organization_id) {
+  if (!state || !division || !formData.org_id) {
     setOfficers([]);
     return;
   }
-
-  let isMounted = true;
 
   const fetchOfficers = async () => {
     try {
       setLoadingOfficers(true);
 
       const payload = {
-        state_code,
-        division_code,
-        district_code,
-        taluka_code,
-        organization_id,
-        department_id
+        state_code: state,
+        division_code: division,
+        district_code: district || null,
+        taluka_code: taluka || null,
+        organization_id: formData.org_id,
+        department_id: formData.dept_id || null
       };
 
       const { data } = await getOfficersByLocation(payload);
-      if (!isMounted) return;
 
-      if (data?.success && Array.isArray(data.data)) {
+      if (data?.success) {
         setOfficers(data.data);
       } else {
         setOfficers([]);
       }
-
     } catch (err) {
-      console.error("❌ Error fetching officers:", err);
       setOfficers([]);
-      Swal.fire({
-        icon: "error",
-        title: "Error",
-        text: "Failed to fetch officers. Please try again."
-      });
     } finally {
-      if (isMounted) setLoadingOfficers(false);
+      setLoadingOfficers(false);
     }
   };
 
   fetchOfficers();
+}, [storedLocation, formData.org_id, formData.dept_id]);
 
-  return () => {
-    isMounted = false;
-  };
-}, [
-  formData.state,
-  formData.division,
-  formData.district,
-  formData.taluka,
-  formData.org_id,
-  formData.dept_id
-]);
 
 
   // 
@@ -627,12 +608,16 @@ const getAvailableSlots = () => {
   });
 };
 const isStep1Valid = useMemo(() => {
-  if (!formData.state || !formData.division) return false;
-  if (!formData.org_id) return false;
-  if (mode === "department" && !formData.dept_id) return false;
-  if (!formData.service_id) return false;
-  return true;
-}, [formData, mode]);
+  return (
+    visitorFetched && // 🔐 important
+    !!formData.state &&
+    !!formData.division &&
+    !!formData.org_id &&
+    !!formData.dept_id &&
+    !!formData.service_id
+  );
+}, [formData, visitorFetched]);
+
 
 const isStep2Valid = useMemo(() => {
   return (
@@ -703,17 +688,34 @@ const handleGetVisitor = async () => {
     console.log("API RESPONSE 👉", res);
 
     if (res?.data?.success && res.data.data) {
-      setVisitorDetails(res.data.data);
-      setVisitorFetched(true);
-    } else {
-      setVisitorDetails({
-        full_name: "",
-        gender: "",
-        mobile_no: "",
-        email_id: ""
-      });
-      toast.error("Visitor not found");
+  setVisitorDetails(res.data.data);
+  setVisitorFetched(true);
+  setShowRegisterForm(false); // hide register form if found
+} else {
+  setVisitorFetched(false);
+  setVisitorDetails({
+    full_name: "",
+    gender: "",
+    mobile_no: "",
+    email_id: ""
+  });
+
+  Swal.fire({
+    icon: "warning",
+    title: "User Not Found",
+    text: "This visitor is not registered. Do you want to register?",
+    showCancelButton: true,
+    confirmButtonText: "Register User",
+    cancelButtonText: "Cancel",
+    confirmButtonColor: "#3085d6",
+    cancelButtonColor: "#aaa"
+  }).then((result) => {
+    if (result.isConfirmed) {
+      setShowRegisterForm(true); // 👈 show form
     }
+  });
+}
+
   } catch (err) {
     console.error("Visitor fetch failed", err);
     toast.error("Failed to fetch visitor");
@@ -788,64 +790,241 @@ const handleGetVisitor = async () => {
     {visitorLoading ? "Getting..." : "Get"}
   </button>
 </div>        
+{showRegisterForm && (
+  <div className="panel-section">
+    <div className="section-title">Register New Visitor</div>
+
+    {/* ⬇️ PASTE YOUR FORM EXACTLY AS IT IS ⬇️ */}
+    <form className="form" onSubmit={handleSubmit}>
+      {/* Full Name */}
+      <div className="form-field full">
+        <label>
+          Full Name <span className="required">*</span>
+        </label>
+        <input
+          name="full_name"
+          value={formData.full_name}
+          onChange={handleChange}
+          required
+        />
+      </div>
+
+      {/* Email & Mobile */}
+      <div className="form-row contact-row">
+        <div className="form-field">
+          <label>Email *</label>
+          <input
+            type="email"
+            name="email_id"
+            value={formData.email_id}
+            onChange={handleChange}
+            required
+          />
+        </div>
+
+        <div className="form-field">
+          <label>Mobile *</label>
+          <input
+            name="mobile_no"
+            value={formData.mobile_no}
+            onChange={handleChange}
+            maxLength={10}
+            pattern="[6-9][0-9]{9}"
+            required
+          />
+        </div>
+      </div>
+
+      {/* Gender & DOB */}
+      <div className="form-row">
+        <div className="form-field">
+          <label>Gender *</label>
+          <select
+            name="gender"
+            value={formData.gender}
+            onChange={handleChange}
+            required
+          >
+            <option value="">Select Gender</option>
+            <option>Male</option>
+            <option>Female</option>
+            <option>Other</option>
+          </select>
+        </div>
+
+        <div className="form-field">
+          <label>DOB *</label>
+          <input
+            type="date"
+            name="dob"
+            value={formData.dob}
+            onChange={handleChange}
+            required
+          />
+        </div>
+      </div>
+
+      {/* Address */}
+      <div className="form-field full">
+        <label>Address *</label>
+        <textarea
+          name="address"
+          value={formData.address}
+          onChange={handleChange}
+          required
+        />
+      </div>
+
+      {/* Submit */}
+      {/* <button type="submit" className="submit-btn">
+        Register & Continue
+      </button> */}
+    </form>
+  </div>
+)}
 
 
+  {visitorFetched && !showRegisterForm && (
   <div className="grid-4 visitor-preview">
 
-  <div className="form-field">
-    <label>Full Name</label>
-    <input
-      type="text"
-      value={visitorDetails.full_name}
-      readOnly
-      disabled={!visitorFetched}
-    />
+    <div className="form-field">
+      <label>Full Name</label>
+      <input
+        type="text"
+        value={visitorDetails.full_name}
+        readOnly
+        disabled
+      />
+    </div>
+
+    <div className="form-field">
+      <label>Gender</label>
+      <input
+        type="text"
+        value={
+          visitorDetails.gender === "M"
+            ? "Male"
+            : visitorDetails.gender === "F"
+            ? "Female"
+            : visitorDetails.gender === "O"
+            ? "Other"
+            : ""
+        }
+        readOnly
+        disabled
+      />
+    </div>
+
+    <div className="form-field">
+      <label>Mobile No</label>
+      <input
+        type="text"
+        value={visitorDetails.mobile_no}
+        readOnly
+        disabled
+      />
+    </div>
+
+    <div className="form-field">
+      <label>Email ID</label>
+      <input
+        type="text"
+        value={visitorDetails.email_id}
+        readOnly
+        disabled
+      />
+    </div>
+    {/* <div className="form-row contact-row"> */}
+          <div className="form-field">
+            <label>
+              PinCode <span className="required">*</span>
+            </label>
+            <input
+              name="pincode"
+              value={formData.pincode}
+              onChange={handleChange}
+              required
+            />
+            {/* {errors.pincode && (
+              <p className="error-text">{errors.pincode}</p>
+            )} */}
+          </div>
+        {/* </div> */}
+
+        {/* Location */}
+            <div className="form-field">
+              <label>
+                State <span className="required">*</span>
+              </label>
+              <select
+                name="state"
+                value={formData.state}
+                onChange={handleChange}
+                required
+              >
+                <option value="">
+                  {loadingStates ? "Loading..." : "Select State"}
+                </option>
+                {renderOptions(states, "state_code", "state_name")}
+              </select>
+            </div>
+
+            {/* <div className="form-row location-row"> */}
+              <div className="form-field">
+                <label>Division</label>
+                <select
+                  name="division"
+                  value={formData.division}
+                  onChange={handleChange}
+                  disabled={!formData.state || loadingDivisions}
+                >
+                  <option value="">
+                    {loadingDivisions ? "Loading..." : "Select Division"}
+                  </option>
+                  {renderOptions(divisions, "division_code", "division_name")}
+                </select>
+              </div>
+
+              <div className="form-field">
+                <label>District</label>
+                <select
+                  name="district"
+                  value={formData.district}
+                  onChange={handleChange}
+                  disabled={!formData.division || loadingDistricts}
+                >
+                  <option value="">
+                    {loadingDistricts ? "Loading..." : "Select District"}
+                  </option>
+                  {renderOptions(districts, "district_code", "district_name")}
+                </select>
+              </div>
+
+              <div className="form-field">
+                <label>Taluka</label>
+                <select
+                  name="taluka"
+                  value={formData.taluka}
+                  onChange={handleChange}
+                  disabled={!formData.district || loadingTalukas}
+                >
+                  <option value="">
+                    {loadingTalukas ? "Loading..." : "Select Taluka"}
+                  </option>
+                  {renderOptions(talukas, "taluka_code", "taluka_name")}
+                </select>
+              </div>
+            {/* </div> */}
+          
+
+
   </div>
-
-  <div className="form-field">
-    <label>Gender</label>
-    <input
-      type="text"
-      value={
-        visitorDetails.gender === "M"
-          ? "Male"
-          : visitorDetails.gender === "F"
-          ? "Female"
-          : visitorDetails.gender === "O"
-          ? "Other"
-          : ""
-      }
-      readOnly
-      disabled={!visitorFetched}
-    />
-  </div>
-
-  <div className="form-field">
-    <label>Mobile No</label>
-    <input
-      type="text"
-      value={visitorDetails.mobile_no}
-      readOnly
-      disabled={!visitorFetched}
-    />
-  </div>
-
-  <div className="form-field">
-    <label>Email ID</label>
-    <input
-      type="text"
-      value={visitorDetails.email_id}
-      readOnly
-      disabled={!visitorFetched}
-    />
-  </div>
-
-</div>
+)}
 
 
 
 
-      <div className="section-title">Search Type</div>
+      {/* <div className="section-title">Search Type</div>
 
       <div className="radio-group dashboard-radio">
         <label className={`radio-option ${mode === "department" ? "selected" : ""}`}>
@@ -865,7 +1044,7 @@ const handleGetVisitor = async () => {
           />
           Search by Service
         </label>
-      </div>
+      </div> */}
     </div>
 
     {/* LOCATION DETAILS */}
@@ -875,51 +1054,33 @@ const handleGetVisitor = async () => {
       <div className="grid-4">
         <div className="form-field">
           <label>State *</label>
-          <select name="state" value={formData.state} onChange={handleChange2}>
-            <option value="">Select State</option>
-            {renderOptions(states, "state_code", "state_name")}
-          </select>
+          <select name="state" value={formData.state} disabled>
+  {renderOptions(states, "state_code", "state_name")}
+</select>
           {getError(formData.state, "State is required")}
         </div>
 
         <div className="form-field">
           <label>Division *</label>
-          <select
-            name="division"
-            value={formData.division}
-            onChange={handleChange2}
-            disabled={!formData.state}
-          >
-            <option value="">Select Division</option>
-            {renderOptions(divisions, "division_code", "division_name")}
-          </select>
+          <select name="division" value={formData.division} disabled>
+  {renderOptions(divisions, "division_code", "division_name")}
+</select>
+
           {getError(formData.division, "Division is required")}
         </div>
 
         <div className="form-field">
           <label>District</label>
-          <select
-            name="district"
-            value={formData.district}
-            onChange={handleChange2}
-            disabled={!formData.division}
-          >
-            <option value="">Select District</option>
-            {renderOptions(districts, "district_code", "district_name")}
-          </select>
+          <select name="district" value={formData.district} disabled>
+  {renderOptions(districts, "district_code", "district_name")}
+</select>
         </div>
 
         <div className="form-field">
           <label>Taluka</label>
-          <select
-            name="taluka"
-            value={formData.taluka}
-            onChange={handleChange2}
-            disabled={!formData.district}
-          >
-            <option value="">Select Taluka</option>
-            {renderOptions(talukas, "taluka_code", "taluka_name")}
-          </select>
+          <select name="taluka" value={formData.taluka} disabled>
+  {renderOptions(talukas, "taluka_code", "taluka_name")}
+</select>
         </div>
       </div>
     </div>
@@ -946,20 +1107,19 @@ const handleGetVisitor = async () => {
           {getError(formData.org_id, "Organization is required")}
         </div>
 
-        {mode === "department" && (
-          <div className="form-field">
-            <label>Department *</label>
-            <select
-              name="dept_id"
-              value={formData.dept_id}
-              onChange={handleChange}
-            >
-              <option value="">Select Department</option>
-              {renderOptions(department, "department_id", "department_name")}
-            </select>
-            {/* {getError(formData.dept_id, "Department is required")} */}
-          </div>
-        )}
+        <div className="form-field">
+  <label>Department *</label>
+  <select
+    name="dept_id"
+    value={formData.dept_id}
+    onChange={handleChange}
+  >
+    <option value="">Select Department</option>
+    {renderOptions(department, "department_id", "department_name")}
+  </select>
+  {getError(formData.dept_id, "Department is required")}
+</div>
+
 
         <div className="form-field">
           <label>Service *</label>
@@ -1016,28 +1176,15 @@ const handleGetVisitor = async () => {
       {getError(formData.officer_id, "Officer is required")}
     </div>
 
-    <div className="step2-field">
-      <label>
-        Appointment Date <span className="required">*</span>
-      </label>
-
-      <input
-        type="date"
-        name="appointment_date"
-        value={formData.appointment_date}
-        onChange={handleChange}
-        min={today}
-        onKeyDown={(e) => e.preventDefault()}
-        onPaste={(e) => e.preventDefault()}
-        required
-      />
-
-      <small className="hint-text">
-        Select date using calendar only
-      </small>
-
-      {getError(formData.appointment_date, "Date is required")}
-    </div>
+   <div className="form-field">
+  <label>Appointment Date *</label>
+  <input
+    type="date"
+    name="appointment_date"
+    value={formData.appointment_date}
+    disabled // 🚫 user cannot change
+  />
+</div>
 
     <div className="step2-field">
       <label>

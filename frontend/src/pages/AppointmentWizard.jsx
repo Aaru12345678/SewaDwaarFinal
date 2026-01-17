@@ -289,6 +289,7 @@ useEffect(() => {
       org_id,
       dept_id,
       service_id,
+      officer_id,
       state,
       division,
       district,
@@ -307,6 +308,7 @@ useEffect(() => {
         p_date: appointment_date,
         p_organization_id: org_id,
         p_service_id: service_id,
+        p_officer_id:officer_id,
         p_state_code: state,
         p_division_code: division || null,
         p_department_id: dept_id || null,
@@ -331,6 +333,7 @@ useEffect(() => {
   formData.appointment_date,
   formData.org_id,
   formData.service_id,
+  formData.officer_id,
   formData.state,
   formData.division,
   formData.dept_id,
@@ -864,14 +867,14 @@ const getError = (condition, message) => {
           Search by Department
         </label>
 
-        <label className={`radio-option ${mode === "service" ? "selected" : ""}`}>
+        {/* <label className={`radio-option ${mode === "service" ? "selected" : ""}`}>
           <input
             type="radio"
             checked={mode === "service"}
             onChange={() => setMode("service")}
           />
           Search by Service
-        </label>
+        </label> */}
       </div>
     </div>
 

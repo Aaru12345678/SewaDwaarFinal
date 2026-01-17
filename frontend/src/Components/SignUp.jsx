@@ -57,6 +57,8 @@ export default function SignUp() {
   const [loadingDistricts, setLoadingDistricts] = useState(false);
   const [loadingTalukas, setLoadingTalukas] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [showRegisterForm, setShowRegisterForm] = useState(false);
+
 
   /* ===================== REGEX ===================== */
   const passwordRegex = /^(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*]).{8,}$/;

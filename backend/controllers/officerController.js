@@ -488,7 +488,7 @@ exports.getOfficerDashboard = async (req, res) => {
     }
 
     const { rows } = await pool.query(
-      "SELECT get_officer_dashboard_by_username($1) AS dashboard",
+      "SELECT get_officer_dashboard($1) AS dashboard",
       [officer_id]
     );
 

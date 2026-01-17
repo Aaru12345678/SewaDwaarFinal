@@ -64,6 +64,7 @@ import EditServices from "./pages/EditServices";
 import OfficerAvailability from "./pages/OfficerAvailability";
 import SearchUserByMobile from './pages/SearchUserByMobile';
 import HelpdeskBooking from "./pages/HelpdeskBooking";
+import EditOfficer from "./pages/EditOfficer";
 function App() {
   const loggedIn = !!localStorage.getItem("token");
 
@@ -141,6 +142,7 @@ function App() {
         <Route path="/edit-organization/:id" element={<EditOrganization/>}/>
         <Route path="/edit-department/:department_id" element={<EditDepartment/>}/>
         <Route path="/edit-service/:service_id" element={<EditServices/>}/>
+        <Route path="/edit-officer/:officer_id" element={<EditOfficer/>}/>
         {/*  */}
         {/* Officer Routes */}
         <Route path="/dashboard" element={<Dashboard />} />

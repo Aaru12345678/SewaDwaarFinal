@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { insertServices } from "../services/api";
+import { insertServices,updateMultipleServices } from "../services/api";
 import "../css/AddServices.css";
 import { Link, useNavigate ,useParams } from "react-router-dom";
 import Swal from "sweetalert2";
@@ -105,10 +105,12 @@ console.log(service_id)
     if (activeServiceIndex !== null) {
       updated[activeServiceIndex] = currentService;
     } else {
-      updated.push({
+     updated.push({
   ...currentService,
   service_name: currentService.service_name.trim(),
 });
+
+
 
     }
 
@@ -137,77 +139,90 @@ console.log(service_id)
   };
 
   // 🔹 Submit to backend
-  const handleSubmit = async () => {
+const handleSubmit = async () => {
   if (services.length === 0) {
     Swal.fire("Validation Error", "Add at least one service", "warning");
     return;
   }
 
   try {
-    const res = await insertServices(services);
+    const payload = services.map(s => ({
+      service_id: s.service_id,
+      organization_id:currentService.organization_id,
+      department_id:currentService.department_id,        // ✅ REQUIRED
+      service_name: s.service_name,
+      service_name_ll: s.service_name_ll,
+      is_active: true
+    }));
 
-    // ✅ STRICT success check
+    const res = await updateMultipleServices(payload);
+
     if (res?.data?.success !== true) {
-      Swal.fire({
-        icon: "error",
-        title: "Insert Failed",
-        text: res?.data?.message || "Services were not saved",
-        confirmButtonColor: "#c62828",
-      });
+      Swal.fire(
+        "Update Failed",
+        res?.data?.message || "Services not updated",
+        "error"
+      );
       return;
     }
 
-    Swal.fire({
-      icon: "success",
-      title: "Services Added",
-      text: "Services inserted successfully",
-      confirmButtonColor: "#1f4fa3",
-    });
+    Swal.fire(
+      "Success",
+      "Services updated successfully",
+      "success"
+    );
 
-    setServices([]);
+    navigate("/admin/departments");
+
   } catch (err) {
-    Swal.fire({
-      icon: "error",
-      title: "Server Error",
-      text: err?.response?.data?.message || "Unable to insert services",
-      confirmButtonColor: "#c62828",
-    });
+    Swal.fire(
+      "Server Error",
+      err?.response?.data?.message || "Unable to update services",
+      "error"
+    );
   }
 };
 
 useEffect(() => {
   if (!service_id) return;
 
-  const fetchServiceById = async () => {
-    try {
-      const res = await getServicesById(service_id);
-      console.log(res)
-      const service =
-        res?.data?.data ||
-        res?.data?.result ||
-        res?.data ||
-        null;
+ const fetchServiceById = async () => {
+  try {
+    const res = await getServicesById(service_id);
 
-      console.log("✅ Selected Service Data:", service);
+    const service =
+      res?.data?.data ||
+      res?.data?.result ||
+      res?.data ||
+      null;
 
-      if (!service) return;
+    if (!service) return;
 
-      setCurrentService({
-        organization_id: service.organization_id,
-        organization_name: "",
-        department_id: service.department_id,
-        department_name: "",
-        service_name: service.service_name,
-        service_name_ll: service.service_name_ll || "",
-      });
+    // 🔹 Fetch departments first
+    const depRes = await getDepartment(service.organization_id);
+    const depList = Array.isArray(depRes.data) ? depRes.data : [];
 
-      // ✅ call directly
-      fetchDepartments(service.organization_id);
+    setDepartments(depList);
 
-    } catch (error) {
-      console.error("❌ Failed to fetch service:", error);
-    }
-  };
+    const selectedDept = depList.find(
+      d => d.department_id === service.department_id
+    );
+
+    setCurrentService({
+      organization_id: service.organization_id,
+      organization_name: "",
+      department_id: service.department_id,
+      department_name: selectedDept?.department_name || "", // ✅ FIX
+      service_name: service.service_name,
+      service_name_ll: service.service_name_ll || "",
+      service_id: service.service_id, // ✅ IMPORTANT
+    });
+
+  } catch (error) {
+    console.error("❌ Failed to fetch service:", error);
+  }
+};
+
 
   fetchServiceById();
 }, [service_id]); // 👈 ONLY dependency needed
@@ -271,6 +286,7 @@ useEffect(() => {
               <label>Organization *</label>
               <select
                 value={currentService.organization_id}
+                disabled={true}
                 onChange={async (e) => {
                   const val = e.target.value;
                   const org = organizations.find(o => o.organization_id === val);
@@ -290,15 +306,16 @@ useEffect(() => {
                 <option value="">— Select Organization —</option>
                 {organizations.map(org => (
                   <option key={org.organization_id} value={org.organization_id}>
-                    {org.organization_name}
+                    {org.organization_name} 
                   </option>
                 ))}
               </select>
-              {errors.organization_id && <div className="field-error">{errors.organization_id}</div>}
+              {errors.organization_id && <div className="field-error" >{errors.organization_id}</div>}
 
               <label>Department *</label>
               <select
                 value={currentService.department_id}
+                disabled={true}
                 onChange={(e) => {
                   const val = e.target.value;
                   const dep = departments.find(d => d.department_id === val);
@@ -361,7 +378,7 @@ useEffect(() => {
 
             <div className="btn-row">
               <button type="button" className="submit-btn" onClick={handleSubmit}>
-                Submit All
+                Update All
               </button>
             </div>
 

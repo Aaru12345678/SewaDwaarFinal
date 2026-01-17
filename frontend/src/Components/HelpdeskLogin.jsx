@@ -34,7 +34,7 @@ const HelpdeskLogin = () => {
       });
 
       const data = await res.json();
-   console.log(data,"data")
+   console.log(data,"datahelpdesk")
       if (data.success) {
         // localStorage.setItem("helpdesk_id", data.helpdesk_id);
         // localStorage.setItem("helpdesk_username", data.username);
@@ -46,6 +46,9 @@ localStorage.setItem("officer_id", data.officer_id);
 localStorage.setItem("role_code", data.role || "");
 localStorage.setItem("username", data.username);
 localStorage.setItem("state", data.state);
+localStorage.setItem("division", data.division);
+localStorage.setItem("district", data.district);
+localStorage.setItem("taluka", data.taluka);
         toast.success("Login successful!");
         navigate("/helpdesk/dashboard");
       } else {

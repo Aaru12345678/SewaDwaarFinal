@@ -235,6 +235,7 @@ exports.getAvailableSlots1 = async (req, res) => {
       p_date,
       p_organization_id,
       p_service_id,
+      p_officer_id,
       p_state_code,
       p_division_code,
       p_department_id,
@@ -245,16 +246,17 @@ exports.getAvailableSlots1 = async (req, res) => {
     console.log(req.query, "query");
 
     const result = await pool.query(
-      "SELECT * FROM get_available_slots($1,$2,$3,$4,$5,$6,$7,$8)",
+      "SELECT * FROM get_available_slots($1,$2,$3,$4,$5,$6,$7,$8,$9)",
       [
         p_date,
-        p_organization_id,
-        p_service_id,
-        p_state_code,
-        p_division_code,
-        p_department_id || null,
-        p_district_code || null,
-        p_taluka_code || null,
+      p_organization_id,
+      p_service_id,
+      p_officer_id,
+      p_state_code,
+      p_division_code,
+      p_department_id || null,
+      p_district_code || null,
+      p_taluka_code || null,
       ]
     );
 

@@ -98,7 +98,7 @@ const VisitorDashboard = () => {
             <div className="card pending"><h3>Pending</h3><p className="count">{pendingCount}</p></div>
             <div className="card completed"><h3>Completed</h3><p className="count">{completedCount}</p></div>
             <div className="card cancelled"><h3>Cancelled / Rejected</h3><p className="count">{cancelledCount}</p></div>
-            <div className="card notifications"><h3>Notifications</h3><p className="count">{notifications.length}</p></div>
+            {/* <div className="card notifications"><h3>Notifications</h3><p className="count">{notifications.length}</p></div> */}
           </div>
 
           <Link to="/appointment-wizard">

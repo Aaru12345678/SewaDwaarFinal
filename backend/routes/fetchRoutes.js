@@ -6,6 +6,7 @@ const {
   getDepartmentsByOrg,
   getServicesByDepartment,
   getAllOfficers,
+  UpdateaddBulkDepartments
 } = require("../controllers/fetchController");
 
 // Organizations
@@ -21,7 +22,10 @@ router.get(
 );
 
 
+
 // Officers
 router.get("/officers", getAllOfficers);
+
+
 
 module.exports = router;

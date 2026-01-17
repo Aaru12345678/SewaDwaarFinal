@@ -76,7 +76,10 @@ const loginHelpdesk = async (req, res) => {
       officer_id: officer.out_officer_id,
       username: officer.out_username,
       role: officer.out_role_code,
-      state:officer.out_state_code
+      state:officer.out_state_code,
+      division:officer.out_division_code,
+      district:officer.out_district_code,
+      taluka:officer.out_taluka_code
     });
   } catch (error) {
     console.error("❌ Officer login error:", error);

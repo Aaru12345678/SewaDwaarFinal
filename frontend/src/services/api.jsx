@@ -120,7 +120,7 @@ export const getOfficersByLocation = (payload) =>
   safeRequest(api.post("/getOfficersByLocation", payload));
 
 export const getServicesById = (services_id) =>
-  safeRequest(api.get(`/services/${services_id}`));
+  safeRequest(api.get(`/getServices/${services_id}`));
 
 
 
@@ -159,6 +159,18 @@ export const getDepartmentById = (department_id) =>
 
 export const fetchOfficers = () =>
   safeRequest(api.get("/officers"));
+
+export const UpdateaddBulkDepartments = (payload) =>
+  safeRequest(
+    api.put("/update-departments", payload) // ✅ payload passed correctly
+  );
+
+  export const updateMultipleServices = (payload) =>
+  safeRequest(
+    api.put("/update-services", payload) // ✅ payload passed correctly
+  );
+
+
 
 // ================= OFFICER DASHBOARD =================
 export const getOfficerDashboard = (officerId) =>
@@ -298,4 +310,21 @@ export const deactivateSlotConfig = (slot_config_id) =>
 export const getAvailableSlots = (params) =>
   safeRequest(
     api.get("/slot-config/available-slots", { params })
+  );
+
+  
+export const sendForgotOtp = (payload) =>
+  axios.post(`${BASE_URL}/auth/forgot-password/send-otp`, payload);
+
+export const resetPassword = (payload) =>
+  axios.post(`${BASE_URL}/auth/forgot-password/reset`, payload);
+
+// 🔄 Update departments & services
+export const getUserByEntityId =(entity_id)=>safeRequest(
+    api.get(`/user/entity/${entity_id}`)
+  );
+
+
+export const updateOfficerByRole =(payload)=>safeRequest(
+    api.put("/update-officer",payload)
   );

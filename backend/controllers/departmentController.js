@@ -77,6 +77,7 @@ exports.addBulkDepartments = async (req, res) => {
   }
 };
 
+
 // Get active departments count
 exports.getActiveDepartmentsCount = async (req, res) => {
   try {
