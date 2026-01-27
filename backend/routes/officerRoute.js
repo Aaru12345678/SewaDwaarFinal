@@ -20,6 +20,12 @@ router.get(
   "/officer/:officer_id/dashboard",
   getOfficerDashboard
 );
+router.get(
+  "/officer/:officer_id/reports",
+ 
+  getOfficerReports
+);
+
 
 // Appointment action routes
 // Update appointment status by officer

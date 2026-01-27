@@ -500,6 +500,41 @@ exports.getOfficerDashboard = async (req, res) => {
 };
 
 
+exports.getOfficerReports = async (req, res) => {
+  try {
+    const { officer_id } = req.params;
+    const { start, end } = req.query; // ✅ IMPORTANT
+
+    if (!officer_id || !start || !end) {
+      return res.status(400).json({
+        success: false,
+        message: "Officer ID, start date and end date are required"
+      });
+    }
+
+    console.log("📊 Officer Reports Params:", { officer_id, start, end });
+
+    const { rows } = await pool.query(
+      "SELECT get_officer_reports($1, $2::date, $3::date) AS report",
+      [officer_id, start, end]
+    );
+
+    return res.status(200).json({
+      success: true,
+      data: rows[0].report
+    });
+
+  } catch (error) {
+    console.error("❌ Officer Reports Error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Server error while fetching officer reports"
+    });
+  }
+};
+
+
+
 // Update appointment status (approve, reject, complete)
 exports.updateAppointmentStatus = async (req, res) => {
   try {
@@ -576,19 +611,19 @@ exports.getAppointmentsByDate = async (req, res) => {
 
 
 // Get report data for officer
-exports.getOfficerReports = async (req, res) => {
-  try {
-    const { officer_id } = req.params;
-    const { type, month, start, end } = req.query;
+// exports.getOfficerReports = async (req, res) => {
+//   try {
+//     const { officer_id } = req.params;
+//     const { type, month, start, end } = req.query;
 
-    const { rows } = await pool.query(
-      `SELECT get_officer_reports($1, $2, $3, $4, $5) AS result`,
-      [officer_id, type, month, start, end]
-    );
+//     const { rows } = await pool.query(
+//       `SELECT get_officer_reports($1, $2, $3, $4, $5) AS result`,
+//       [officer_id, type, month, start, end]
+//     );
 
-    res.status(200).json(rows[0].result);
-  } catch (err) {
-    console.error("❌ Report error:", err);
-    res.status(500).json({ success: false, message: "Server error" });
-  }
-};
+//     res.status(200).json(rows[0].result);
+//   } catch (err) {
+//     console.error("❌ Report error:", err);
+//     res.status(500).json({ success: false, message: "Server error" });
+//   }
+// };

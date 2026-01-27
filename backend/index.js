@@ -10,6 +10,8 @@ const visitorRoutes = require('./routes/visitorRoutes');
 const fetchRoutes = require("./routes/fetchRoutes"); // ⭐ VERY IMPORTANT
 const helpdeskRoutes=require("./routes/helpdeskRoute");
 const app = express();
+require("./jobs/expireAppointments");
+
 
 app.use(cors({
   origin: "http://localhost:3000",
