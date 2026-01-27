@@ -1,0 +1,39 @@
+/* Stats row */
+.stats-grid {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 8px;               /* tighter spacing */
+}
+
+/* Card sizing */
+.stat-card {
+  flex: 1 1 0;
+  min-width: 0;
+  padding: 8px 10px;      /* reduced padding */
+  border-radius: 14px;
+}
+
+/* Icon pill */
+.stat-card .stat-icon {
+  font-size: 16px;
+  padding: 6px;
+  border-radius: 10px;
+}
+
+/* Numbers */
+.stat-card .stat-number {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+/* Labels */
+.stat-card .stat-label {
+  font-size: 11px;
+  opacity: 0.85;
+  white-space: nowrap;
+}
+
+/* Optional: remove arrow for cleaner UI */
+.stat-arrow {
+  display: none;
+}

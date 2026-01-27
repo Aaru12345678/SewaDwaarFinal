@@ -7,6 +7,9 @@ import Footer from "../Components/Footer";
 import NavbarMain from '../Components/NavbarMain';
 import NavbarTop from '../Components/NavbarTop';
 import VisitorNavbar from "./VisitorNavbar";
+import "../css/DashboardOfficer.css";
+
+
 
 import {
   FaCalendarDay,
@@ -41,12 +44,17 @@ function OfficerDashboard() {
   const [loading, setLoading] = useState(true);
   const [fullName, setFullName] = useState("Officer");
   const [stats, setStats] = useState({
-    today: 0,
-    pending: 0,
-    completed: 0,
-    rescheduled: 0,
-    walkins: 0,
-  });
+  today_total: 0,
+  pending: 0,
+  approved: 0,
+  completed: 0,
+  rejected: 0,
+  rescheduled: 0,
+  cancelled: 0,
+  expired: 0,
+  walkins: 0,
+});
+
   const [todayAppointments, setTodayAppointments] = useState([]);
   const [pendingAppointments, setPendingAppointments] = useState([]);
   const [rescheduledAppointments, setRescheduledAppointments] = useState([]);
@@ -55,6 +63,7 @@ function OfficerDashboard() {
   const [recentActivity, setRecentActivity] = useState([]);
   const [activeTab, setActiveTab] = useState("today");
   const [showRescheduleModal, setShowRescheduleModal] = useState(false);
+  const [lastLoadedDate, setLastLoadedDate] = useState(null);
   const [rescheduleData, setRescheduleData] = useState({
     appointment_id: "",
     new_date: "",
@@ -130,14 +139,20 @@ function OfficerDashboard() {
           setRecentActivity(recentArr);
 
           // Stats: prefer the stats object from API but fallback to lengths of arrays
-          const apiStats = inner.stats || inner.counts || {};
-          setStats({
-            today: apiStats.today ?? todayArr.length,
-            pending: apiStats.pending ?? pendingArr.length,
-            completed: apiStats.completed ?? completedArr.length,
-            rescheduled: apiStats.rescheduled ?? rescheduledArr.length,
-            walkins: apiStats.walkins ?? walkinArr.length,
-          });
+          const s = inner.stats || {};
+
+setStats({
+  today_total: Number(s.today_total || 0),
+  pending: Number(s.pending || 0),
+  approved: Number(s.approved || 0),
+  completed: Number(s.completed || 0),
+  rejected: Number(s.rejected || 0),
+  rescheduled: Number(s.rescheduled || 0),
+  cancelled: Number(s.cancelled || 0),
+  expired: Number(s.expired || 0),
+  walkins: Number(s.walkins || 0),
+});
+
         }
       } catch (err) {
         console.error("Dashboard fetch error:", err);
@@ -231,6 +246,7 @@ function OfficerDashboard() {
       if (result.success) {
         setDateAppointments(result.data.appointments || []);
         setDateStats(result.data.stats || { total: 0, pending: 0, approved: 0, completed: 0, rejected: 0 });
+        setLastLoadedDate(selectedDate);
       } else {
         toast.error(result.message || "Failed to fetch appointments");
       }
@@ -247,6 +263,10 @@ function OfficerDashboard() {
       toast.warning("No appointments to download");
       return;
     }
+    if (!lastLoadedDate || lastLoadedDate !== selectedDate) {
+  toast.warning("Please click Search to load data for the selected date before downloading.");
+  return;
+}
 
     const formattedDate = new Date(selectedDate).toLocaleDateString("en-IN", {
       day: "numeric", month: "long", year: "numeric"
@@ -323,12 +343,15 @@ function OfficerDashboard() {
     printWindow.print();
   };
 
-  // Download as Excel (CSV) unchanged
   const downloadExcel = () => {
     if (dateAppointments.length === 0) {
       toast.warning("No appointments to download");
       return;
     }
+    if (!lastLoadedDate || lastLoadedDate !== selectedDate) {
+  toast.warning("Please click Search to load data for the selected date before downloading.");
+  return;
+}
 
     const formattedDate = new Date(selectedDate).toLocaleDateString("en-IN", {
       day: "numeric", month: "long", year: "numeric"
@@ -798,62 +821,108 @@ function OfficerDashboard() {
               </header>
 
               {/* Stats Cards */}
-              <section className="stats-grid">
-                <div onClick={() => setActiveTab("today")} className={`stat-card today ${activeTab === "today" ? "active" : ""}`}>
-                  <div className="stat-icon">
-                    <FaCalendarDay />
-                  </div>
-                  <div className="stat-info">
-                    <span className="stat-number">{stats.today}</span>
-                    <span className="stat-label">Today's Appointments</span>
-                  </div>
-                  <FaArrowRight className="stat-arrow" />
-                </div>
+            <section className="stats-grid">
 
-                <div onClick={() => setActiveTab("pending")} className={`stat-card pending ${activeTab === "pending" ? "active" : ""}`}>
-                  <div className="stat-icon">
-                    <FaClock />
-                  </div>
-                  <div className="stat-info">
-                    <span className="stat-number">{displayedStats.pending}</span>
-                    <span className="stat-label">Pending Requests</span>
-                  </div>
-                  <FaArrowRight className="stat-arrow" />
-                </div>
+  <div
+    onClick={() => setActiveTab("today")}
+    className={`stat-card today ${activeTab === "today" ? "active" : ""}`}
+  >
+    <div className="stat-icon">
+      <FaCalendarDay />
+    </div>
+    <div className="stat-info">
+<span className="stat-number">{stats.today_total}</span>
+      <span className="stat-label">Today's Appointments</span>
+    </div>
+    <FaArrowRight className="stat-arrow" />
+  </div>
 
-                <div onClick={() => setActiveTab("rescheduled")} className={`stat-card rescheduled ${activeTab === "rescheduled" ? "active" : ""}`}>
-                  <div className="stat-icon">
-                    <FaRedo />
-                  </div>
-                  <div className="stat-info">
-                    <span className="stat-number">{displayedStats.rescheduled}</span>
-                    <span className="stat-label">Today's Rescheduled</span>
-                  </div>
-                  <FaArrowRight className="stat-arrow" />
-                </div>
+  <div
+    onClick={() => setActiveTab("pending")}
+    className={`stat-card pending ${activeTab === "pending" ? "active" : ""}`}
+  >
+    <div className="stat-icon">
+      <FaClock />
+    </div>
+    <div className="stat-info">
+      <span className="stat-number">{stats.pending}</span>
+      <span className="stat-label">Pending (Today)</span>
+    </div>
+    <FaArrowRight className="stat-arrow" />
+  </div>
 
-                <div onClick={() => setActiveTab("walkins")} className={`stat-card walkins ${activeTab === "walkins" ? "active" : ""}`}>
-                  <div className="stat-icon">
-                    <FaWalking />
-                  </div>
-                  <div className="stat-info">
-                    <span className="stat-number">{displayedStats.walkins}</span>
-                    <span className="stat-label">Today's Walk-ins</span>
-                  </div>
-                  <FaArrowRight className="stat-arrow" />
-                </div>
+  <div
+    onClick={() => setActiveTab("rescheduled")}
+    className={`stat-card rescheduled ${activeTab === "rescheduled" ? "active" : ""}`}
+  >
+    <div className="stat-icon">
+      <FaRedo />
+    </div>
+    <div className="stat-info">
+      <span className="stat-number">{stats.rescheduled}</span>
+      <span className="stat-label">Rescheduled (Today)</span>
+    </div>
+    <FaArrowRight className="stat-arrow" />
+  </div>
 
-                <div onClick={() => setActiveTab("completed")} className={`stat-card completed ${activeTab === "completed" ? "active" : ""}`}>
-                  <div className="stat-icon">
-                    <FaCheckCircle />
-                  </div>
-                  <div className="stat-info">
-                    <span className="stat-number">{displayedStats.completed}</span>
-                    <span className="stat-label">Today's Completed</span>
-                  </div>
-                  <FaArrowRight className="stat-arrow" />
-                </div>
-              </section>
+  <div
+    onClick={() => setActiveTab("walkins")}
+    className={`stat-card walkins ${activeTab === "walkins" ? "active" : ""}`}
+  >
+    <div className="stat-icon">
+      <FaWalking />
+    </div>
+    <div className="stat-info">
+      <span className="stat-number">{stats.walkins}</span>
+      <span className="stat-label">Walk-ins (Today)</span>
+    </div>
+    <FaArrowRight className="stat-arrow" />
+  </div>
+
+  <div
+    onClick={() => setActiveTab("completed")}
+    className={`stat-card completed ${activeTab === "completed" ? "active" : ""}`}
+  >
+    <div className="stat-icon">
+      <FaCheckCircle />
+    </div>
+    <div className="stat-info">
+      <span className="stat-number">{stats.completed}</span>
+      <span className="stat-label">Completed (Today)</span>
+    </div>
+    <FaArrowRight className="stat-arrow" />
+  </div>
+  <div
+  onClick={() => setActiveTab("cancelled")}
+  className={`stat-card cancelled ${activeTab === "cancelled" ? "active" : ""}`}
+>
+  <div className="stat-icon">
+    ❌
+  </div>
+  <div className="stat-info">
+    <span className="stat-number">{stats.cancelled}</span>
+    <span className="stat-label">Cancelled (Today)</span>
+  </div>
+  <FaArrowRight className="stat-arrow" />
+</div>
+
+<div
+  onClick={() => setActiveTab("expired")}
+  className={`stat-card expired ${activeTab === "expired" ? "active" : ""}`}
+>
+  <div className="stat-icon">
+    ⏳
+  </div>
+  <div className="stat-info">
+    <span className="stat-number">{stats.expired}</span>
+    <span className="stat-label">Expired (Today)</span>
+  </div>
+  <FaArrowRight className="stat-arrow" />
+</div>
+
+
+</section>
+
 
               {/* Main Content Grid */}
               <div className="dashboard-grid">
@@ -873,7 +942,7 @@ function OfficerDashboard() {
                         className={`tab-pill ${activeTab === "today" ? "active" : ""}`}
                         onClick={() => setActiveTab("today")}
                       >
-                        Today ({stats.today})
+Today ({stats.today_total})
                       </button>
                       <button
                         className={`tab-pill ${activeTab === "pending" ? "active" : ""}`}
@@ -917,7 +986,17 @@ function OfficerDashboard() {
                           <input
                             type="date"
                             value={selectedDate}
-                            onChange={(e) => setSelectedDate(e.target.value)}
+                            onChange={(e) => {
+  const newDate = e.target.value;
+  setSelectedDate(newDate);
+
+  // Clear previously loaded results because the selected date changed.
+  // This forces the user to click Search to load data for the new date.
+  setDateAppointments([]);
+  setDateStats({ total: 0, pending: 0, approved: 0, completed: 0, rejected: 0 });
+  setLastLoadedDate(null);
+}}
+
                             className="date-input"
                           />
                           <button
@@ -929,7 +1008,7 @@ function OfficerDashboard() {
                           </button>
                         </div>
 
-                        {dateAppointments.length > 0 && (
+                        {dateAppointments.length > 0&& lastLoadedDate === selectedDate && (
                           <div className="download-buttons">
                             <button className="download-btn pdf-btn" onClick={downloadPDF}>
                               <FaFilePdf /> Download PDF
@@ -1294,6 +1373,7 @@ function OfficerDashboard() {
         </div>
       </div>
     </div>
+    
   );
 }
 export default OfficerDashboard;

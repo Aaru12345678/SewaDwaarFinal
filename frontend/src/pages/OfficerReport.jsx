@@ -3,7 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
-  PieChart, Pie, Cell, LineChart, Line, AreaChart, Area
+  PieChart, Pie, Cell
 } from "recharts";
 import {
   FaArrowLeft,
@@ -12,7 +12,6 @@ import {
   FaCalendarAlt,
   FaChartBar,
   FaChartPie,
-  FaChartLine,
   FaDownload,
   FaCalendarWeek,
   FaCalendarCheck,
@@ -21,22 +20,21 @@ import {
   FaClock,
   FaRedo,
   FaUsers,
-  FaTrophy,
-  FaPercentage
+  FaTrophy,FaBan, FaHourglassEnd 
 } from "react-icons/fa";
 import "../css/Dashboard.css";
 import NavbarTop from '../Components/NavbarTop';
 import Header from '../Components/Header';
 import OfficerNavbar from "./OfficerNavbar";
 
-
-const COLORS = ['#10b981', '#ef4444', '#f59e0b', '#6366f1', '#8b5cf6', '#3b82f6'];
 const STATUS_COLORS = {
   completed: '#10b981',
-  rejected: '#ef4444',
-  pending: '#f59e0b',
   approved: '#3b82f6',
-  rescheduled: '#8b5cf6'
+  pending: '#f59e0b',
+  rejected: '#ef4444',
+  rescheduled: '#8b5cf6',
+  cancelled: '#6b7280',
+  expired: '#111827'
 };
 
 const OfficerReports = () => {
@@ -57,46 +55,144 @@ const OfficerReports = () => {
       navigate("/login/officerlogin");
       return;
     }
+
+    if (reportType === "custom") return; // manual trigger only
     fetchReportData();
-  }, [officerId, navigate, reportType, selectedMonth]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [officerId, reportType, selectedMonth]);
 
   const fetchReportData = async () => {
     setLoading(true);
+
     try {
-      let url = `http://localhost:5000/api/officer/${officerId}/reports?type=${reportType}`;
-      
+      let start, end;
+      const today = new Date();
+
       if (reportType === "monthly") {
-        url += `&month=${selectedMonth}`;
-      } else if (reportType === "weekly") {
-        const today = new Date();
-        const weekStart = new Date(today.setDate(today.getDate() - today.getDay()));
-        url += `&start=${weekStart.toISOString().split('T')[0]}&end=${new Date().toISOString().split('T')[0]}`;
-      } else if (reportType === "custom" && startDate && endDate) {
-        url += `&start=${startDate}&end=${endDate}`;
+        const [year, month] = selectedMonth.split("-");
+        start = `${year}-${month}-01`;
+        end = new Date(year, month, 0).toISOString().split("T")[0];
       }
 
-      const response = await fetch(url);
+      if (reportType === "weekly") {
+        const first = new Date(today);
+        first.setDate(today.getDate() - today.getDay());
+        const last = new Date(first);
+        last.setDate(first.getDate() + 6);
+        start = first.toISOString().split("T")[0];
+        end = last.toISOString().split("T")[0];
+      }
+
+      if (reportType === "custom") {
+        if (!startDate || !endDate) {
+          toast.error("Please select start and end date");
+          setLoading(false);
+          return;
+        }
+        start = startDate;
+        end = endDate;
+      }
+
+      const url = `http://localhost:5000/api/officer/${officerId}/reports?start=${start}&end=${end}`;
+      const response = await fetch(url, { cache: "no-store" }); // force fresh data during dev
       const result = await response.json();
 
-      if (result.success) {
-        setReportData(result.data);
-        setFullName(result.data.officer_name || "Officer");
-      } else {
-        toast.error(result.message || "Failed to fetch report data");
+      if (!result.success) {
+        toast.error(result.message || "Failed to load report");
+        setLoading(false);
+        return;
       }
+
+      // normalize and enrich data for charts
+      const d = result.data || {};
+
+      // normalize daily_breakdown (handle different key names)
+      const daily = (d.daily_breakdown || []).map(day => {
+        const fullDate = day.full_date || day.fulldate || day.fullDate || day.fulldate || day.fulldate || null;
+        const completed = Number(day.completed || 0);
+        const approved = Number(day.approved || 0);
+        const pending = Number(day.pending || 0);
+        const rejected = Number(day.rejected || 0);
+        const rescheduled = Number(day.rescheduled || 0);
+        const cancelled = Number(day.cancelled || 0);
+        const expired = Number(day.expired || 0);
+
+        const total = completed + approved + pending + rejected + rescheduled + cancelled + expired;
+
+        return {
+          date: day.date || (fullDate ? new Date(fullDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' }) : ''),
+          fullDate: fullDate || null,
+          completed,
+          approved,
+          pending,
+          rejected,
+          rescheduled,
+          cancelled,
+          expired,
+          total
+        };
+      });
+
+      // ensure status_distribution present and numeric, fill missing statuses
+      const sdMap = {};
+      (d.status_distribution || []).forEach(s => {
+        const nameKey = (s.name || '').toLowerCase();
+        sdMap[nameKey] = Number(s.value || 0);
+      });
+      const status_distribution = [
+        { name: 'Completed', value: sdMap.completed ?? Number(d.summary?.completed ?? 0), color: STATUS_COLORS.completed },
+        { name: 'Approved', value: sdMap.approved ?? Number(d.summary?.approved ?? 0), color: STATUS_COLORS.approved },
+        { name: 'Pending', value: sdMap.pending ?? Number(d.summary?.pending ?? 0), color: STATUS_COLORS.pending },
+        { name: 'Rejected', value: sdMap.rejected ?? Number(d.summary?.rejected ?? 0), color: STATUS_COLORS.rejected },
+        { name: 'Rescheduled', value: sdMap.rescheduled ?? Number(d.summary?.rescheduled ?? 0), color: STATUS_COLORS.rescheduled },
+        { name: 'Cancelled', value: sdMap.cancelled ?? Number(d.summary?.cancelled ?? 0), color: STATUS_COLORS.cancelled },
+        { name: 'Expired', value: sdMap.expired ?? Number(d.summary?.expired ?? 0), color: STATUS_COLORS.expired }
+      ];
+
+      // hourly distribution fix (ensure numeric)
+      const hourly = (d.hourly_distribution || d.hourly || []).map(h => ({
+        hour: h.hour,
+        appointments: Number(h.appointments || 0)
+      }));
+
+      const summary = {
+        total_appointments: Number(d.summary?.total_appointments ?? d.summary?.total ?? 0),
+        completed: Number(d.summary?.completed ?? 0),
+        approved: Number(d.summary?.approved ?? 0),
+        pending: Number(d.summary?.pending ?? 0),
+        rejected: Number(d.summary?.rejected ?? 0),
+        rescheduled: Number(d.summary?.rescheduled ?? 0),
+        cancelled: Number(d.summary?.cancelled ?? 0),
+        expired: Number(d.summary?.expired ?? 0),
+        completion_rate: d.summary?.completion_rate ?? 0,
+        approval_rate: d.summary?.approval_rate ?? 0,
+        avg_daily: d.summary?.avg_daily ?? 0,
+        peak_day: d.peak_day || d.summary?.peak_day || {}
+      };
+
+      setFullName(d.officer_name || fullName);
+
+      setReportData({
+        officer_name: d.officer_name || fullName,
+        period: d.period || `${start} to ${end}`,
+        summary,
+        daily_breakdown: daily,
+        status_distribution,
+        hourly_distribution: hourly
+      });
     } catch (err) {
-      console.error("Error fetching report:", err);
-      // Generate sample data for demo
-      generateSampleData();
+      console.error("Report fetch error:", err);
+      toast.error("Unable to load report");
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const generateSampleData = () => {
     const days = reportType === "weekly" ? 7 : 30;
     const dailyData = [];
     const today = new Date();
-    
+
     for (let i = days - 1; i >= 0; i--) {
       const date = new Date(today);
       date.setDate(date.getDate() - i);
@@ -108,6 +204,8 @@ const OfficerReports = () => {
         rejected: Math.floor(Math.random() * 3),
         rescheduled: Math.floor(Math.random() * 2),
         pending: Math.floor(Math.random() * 4) + 1,
+        cancelled: Math.floor(Math.random() * 2),
+        expired: Math.floor(Math.random() * 2)
       });
     }
 
@@ -117,9 +215,11 @@ const OfficerReports = () => {
       rejected: acc.rejected + day.rejected,
       rescheduled: acc.rescheduled + day.rescheduled,
       pending: acc.pending + day.pending,
-    }), { completed: 0, approved: 0, rejected: 0, rescheduled: 0, pending: 0 });
+      cancelled: acc.cancelled + (day.cancelled || 0),
+      expired: acc.expired + (day.expired || 0)
+    }), { completed: 0, approved: 0, rejected: 0, rescheduled: 0, pending: 0, cancelled: 0, expired: 0 });
 
-    const total = totals.completed + totals.approved + totals.rejected + totals.rescheduled + totals.pending;
+    const total = totals.completed + totals.approved + totals.rejected + totals.rescheduled + totals.pending + totals.cancelled + totals.expired;
 
     setReportData({
       officer_name: fullName,
@@ -131,11 +231,13 @@ const OfficerReports = () => {
         rejected: totals.rejected,
         rescheduled: totals.rescheduled,
         pending: totals.pending,
-        completion_rate: ((totals.completed / total) * 100).toFixed(1),
-        approval_rate: (((totals.completed + totals.approved) / total) * 100).toFixed(1),
-        avg_daily: (total / days).toFixed(1),
+        cancelled: totals.cancelled,
+        expired: totals.expired,
+        completion_rate: total ? ((totals.completed / total) * 100).toFixed(1) : 0,
+        approval_rate: total ? (((totals.completed + totals.approved) / total) * 100).toFixed(1) : 0,
+        avg_daily: total ? (total / days).toFixed(1) : 0,
         peak_day: dailyData.reduce((max, day) => {
-          const dayTotal = day.completed + day.approved + day.rejected + day.rescheduled + day.pending;
+          const dayTotal = (day.completed||0) + (day.approved||0) + (day.rejected||0) + (day.rescheduled||0) + (day.pending||0) + (day.cancelled||0) + (day.expired||0);
           return dayTotal > max.total ? { date: day.date, total: dayTotal } : max;
         }, { date: '', total: 0 }),
       },
@@ -146,6 +248,8 @@ const OfficerReports = () => {
         { name: 'Pending', value: totals.pending, color: STATUS_COLORS.pending },
         { name: 'Rejected', value: totals.rejected, color: STATUS_COLORS.rejected },
         { name: 'Rescheduled', value: totals.rescheduled, color: STATUS_COLORS.rescheduled },
+        { name: 'Cancelled', value: totals.cancelled, color: STATUS_COLORS.cancelled },
+        { name: 'Expired', value: totals.expired, color: STATUS_COLORS.expired },
       ],
       hourly_distribution: [
         { hour: '9 AM', appointments: Math.floor(Math.random() * 15) + 5 },
@@ -183,9 +287,9 @@ const OfficerReports = () => {
       return;
     }
 
-    const periodLabel = reportType === "monthly" 
+    const periodLabel = reportType === "monthly"
       ? new Date(selectedMonth + "-01").toLocaleDateString('en-IN', { month: 'long', year: 'numeric' })
-      : reportType === "weekly" 
+      : reportType === "weekly"
         ? "This Week"
         : `${startDate} to ${endDate}`;
 
@@ -196,9 +300,9 @@ const OfficerReports = () => {
         <title>Officer Report - ${periodLabel}</title>
         <style>
           * { margin: 0; padding: 0; box-sizing: border-box; }
-          body { 
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
-            padding: 40px; 
+          body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            padding: 40px;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
           }
@@ -392,68 +496,47 @@ const OfficerReports = () => {
             </div>
           </div>
 
-          <div class="stats-grid">
-            <div class="stat-card highlight">
-              <span class="number">${reportData.summary.total_appointments}</span>
-              <span class="label">Total Appointments</span>
-            </div>
-            <div class="stat-card">
-              <span class="number">${reportData.summary.completion_rate}%</span>
-              <span class="label">Completion Rate</span>
-            </div>
-            <div class="stat-card">
-              <span class="number">${reportData.summary.avg_daily}</span>
-              <span class="label">Avg. Daily</span>
-            </div>
-          </div>
+        <div class="stats-grid">
+  <div class="stat-card highlight">
+    <span class="number">${reportData.summary.total_appointments}</span>
+    <span class="label">Total Appointments</span>
+  </div>
 
-          <div class="section">
-            <h3 class="section-title">📊 Status Breakdown</h3>
-            <div class="status-breakdown">
-              <div class="status-item completed">
-                <span class="count">${reportData.summary.completed}</span>
-                <span class="name">Completed</span>
-              </div>
-              <div class="status-item approved">
-                <span class="count">${reportData.summary.approved}</span>
-                <span class="name">Approved</span>
-              </div>
-              <div class="status-item pending">
-                <span class="count">${reportData.summary.pending}</span>
-                <span class="name">Pending</span>
-              </div>
-              <div class="status-item rejected">
-                <span class="count">${reportData.summary.rejected}</span>
-                <span class="name">Rejected</span>
-              </div>
-              <div class="status-item rescheduled">
-                <span class="count">${reportData.summary.rescheduled}</span>
-                <span class="name">Rescheduled</span>
-              </div>
-            </div>
-          </div>
+  <div class="stat-card">
+    <span class="number">${reportData.summary.completed}</span>
+    <span class="label">Completed</span>
+  </div>
 
-          <div class="section">
-            <h3 class="section-title">📈 Performance Metrics</h3>
-            <div style="margin-bottom: 20px;">
-              <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
-                <span>Completion Rate</span>
-                <strong>${reportData.summary.completion_rate}%</strong>
-              </div>
-              <div class="performance-bar">
-                <div class="performance-fill" style="width: ${reportData.summary.completion_rate}%"></div>
-              </div>
-            </div>
-            <div>
-              <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
-                <span>Approval Rate</span>
-                <strong>${reportData.summary.approval_rate}%</strong>
-              </div>
-              <div class="performance-bar">
-                <div class="performance-fill" style="width: ${reportData.summary.approval_rate}%"></div>
-              </div>
-            </div>
-          </div>
+  <div class="stat-card">
+    <span class="number">${reportData.summary.approved}</span>
+    <span class="label">Approved</span>
+  </div>
+
+  <div class="stat-card">
+    <span class="number">${reportData.summary.pending}</span>
+    <span class="label">Pending</span>
+  </div>
+
+  <div class="stat-card danger">
+    <span class="number">${reportData.summary.rejected}</span>
+    <span class="label">Rejected</span>
+  </div>
+
+  <div class="stat-card purple">
+    <span class="number">${reportData.summary.rescheduled}</span>
+    <span class="label">Rescheduled</span>
+  </div>
+
+  <div class="stat-card">
+    <span class="number">${reportData.summary.cancelled}</span>
+    <span class="label">Cancelled</span>
+  </div>
+
+  <div class="stat-card">
+    <span class="number">${reportData.summary.expired}</span>
+    <span class="label">Expired</span>
+  </div>
+</div>
 
           <div class="section">
             <div class="insights">
@@ -462,8 +545,8 @@ const OfficerReports = () => {
                 <li>📅 <strong>Peak Day:</strong> ${reportData.summary.peak_day?.date || 'N/A'} with ${reportData.summary.peak_day?.total || 0} appointments</li>
                 <li>✅ <strong>Completion Rate:</strong> ${reportData.summary.completion_rate}% of all appointments were successfully completed</li>
                 <li>📊 <strong>Daily Average:</strong> Handling approximately ${reportData.summary.avg_daily} appointments per day</li>
-                <li>🔄 <strong>Rescheduled:</strong> ${((reportData.summary.rescheduled / reportData.summary.total_appointments) * 100).toFixed(1)}% appointments were rescheduled</li>
-                <li>❌ <strong>Rejection Rate:</strong> ${((reportData.summary.rejected / reportData.summary.total_appointments) * 100).toFixed(1)}% appointments were rejected</li>
+                <li>🔄 <strong>Rescheduled:</strong> ${((reportData.summary.rescheduled / Math.max(1, reportData.summary.total_appointments)) * 100).toFixed(1)}% appointments were rescheduled</li>
+                <li>❌ <strong>Rejection Rate:</strong> ${((reportData.summary.rejected / Math.max(1, reportData.summary.total_appointments)) * 100).toFixed(1)}% appointments were rejected</li>
                 <li>⏳ <strong>Pending:</strong> ${reportData.summary.pending} appointments still pending action</li>
               </ul>
             </div>
@@ -481,11 +564,11 @@ const OfficerReports = () => {
     const printWindow = window.open("", "_blank");
     printWindow.document.write(htmlContent);
     printWindow.document.close();
-    
+
     setTimeout(() => {
       printWindow.print();
     }, 500);
-    
+
     toast.success("Report opened for printing/download");
   };
 
@@ -499,602 +582,592 @@ const OfficerReports = () => {
   }
 
   return (
-    <>    
-    <div className="fixed-header">
-        <NavbarTop/>
+    <>
+      <div className="fixed-header">
+        <NavbarTop />
         <Header />
-      <OfficerNavbar fullName={fullName} />
-        
+        <OfficerNavbar fullName={fullName} />
       </div>
       <div className="main-layout">
-  <div className="content-below">
-    
-    <div className="dashboard-container">
-      {/* Top Navigation Bar */}
-      {/* <nav className="dashboard-nav">
-        <div className="nav-brand">
-          <span className="brand-icon">🏛️</span>
-          <span className="brand-text">SewaDwaar</span>
-        </div>
-        <div className="nav-actions">
-          <Link to="/dashboard" className="nav-icon-btn" title="Dashboard">
-            <FaArrowLeft />
-          </Link>
-          <div className="nav-user">
-            <FaUser />
-            <span>{fullName}</span>
-          </div>
-          <button className="nav-icon-btn logout-btn" onClick={handleLogout} title="Logout">
-            <FaSignOutAlt />
-          </button>
-        </div>
-      </nav> */}
-
-      <div className="dashboard-content" ref={reportRef}>
-        {/* Header */}
-        <header className="dashboard-header">
-          <div className="header-text">
-            <h1>📊 Reports & Analytics</h1>
-            <p>View detailed appointment statistics and performance metrics</p>
-          </div>
-          <button className="download-report-btn" onClick={downloadPDF}>
-            <FaDownload /> Download Report
-          </button>
-        </header>
-
-        {/* Report Type Selector */}
-        <div className="report-controls">
-          <div className="report-type-tabs">
-            <button
-              className={`report-tab ${reportType === "monthly" ? "active" : ""}`}
-              onClick={() => setReportType("monthly")}
-            >
-              <FaCalendarAlt /> Monthly
-            </button>
-            <button
-              className={`report-tab ${reportType === "weekly" ? "active" : ""}`}
-              onClick={() => setReportType("weekly")}
-            >
-              <FaCalendarWeek /> Weekly
-            </button>
-            <button
-              className={`report-tab ${reportType === "custom" ? "active" : ""}`}
-              onClick={() => setReportType("custom")}
-            >
-              <FaCalendarCheck /> Custom Range
-            </button>
-          </div>
-
-          {/* Date Selectors */}
-          <div className="date-selectors">
-            {reportType === "monthly" && (
-              <input
-                type="month"
-                value={selectedMonth}
-                onChange={(e) => setSelectedMonth(e.target.value)}
-                className="month-picker"
-              />
-            )}
-            {reportType === "custom" && (
-              <div className="custom-date-range">
-                <input
-                  type="date"
-                  value={startDate}
-                  onChange={(e) => setStartDate(e.target.value)}
-                  placeholder="Start Date"
-                />
-                <span>to</span>
-                <input
-                  type="date"
-                  value={endDate}
-                  onChange={(e) => setEndDate(e.target.value)}
-                  placeholder="End Date"
-                />
-                <button onClick={handleCustomDateSearch} className="search-btn">
-                  Generate
+        <div className="content-below">
+          <div className="dashboard-container">
+            <div className="dashboard-content" ref={reportRef}>
+              {/* Header */}
+              <header className="dashboard-header">
+                <div className="header-text">
+                  <h1>📊 Reports & Analytics</h1>
+                  <p>View detailed appointment statistics and performance metrics</p>
+                </div>
+                <button className="download-report-btn" onClick={downloadPDF}>
+                  <FaDownload /> Download Report
                 </button>
+              </header>
+
+              {/* Report Type Selector */}
+              <div className="report-controls">
+                <div className="report-type-tabs">
+                  <button
+                    className={`report-tab ${reportType === "monthly" ? "active" : ""}`}
+                    onClick={() => setReportType("monthly")}
+                  >
+                    <FaCalendarAlt /> Monthly
+                  </button>
+                  <button
+                    className={`report-tab ${reportType === "weekly" ? "active" : ""}`}
+                    onClick={() => setReportType("weekly")}
+                  >
+                    <FaCalendarWeek /> Weekly
+                  </button>
+                  <button
+                    className={`report-tab ${reportType === "custom" ? "active" : ""}`}
+                    onClick={() => setReportType("custom")}
+                  >
+                    <FaCalendarCheck /> Custom Range
+                  </button>
+                </div>
+
+                {/* Date Selectors */}
+                <div className="date-selectors">
+                  {reportType === "monthly" && (
+                    <input
+                      type="month"
+                      value={selectedMonth}
+                      onChange={(e) => setSelectedMonth(e.target.value)}
+                      className="month-picker"
+                    />
+                  )}
+                  {reportType === "custom" && (
+                    <div className="custom-date-range">
+                      <input
+                        type="date"
+                        value={startDate}
+                        onChange={(e) => setStartDate(e.target.value)}
+                        placeholder="Start Date"
+                      />
+                      <span>to</span>
+                      <input
+                        type="date"
+                        value={endDate}
+                        onChange={(e) => setEndDate(e.target.value)}
+                        placeholder="End Date"
+                      />
+                      <button onClick={handleCustomDateSearch} className="search-btn">
+                        Generate
+                      </button>
+                    </div>
+                  )}
+                </div>
               </div>
-            )}
+
+              {reportData && (
+                <>
+                  {/* Summary Cards */}
+                 <div
+  className="report-summary-grid"
+  style={{ gridTemplateColumns: "repeat(8, 1fr)" }}
+>
+  <div className="report-card total">
+    <div className="card-icon" style={{ fontSize: 18 }}><FaUsers /></div>
+    <div className="card-content">
+      <span className="card-number" style={{ fontSize: 18 }}>
+        {reportData.summary.total_appointments}
+      </span>
+      <span className="card-label">Total</span>
+    </div>
+  </div>
+
+  <div className="report-card success">
+    <div className="card-icon" style={{ fontSize: 18 }}><FaCheckCircle /></div>
+    <div className="card-content">
+      <span className="card-number" style={{ fontSize: 18 }}>
+        {reportData.summary.completed}
+      </span>
+      <span className="card-label">Completed</span>
+    </div>
+  </div>
+
+  <div className="report-card info">
+    <div className="card-icon" style={{ fontSize: 18 }}><FaTrophy /></div>
+    <div className="card-content">
+      <span className="card-number" style={{ fontSize: 18 }}>
+        {reportData.summary.approved}
+      </span>
+      <span className="card-label">Approved</span>
+    </div>
+  </div>
+
+  <div className="report-card warning">
+    <div className="card-icon" style={{ fontSize: 18 }}><FaClock /></div>
+    <div className="card-content">
+      <span className="card-number" style={{ fontSize: 18 }}>
+        {reportData.summary.pending}
+      </span>
+      <span className="card-label">Pending</span>
+    </div>
+  </div>
+
+  <div className="report-card danger">
+    <div className="card-icon" style={{ fontSize: 18 }}><FaTimesCircle /></div>
+    <div className="card-content">
+      <span className="card-number" style={{ fontSize: 18 }}>
+        {reportData.summary.rejected}
+      </span>
+      <span className="card-label">Rejected</span>
+    </div>
+  </div>
+
+  <div className="report-card purple">
+    <div className="card-icon" style={{ fontSize: 18 }}><FaRedo /></div>
+    <div className="card-content">
+      <span className="card-number" style={{ fontSize: 18 }}>
+        {reportData.summary.rescheduled}
+      </span>
+      <span className="card-label">Rescheduled</span>
+    </div>
+  </div>
+
+ <div className="report-card cancelled">
+  <div className="card-icon"><FaBan /></div>
+  <div className="card-content">
+    <span className="card-number">{reportData.summary.cancelled}</span>
+    <span className="card-label">Cancelled</span>
+  </div>
+</div>
+
+<div className="report-card expired">
+  <div className="card-icon"><FaHourglassEnd /></div>
+  <div className="card-content">
+    <span className="card-number">{reportData.summary.expired}</span>
+    <span className="card-label">Expired</span>
+  </div>
+</div>
+
+</div>
+
+
+                  {/* Charts Section */}
+                  <div className="charts-grid">
+                    {/* Trends - stacked bar across full period */}
+                    <div className="chart-container large">
+                      <h3><FaChartBar /> Appointment Trends (stacked)</h3>
+                      <ResponsiveContainer width="100%" height={340}>
+                        <BarChart data={reportData.daily_breakdown}>
+                          <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                          <XAxis dataKey="date" tick={{ fontSize: 12 }} />
+                          <YAxis tick={{ fontSize: 12 }} />
+                          <Tooltip />
+                          <Legend />
+                          <Bar dataKey="completed" stackId="a" fill={STATUS_COLORS.completed} name="Completed" />
+                          <Bar dataKey="approved" stackId="a" fill={STATUS_COLORS.approved} name="Approved" />
+                          <Bar dataKey="pending" stackId="a" fill={STATUS_COLORS.pending} name="Pending" />
+                          <Bar dataKey="rejected" stackId="a" fill={STATUS_COLORS.rejected} name="Rejected" />
+                          <Bar dataKey="rescheduled" stackId="a" fill={STATUS_COLORS.rescheduled} name="Rescheduled" />
+                          <Bar dataKey="cancelled" stackId="a" fill={STATUS_COLORS.cancelled} name="Cancelled" />
+                          <Bar dataKey="expired" stackId="a" fill={STATUS_COLORS.expired} name="Expired" />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
+
+                    {/* Status Distribution Pie */}
+                    <div className="chart-container">
+                      <h3><FaChartPie /> Status Distribution</h3>
+                      <ResponsiveContainer width="100%" height={340}>
+                        <PieChart>
+                          <Pie
+                            data={reportData.status_distribution}
+                            cx="50%"
+                            cy="50%"
+                            innerRadius={60}
+                            outerRadius={100}
+                            paddingAngle={4}
+                            dataKey="value"
+                            label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                          >
+                            {reportData.status_distribution.map((entry, index) => (
+                              <Cell key={`cell-${index}`} fill={entry.color} />
+                            ))}
+                          </Pie>
+                          <Tooltip />
+                        </PieChart>
+                      </ResponsiveContainer>
+                    </div>
+
+                    {/* Hourly Distribution */}
+                    <div className="chart-container">
+                      <h3><FaChartBar /> Peak Hours</h3>
+                      <ResponsiveContainer width="100%" height={300}>
+                        <BarChart data={reportData.hourly_distribution}>
+                          <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                          <XAxis dataKey="hour" tick={{ fontSize: 12 }} />
+                          <YAxis tick={{ fontSize: 12 }} />
+                          <Tooltip />
+                          <Bar dataKey="appointments" fill="#667eea" radius={[8, 8, 0, 0]} />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
+
+                    {/* Last 14 days stacked to show recent comparison */}
+                    <div className="chart-container large">
+                      <h3><FaChartBar /> Daily Status Breakdown (last 14 days)</h3>
+                      <ResponsiveContainer width="100%" height={340}>
+                        <BarChart data={reportData.daily_breakdown.slice(-14)}>
+                          <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                          <XAxis dataKey="date" tick={{ fontSize: 11 }} />
+                          <YAxis tick={{ fontSize: 12 }} />
+                          <Tooltip />
+                          <Legend />
+                          <Bar dataKey="completed" stackId="a" fill={STATUS_COLORS.completed} name="Completed" />
+                          <Bar dataKey="approved" stackId="a" fill={STATUS_COLORS.approved} name="Approved" />
+                          <Bar dataKey="pending" stackId="a" fill={STATUS_COLORS.pending} name="Pending" />
+                          <Bar dataKey="rejected" stackId="a" fill={STATUS_COLORS.rejected} name="Rejected" />
+                          <Bar dataKey="rescheduled" stackId="a" fill={STATUS_COLORS.rescheduled} name="Rescheduled" />
+                          <Bar dataKey="cancelled" stackId="a" fill={STATUS_COLORS.cancelled} name="Cancelled" />
+                          <Bar dataKey="expired" stackId="a" fill={STATUS_COLORS.expired} name="Expired" />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </div>
+
+                  {/* Insights Section */}
+                  <div className="insights-section">
+                    <h3>💡 Key Insights & Recommendations</h3>
+                    <div className="insights-grid">
+                      <div className="insight-card">
+                        <div className="insight-icon success">📈</div>
+                        <div className="insight-content">
+                          <h4>Completion Rate</h4>
+                          <p>Your completion rate is <strong>{reportData.summary.completion_rate}%</strong>.
+                            {parseFloat(reportData.summary.completion_rate) >= 70
+                              ? " Excellent performance! Keep up the good work."
+                              : " Consider following up on pending appointments."}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="insight-card">
+                        <div className="insight-icon info">📅</div>
+                        <div className="insight-content">
+                          <h4>Peak Performance</h4>
+                          <p>Highest activity on <strong>{reportData.summary.peak_day?.date}</strong> with {reportData.summary.peak_day?.total} appointments handled.</p>
+                        </div>
+                      </div>
+                      <div className="insight-card">
+                        <div className="insight-icon warning">⏱️</div>
+                        <div className="insight-content">
+                          <h4>Daily Average</h4>
+                          <p>You handle an average of <strong>{reportData.summary.avg_daily}</strong> appointments per day.</p>
+                        </div>
+                      </div>
+                      <div className="insight-card">
+                        <div className="insight-icon danger">🔄</div>
+                        <div className="insight-content">
+                          <h4>Reschedule Rate</h4>
+                          <p><strong>{((reportData.summary.rescheduled / Math.max(1, reportData.summary.total_appointments)) * 100).toFixed(1)}%</strong> of appointments were rescheduled.
+                            {parseFloat(reportData.summary.rescheduled / Math.max(1, reportData.summary.total_appointments) * 100) > 15
+                              ? " Consider reducing reschedules for better visitor experience."
+                              : " Within acceptable range."}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+
+            <style jsx="true">{`
+              .download-report-btn {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                padding: 12px 24px;
+                background: linear-gradient(135deg, #667eea, #764ba2);
+                color: white;
+                border: none;
+                border-radius: 10px;
+                font-weight: 600;
+                font-size: 14px;
+                cursor: pointer;
+                transition: all 0.3s;
+                box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+              }
+
+              .download-report-btn:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 6px 20px rgba(102, 126, 234, 0.5);
+              }
+
+              .report-controls {
+                background: white;
+                border-radius: 16px;
+                padding: 24px;
+                margin-bottom: 24px;
+                box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+              }
+                .report-card.cancelled .card-icon {
+  background: linear-gradient(135deg, #6b7280, #4b5563);
+}
+
+.report-card.expired .card-icon {
+  background: linear-gradient(135deg, #111827, #000000);
+}
+
+
+              .report-type-tabs {
+                display: flex;
+                gap: 12px;
+                margin-bottom: 20px;
+              }
+
+              .report-tab {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                padding: 12px 24px;
+                background: var(--gray-100);
+                border: 2px solid transparent;
+                border-radius: 10px;
+                font-weight: 500;
+                cursor: pointer;
+                transition: all 0.2s;
+              }
+
+              .report-tab:hover {
+                background: var(--primary-light);
+                border-color: var(--primary);
+              }
+
+              .report-tab.active {
+                background: var(--primary);
+                color: white;
+                border-color: var(--primary);
+              }
+
+              .date-selectors {
+                display: flex;
+                align-items: center;
+                gap: 16px;
+              }
+
+              .month-picker {
+                padding: 12px 16px;
+                border: 2px solid var(--gray-300);
+                border-radius: 10px;
+                font-size: 14px;
+                cursor: pointer;
+              }
+
+              .month-picker:focus {
+                outline: none;
+                border-color: var(--primary);
+              }
+
+              .custom-date-range {
+                display: flex;
+                align-items: center;
+                gap: 12px;
+              }
+
+              .custom-date-range input {
+                padding: 12px 16px;
+                border: 2px solid var(--gray-300);
+                border-radius: 10px;
+                font-size: 14px;
+              }
+
+              .custom-date-range span {
+                color: var(--gray-500);
+                font-weight: 500;
+              }
+
+              .report-summary-grid {
+                display: grid;
+                grid-template-columns: repeat(6, 1fr);
+                gap: 16px;
+                margin-bottom: 24px;
+              }
+
+              .report-card {
+                background: white;
+                border-radius: 16px;
+                padding: 20px;
+                display: flex;
+                align-items: center;
+                gap: 16px;
+                box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+                transition: all 0.3s;
+              }
+
+              .report-card:hover {
+                transform: translateY(-4px);
+                box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+              }
+
+              .report-card .card-icon {
+                width: 50px;
+                height: 50px;
+                border-radius: 12px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 24px;
+                color: white;
+              }
+
+              .report-card.total .card-icon { background: linear-gradient(135deg, #667eea, #764ba2); }
+              .report-card.success .card-icon { background: linear-gradient(135deg, #10b981, #059669); }
+              .report-card.info .card-icon { background: linear-gradient(135deg, #3b82f6, #2563eb); }
+              .report-card.warning .card-icon { background: linear-gradient(135deg, #f59e0b, #d97706); }
+              .report-card.danger .card-icon { background: linear-gradient(135deg, #ef4444, #dc2626); }
+              .report-card.purple .card-icon { background: linear-gradient(135deg, #8b5cf6, #7c3aed); }
+
+              .card-content {
+                display: flex;
+                flex-direction: column;
+              }
+
+              .card-number {
+                font-size: 24px;
+                font-weight: 700;
+                color: var(--gray-900);
+              }
+
+              .card-label {
+                font-size: 12px;
+                color: var(--gray-500);
+                margin-top: 2px;
+              }
+
+              .charts-grid {
+                display: grid;
+                grid-template-columns: repeat(2, 1fr);
+                gap: 24px;
+                margin-bottom: 24px;
+              }
+
+              .chart-container {
+                background: white;
+                border-radius: 16px;
+                padding: 24px;
+                box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+              }
+
+              .chart-container.large {
+                grid-column: span 2;
+              }
+
+              .chart-container h3 {
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                font-size: 16px;
+                color: var(--gray-900);
+                margin-bottom: 20px;
+                padding-bottom: 12px;
+                border-bottom: 2px solid var(--gray-100);
+              }
+
+              .chart-container h3 svg {
+                color: var(--primary);
+              }
+
+              .insights-section {
+                background: white;
+                border-radius: 16px;
+                padding: 24px;
+                box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+              }
+
+              .insights-section h3 {
+                font-size: 18px;
+                color: var(--gray-900);
+                margin-bottom: 20px;
+              }
+
+              .insights-grid {
+                display: grid;
+                grid-template-columns: repeat(2, 1fr);
+                gap: 16px;
+              }
+
+              .insight-card {
+                display: flex;
+                gap: 16px;
+                padding: 20px;
+                background: linear-gradient(135deg, #f8f9ff, #f0f4ff);
+                border-radius: 12px;
+                border: 1px solid var(--gray-200);
+              }
+
+              .insight-icon {
+                width: 48px;
+                height: 48px;
+                border-radius: 12px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 24px;
+                flex-shrink: 0;
+              }
+
+              .insight-icon.success { background: #d1fae5; }
+              .insight-icon.info { background: #dbeafe; }
+              .insight-icon.warning { background: #fef3c7; }
+              .insight-icon.danger { background: #fee2e2; }
+
+              .insight-content h4 {
+                font-size: 14px;
+                color: var(--gray-900);
+                margin-bottom: 6px;
+              }
+
+              .insight-content p {
+                font-size: 13px;
+                color: var(--gray-600);
+                line-height: 1.5;
+              }
+
+              .insight-content strong {
+                color: var(--gray-900);
+              }
+
+              @media (max-width: 1200px) {
+                .report-summary-grid {
+                  grid-template-columns: repeat(3, 1fr);
+                }
+              }
+
+              @media (max-width: 900px) {
+                .report-summary-grid {
+                  grid-template-columns: repeat(2, 1fr);
+                }
+                .charts-grid {
+                  grid-template-columns: 1fr;
+                }
+                .chart-container.large {
+                  grid-column: span 1;
+                }
+                .insights-grid {
+                  grid-template-columns: 1fr;
+                }
+                .report-type-tabs {
+                  flex-wrap: wrap;
+                }
+              }
+
+              @media (max-width: 600px) {
+                .report-summary-grid {
+                  grid-template-columns: 1fr;
+                }
+                .custom-date-range {
+                  flex-direction: column;
+                  align-items: stretch;
+                }
+              }
+            `}</style>
           </div>
         </div>
-
-        {reportData && (
-          <>
-            {/* Summary Cards */}
-            <div className="report-summary-grid">
-              <div className="report-card total">
-                <div className="card-icon"><FaUsers /></div>
-                <div className="card-content">
-                  <span className="card-number">{reportData.summary.total_appointments}</span>
-                  <span className="card-label">Total Appointments</span>
-                </div>
-              </div>
-              <div className="report-card success">
-                <div className="card-icon"><FaCheckCircle /></div>
-                <div className="card-content">
-                  <span className="card-number">{reportData.summary.completed}</span>
-                  <span className="card-label">Completed</span>
-                </div>
-              </div>
-              <div className="report-card info">
-                <div className="card-icon"><FaTrophy /></div>
-                <div className="card-content">
-                  <span className="card-number">{reportData.summary.completion_rate}%</span>
-                  <span className="card-label">Completion Rate</span>
-                </div>
-              </div>
-              <div className="report-card warning">
-                <div className="card-icon"><FaClock /></div>
-                <div className="card-content">
-                  <span className="card-number">{reportData.summary.pending}</span>
-                  <span className="card-label">Pending</span>
-                </div>
-              </div>
-              <div className="report-card danger">
-                <div className="card-icon"><FaTimesCircle /></div>
-                <div className="card-content">
-                  <span className="card-number">{reportData.summary.rejected}</span>
-                  <span className="card-label">Rejected</span>
-                </div>
-              </div>
-              <div className="report-card purple">
-                <div className="card-icon"><FaRedo /></div>
-                <div className="card-content">
-                  <span className="card-number">{reportData.summary.rescheduled}</span>
-                  <span className="card-label">Rescheduled</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Charts Section */}
-            <div className="charts-grid">
-              {/* Daily Trend Chart */}
-              <div className="chart-container large">
-                <h3><FaChartLine /> Appointment Trends</h3>
-                <ResponsiveContainer width="100%" height={300}>
-                  <AreaChart data={reportData.daily_breakdown}>
-                    <defs>
-                      <linearGradient id="colorCompleted" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#10b981" stopOpacity={0.8}/>
-                        <stop offset="95%" stopColor="#10b981" stopOpacity={0.1}/>
-                      </linearGradient>
-                      <linearGradient id="colorApproved" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.8}/>
-                        <stop offset="95%" stopColor="#3b82f6" stopOpacity={0.1}/>
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                    <XAxis dataKey="date" tick={{ fontSize: 12 }} />
-                    <YAxis tick={{ fontSize: 12 }} />
-                    <Tooltip 
-                      contentStyle={{ 
-                        background: 'white', 
-                        border: 'none', 
-                        borderRadius: '10px', 
-                        boxShadow: '0 4px 12px rgba(0,0,0,0.15)' 
-                      }} 
-                    />
-                    <Legend />
-                    <Area type="monotone" dataKey="completed" stroke="#10b981" fillOpacity={1} fill="url(#colorCompleted)" name="Completed" />
-                    <Area type="monotone" dataKey="approved" stroke="#3b82f6" fillOpacity={1} fill="url(#colorApproved)" name="Approved" />
-                    <Line type="monotone" dataKey="pending" stroke="#f59e0b" strokeWidth={2} name="Pending" />
-                    <Line type="monotone" dataKey="rejected" stroke="#ef4444" strokeWidth={2} name="Rejected" />
-                  </AreaChart>
-                </ResponsiveContainer>
-              </div>
-
-              {/* Status Distribution Pie Chart */}
-              <div className="chart-container">
-                <h3><FaChartPie /> Status Distribution</h3>
-                <ResponsiveContainer width="100%" height={300}>
-                  <PieChart>
-                    <Pie
-                      data={reportData.status_distribution}
-                      cx="50%"
-                      cy="50%"
-                      innerRadius={60}
-                      outerRadius={100}
-                      paddingAngle={5}
-                      dataKey="value"
-                      label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                    >
-                      {reportData.status_distribution.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.color} />
-                      ))}
-                    </Pie>
-                    <Tooltip />
-                  </PieChart>
-                </ResponsiveContainer>
-              </div>
-
-              {/* Hourly Distribution Bar Chart */}
-              <div className="chart-container">
-                <h3><FaChartBar /> Peak Hours</h3>
-                <ResponsiveContainer width="100%" height={300}>
-                  <BarChart data={reportData.hourly_distribution}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                    <XAxis dataKey="hour" tick={{ fontSize: 12 }} />
-                    <YAxis tick={{ fontSize: 12 }} />
-                    <Tooltip 
-                      contentStyle={{ 
-                        background: 'white', 
-                        border: 'none', 
-                        borderRadius: '10px', 
-                        boxShadow: '0 4px 12px rgba(0,0,0,0.15)' 
-                      }} 
-                    />
-                    <Bar dataKey="appointments" fill="url(#barGradient)" radius={[8, 8, 0, 0]}>
-                      <defs>
-                        <linearGradient id="barGradient" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="0%" stopColor="#667eea" />
-                          <stop offset="100%" stopColor="#764ba2" />
-                        </linearGradient>
-                      </defs>
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-
-              {/* Status Comparison Bar Chart */}
-              <div className="chart-container large">
-                <h3><FaChartBar /> Daily Status Breakdown</h3>
-                <ResponsiveContainer width="100%" height={300}>
-                  <BarChart data={reportData.daily_breakdown.slice(-14)}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                    <XAxis dataKey="date" tick={{ fontSize: 11 }} />
-                    <YAxis tick={{ fontSize: 12 }} />
-                    <Tooltip 
-                      contentStyle={{ 
-                        background: 'white', 
-                        border: 'none', 
-                        borderRadius: '10px', 
-                        boxShadow: '0 4px 12px rgba(0,0,0,0.15)' 
-                      }} 
-                    />
-                    <Legend />
-                    <Bar dataKey="completed" stackId="a" fill="#10b981" name="Completed" />
-                    <Bar dataKey="approved" stackId="a" fill="#3b82f6" name="Approved" />
-                    <Bar dataKey="pending" stackId="a" fill="#f59e0b" name="Pending" />
-                    <Bar dataKey="rejected" stackId="a" fill="#ef4444" name="Rejected" />
-                    <Bar dataKey="rescheduled" stackId="a" fill="#8b5cf6" name="Rescheduled" radius={[8, 8, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
-
-            {/* Insights Section */}
-            <div className="insights-section">
-              <h3>💡 Key Insights & Recommendations</h3>
-              <div className="insights-grid">
-                <div className="insight-card">
-                  <div className="insight-icon success">📈</div>
-                  <div className="insight-content">
-                    <h4>Completion Rate</h4>
-                    <p>Your completion rate is <strong>{reportData.summary.completion_rate}%</strong>. 
-                    {parseFloat(reportData.summary.completion_rate) >= 70 
-                      ? " Excellent performance! Keep up the good work." 
-                      : " Consider following up on pending appointments."}
-                    </p>
-                  </div>
-                </div>
-                <div className="insight-card">
-                  <div className="insight-icon info">📅</div>
-                  <div className="insight-content">
-                    <h4>Peak Performance</h4>
-                    <p>Highest activity on <strong>{reportData.summary.peak_day?.date}</strong> with {reportData.summary.peak_day?.total} appointments handled.</p>
-                  </div>
-                </div>
-                <div className="insight-card">
-                  <div className="insight-icon warning">⏱️</div>
-                  <div className="insight-content">
-                    <h4>Daily Average</h4>
-                    <p>You handle an average of <strong>{reportData.summary.avg_daily}</strong> appointments per day.</p>
-                  </div>
-                </div>
-                <div className="insight-card">
-                  <div className="insight-icon danger">🔄</div>
-                  <div className="insight-content">
-                    <h4>Reschedule Rate</h4>
-                    <p><strong>{((reportData.summary.rescheduled / reportData.summary.total_appointments) * 100).toFixed(1)}%</strong> of appointments were rescheduled. 
-                    {parseFloat(reportData.summary.rescheduled / reportData.summary.total_appointments * 100) > 15 
-                      ? " Consider reducing reschedules for better visitor experience." 
-                      : " Within acceptable range."}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </>
-        )}
       </div>
-
-      <style jsx="true">{`
-        .download-report-btn {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          padding: 12px 24px;
-          background: linear-gradient(135deg, #667eea, #764ba2);
-          color: white;
-          border: none;
-          border-radius: 10px;
-          font-weight: 600;
-          font-size: 14px;
-          cursor: pointer;
-          transition: all 0.3s;
-          box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
-        }
-
-        .download-report-btn:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 6px 20px rgba(102, 126, 234, 0.5);
-        }
-
-        .report-controls {
-          background: white;
-          border-radius: 16px;
-          padding: 24px;
-          margin-bottom: 24px;
-          box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
-        }
-
-        .report-type-tabs {
-          display: flex;
-          gap: 12px;
-          margin-bottom: 20px;
-        }
-
-        .report-tab {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          padding: 12px 24px;
-          background: var(--gray-100);
-          border: 2px solid transparent;
-          border-radius: 10px;
-          font-weight: 500;
-          cursor: pointer;
-          transition: all 0.2s;
-        }
-
-        .report-tab:hover {
-          background: var(--primary-light);
-          border-color: var(--primary);
-        }
-
-        .report-tab.active {
-          background: var(--primary);
-          color: white;
-          border-color: var(--primary);
-        }
-
-        .date-selectors {
-          display: flex;
-          align-items: center;
-          gap: 16px;
-        }
-
-        .month-picker {
-          padding: 12px 16px;
-          border: 2px solid var(--gray-300);
-          border-radius: 10px;
-          font-size: 14px;
-          cursor: pointer;
-        }
-
-        .month-picker:focus {
-          outline: none;
-          border-color: var(--primary);
-        }
-
-        .custom-date-range {
-          display: flex;
-          align-items: center;
-          gap: 12px;
-        }
-
-        .custom-date-range input {
-          padding: 12px 16px;
-          border: 2px solid var(--gray-300);
-          border-radius: 10px;
-          font-size: 14px;
-        }
-
-        .custom-date-range span {
-          color: var(--gray-500);
-          font-weight: 500;
-        }
-
-        .report-summary-grid {
-          display: grid;
-          grid-template-columns: repeat(6, 1fr);
-          gap: 16px;
-          margin-bottom: 24px;
-        }
-
-        .report-card {
-          background: white;
-          border-radius: 16px;
-          padding: 20px;
-          display: flex;
-          align-items: center;
-          gap: 16px;
-          box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
-          transition: all 0.3s;
-        }
-
-        .report-card:hover {
-          transform: translateY(-4px);
-          box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
-        }
-
-        .report-card .card-icon {
-          width: 50px;
-          height: 50px;
-          border-radius: 12px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-size: 24px;
-          color: white;
-        }
-
-        .report-card.total .card-icon { background: linear-gradient(135deg, #667eea, #764ba2); }
-        .report-card.success .card-icon { background: linear-gradient(135deg, #10b981, #059669); }
-        .report-card.info .card-icon { background: linear-gradient(135deg, #3b82f6, #2563eb); }
-        .report-card.warning .card-icon { background: linear-gradient(135deg, #f59e0b, #d97706); }
-        .report-card.danger .card-icon { background: linear-gradient(135deg, #ef4444, #dc2626); }
-        .report-card.purple .card-icon { background: linear-gradient(135deg, #8b5cf6, #7c3aed); }
-
-        .card-content {
-          display: flex;
-          flex-direction: column;
-        }
-
-        .card-number {
-          font-size: 24px;
-          font-weight: 700;
-          color: var(--gray-900);
-        }
-
-        .card-label {
-          font-size: 12px;
-          color: var(--gray-500);
-          margin-top: 2px;
-        }
-
-        .charts-grid {
-          display: grid;
-          grid-template-columns: repeat(2, 1fr);
-          gap: 24px;
-          margin-bottom: 24px;
-        }
-
-        .chart-container {
-          background: white;
-          border-radius: 16px;
-          padding: 24px;
-          box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
-        }
-
-        .chart-container.large {
-          grid-column: span 2;
-        }
-
-        .chart-container h3 {
-          display: flex;
-          align-items: center;
-          gap: 10px;
-          font-size: 16px;
-          color: var(--gray-900);
-          margin-bottom: 20px;
-          padding-bottom: 12px;
-          border-bottom: 2px solid var(--gray-100);
-        }
-
-        .chart-container h3 svg {
-          color: var(--primary);
-        }
-
-        .insights-section {
-          background: white;
-          border-radius: 16px;
-          padding: 24px;
-          box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
-        }
-
-        .insights-section h3 {
-          font-size: 18px;
-          color: var(--gray-900);
-          margin-bottom: 20px;
-        }
-
-        .insights-grid {
-          display: grid;
-          grid-template-columns: repeat(2, 1fr);
-          gap: 16px;
-        }
-
-        .insight-card {
-          display: flex;
-          gap: 16px;
-          padding: 20px;
-          background: linear-gradient(135deg, #f8f9ff, #f0f4ff);
-          border-radius: 12px;
-          border: 1px solid var(--gray-200);
-        }
-
-        .insight-icon {
-          width: 48px;
-          height: 48px;
-          border-radius: 12px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-size: 24px;
-          flex-shrink: 0;
-        }
-
-        .insight-icon.success { background: #d1fae5; }
-        .insight-icon.info { background: #dbeafe; }
-        .insight-icon.warning { background: #fef3c7; }
-        .insight-icon.danger { background: #fee2e2; }
-
-        .insight-content h4 {
-          font-size: 14px;
-          color: var(--gray-900);
-          margin-bottom: 6px;
-        }
-
-        .insight-content p {
-          font-size: 13px;
-          color: var(--gray-600);
-          line-height: 1.5;
-        }
-
-        .insight-content strong {
-          color: var(--gray-900);
-        }
-
-        @media (max-width: 1200px) {
-          .report-summary-grid {
-            grid-template-columns: repeat(3, 1fr);
-          }
-        }
-
-        @media (max-width: 900px) {
-          .report-summary-grid {
-            grid-template-columns: repeat(2, 1fr);
-          }
-          .charts-grid {
-            grid-template-columns: 1fr;
-          }
-          .chart-container.large {
-            grid-column: span 1;
-          }
-          .insights-grid {
-            grid-template-columns: 1fr;
-          }
-          .report-type-tabs {
-            flex-wrap: wrap;
-          }
-        }
-
-        @media (max-width: 600px) {
-          .report-summary-grid {
-            grid-template-columns: 1fr;
-          }
-          .custom-date-range {
-            flex-direction: column;
-            align-items: stretch;
-          }
-        }
-      `}</style>
-    </div>
-    </div>
-    </div>
     </>
-
   );
 };
 
