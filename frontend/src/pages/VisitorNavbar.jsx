@@ -86,6 +86,7 @@ const handleNotificationClick = async () => {
 
 const handleLogout = () => {
     // Clear all session/local storage data
+    localStorage.clear();
     localStorage.removeItem("token");
     localStorage.removeItem("user_id");
     localStorage.removeItem("username");

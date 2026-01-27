@@ -10,6 +10,7 @@ CREATE TABLE m_state (
     updated_date TIMESTAMP DEFAULT NULL,
     update_ip VARCHAR(50) DEFAULT NULL,
     update_by VARCHAR(100) DEFAULT NULL
+	
 );
 
 CREATE TABLE m_division (
@@ -170,51 +171,27 @@ WHERE organization_id = 'ORG016';
 
 ----------------------------------------
 -- get organization function working:
-CREATE OR REPLACE FUNCTION public.get_organizations(
-    p_state_code     VARCHAR,
-    p_division_code  VARCHAR,
-    p_district_code  VARCHAR DEFAULT NULL,
-    p_taluka_code    VARCHAR DEFAULT NULL
-)
-RETURNS TABLE (
-    organization_id   VARCHAR,
+
+CREATE OR REPLACE FUNCTION public.get_organizations()
+RETURNS TABLE(
+    organization_id VARCHAR,
     organization_name TEXT
 )
 LANGUAGE sql
 AS $function$
-    SELECT
-        t.organization_id,
-        t.organization_name
-    FROM (
-        SELECT DISTINCT
-            o.organization_id,
-            o.organization_name::TEXT AS organization_name
-        FROM
-            m_organization o
-        JOIN
-            m_organization_location l
-              ON l.organization_id = o.organization_id
-        WHERE
-            o.is_active = TRUE
-            AND l.is_active = TRUE
-            AND l.state_code = p_state_code
-            AND l.division_code = p_division_code
-            AND (p_district_code IS NULL OR l.district_code = p_district_code)
-            AND (p_taluka_code IS NULL OR l.taluka_code = p_taluka_code)
-    ) t
-    ORDER BY
-        t.organization_name;
+  SELECT 
+      organization_id,
+      organization_name::TEXT
+  FROM 
+      m_organization
+  WHERE 
+      is_active = TRUE
+  ORDER BY 
+      organization_name;
 $function$;
 
-SELECT * 
-FROM get_organizations('27', '01');
-
-SELECT * 
-FROM get_organizations('27', '01','482');
-
-
-
-
+SELECT * FROM get_organizations();
+select * from get_department_by_id('DEP001')
 ------
 
 
@@ -236,6 +213,7 @@ CREATE TABLE m_department (
     FOREIGN KEY (organization_id) REFERENCES m_organization(organization_id),
     FOREIGN KEY (state_code) REFERENCES m_state(state_code)
 );
+
 
 select  * from m_department
 
@@ -574,9 +552,10 @@ CREATE TABLE m_officers (
     FOREIGN KEY (district_code) REFERENCES m_district(district_code),
     FOREIGN KEY (taluka_code) REFERENCES m_taluka(taluka_code)
 );
+select * from  appointments
 
 select * from m_helpdesk;
-
+select * from  m_officers
 drop table m_helpdesk;
 	
 CREATE SEQUENCE m_helpdesk_id_seq START 1 INCREMENT 1;
@@ -722,6 +701,53 @@ CREATE TABLE appointments (
 );
 select * from appointments;
 
+ALTER TABLE appointments
+ALTER COLUMN department_id DROP NOT NULL;
+
+
+ALTER TABLE appointments
+ALTER COLUMN department_id SET DEFAULT NULL;
+
+
+ALTER TABLE walkins
+ALTER COLUMN department_id DROP NOT NULL;
+
+
+ALTER TABLE walkins
+ALTER COLUMN department_id SET DEFAULT NULL;
+
+
+
+SELECT 
+    column_name,
+    data_type,
+    is_nullable,
+    column_default
+FROM information_schema.columns
+WHERE table_name = 'appointments'
+ORDER BY ordinal_position;
+
+
+SELECT 
+    column_name,
+    data_type,
+    is_nullable,
+    column_default
+FROM information_schema.columns
+WHERE table_name = 'm_helpdesk'
+ORDER BY ordinal_position;
+
+
+SELECT 
+    column_name,
+    data_type,
+    is_nullable,
+    column_default
+FROM information_schema.columns
+WHERE table_name = 'walkins'
+ORDER BY ordinal_position;
+
+
 CREATE SEQUENCE appointment_documents_id_seq START 1 INCREMENT 1;
 
 CREATE TABLE appointment_documents (
@@ -735,6 +761,7 @@ CREATE TABLE appointment_documents (
     FOREIGN KEY (appointment_id) REFERENCES appointments(appointment_id),
     FOREIGN KEY (uploaded_by) REFERENCES m_users(user_id)
 );
+drop table walkins;
 
 CREATE SEQUENCE walkins_id_seq START 1 INCREMENT 1;
 
@@ -772,8 +799,79 @@ CREATE TABLE walkins (
 
 CREATE SEQUENCE walkin_tokens_id_seq START 1 INCREMENT 1;
 
-Alter table walkins Add column time_slot time;
 
+select * from walkins;
+
+-- optional: create a staff view/table combining both
+CREATE VIEW m_staff AS
+SELECT officer_id AS staff_id, full_name FROM m_officers
+UNION
+SELECT helpdesk_id AS staff_id, full_name FROM m_helpdesk;
+
+CREATE TABLE m_staff (
+    staff_id VARCHAR PRIMARY KEY,
+    full_name VARCHAR NOT NULL
+);
+
+-- Populate it from existing officers & helpdesk
+INSERT INTO m_staff(staff_id, full_name)
+SELECT officer_id, full_name FROM m_officers
+UNION
+SELECT helpdesk_id, full_name FROM m_helpdesk;
+
+ALTER TABLE walkins
+ADD CONSTRAINT walkins_officer_id_fkey FOREIGN KEY (officer_id)
+REFERENCES m_staff(staff_id);
+
+
+-- then officer_id FK points to m_staff.staff_id
+ALTER TABLE walkins
+DROP CONSTRAINT walkins_officer_id_fkey;
+
+ALTER TABLE walkins
+ADD CONSTRAINT walkins_officer_id_fkey FOREIGN KEY (officer_id)
+REFERENCES m_staff(staff_id);
+
+
+
+ALTER TABLE walkins
+ADD COLUMN slot_time TIME NOT NULL DEFAULT '00:00';
+
+ALTER TABLE walkins
+ADD COLUMN service_id VARCHAR(10) NOT NULL;
+
+ALTER TABLE walkins
+ADD CONSTRAINT fk_walkins_service
+FOREIGN KEY (service_id)
+REFERENCES m_services(service_id);
+
+ALTER TABLE walkins
+ADD COLUMN visitor_id VARCHAR(20);
+
+ALTER TABLE walkins
+ADD CONSTRAINT fk_walkins_visitor
+FOREIGN KEY (visitor_id)
+REFERENCES m_visitors_signup(visitor_id)
+ON DELETE SET NULL;
+
+ALTER TABLE walkins
+ADD COLUMN helpdesk_id VARCHAR;
+
+ALTER TABLE walkins
+ADD CONSTRAINT walkins_helpdesk_id_fkey
+FOREIGN KEY (helpdesk_id)
+REFERENCES m_helpdesk(helpdesk_id);
+
+
+ALTER TABLE walkins
+DROP COLUMN id_proof_type,
+DROP COLUMN id_proof_no;
+
+
+
+
+
+select * from walkins;
 CREATE TABLE walkin_tokens (
     token_id VARCHAR(20) PRIMARY KEY DEFAULT ('T' || LPAD(nextval('walkin_tokens_id_seq')::TEXT, 5, '0')),
     walkin_id VARCHAR(20) NOT NULL,
@@ -851,6 +949,7 @@ CREATE TABLE feedback (
     FOREIGN KEY (appointment_id) REFERENCES appointments(appointment_id),
     FOREIGN KEY (walkin_id) REFERENCES walkins(walkin_id)
 );
+select * from notifications
 
 CREATE SEQUENCE notifications_id_seq START 1 INCREMENT 1;
 
@@ -866,12 +965,30 @@ CREATE TABLE notifications (
     FOREIGN KEY (username) REFERENCES m_users(username),
 	FOREIGN KEY (appointment_id) REFERENCES appointments(appointment_id)
 );
+ALTER TABLE notifications
+DROP CONSTRAINT notifications_appointment_id_fkey;
+
+ALTER TABLE notifications
+ADD COLUMN source_type VARCHAR(20) NOT NULL CHECK (source_type IN ('APPOINTMENT','WALKIN'));
+
+ALTER TABLE notifications
+ADD COLUMN walkin_id VARCHAR(20);
+
+ALTER TABLE notifications
+ADD CONSTRAINT notifications_appointment_fkey
+FOREIGN KEY (appointment_id) REFERENCES appointments(appointment_id);
+
+ALTER TABLE notifications
+ADD CONSTRAINT notifications_walkin_fkey
+FOREIGN KEY (walkin_id) REFERENCES walkins(walkin_id);
+
+
 
 ALTER TABLE notifications RENAME user_name to username;
 
 DROP table notifications
 
-select * from m_users
+select * from appointments
 
 ---Functions:
 CREATE OR REPLACE FUNCTION get_designations()
@@ -1079,255 +1196,30 @@ BEGIN
 END;
 $$;
 
-CREATE OR REPLACE FUNCTION insert_organization_data(
-    p_organization_name TEXT,
-    p_organization_name_ll TEXT,
-    p_state_code TEXT,
-    p_departments JSON
-)
-RETURNS JSON AS
-$$
-DECLARE
-    v_organization_id VARCHAR(10);
-    v_department_id VARCHAR(10);
-    dept_obj JSON;
-    service_obj JSON;
-BEGIN
-    INSERT INTO m_organization(
-        organization_name, organization_name_ll, state_code
-    ) VALUES (
-        p_organization_name, p_organization_name_ll, p_state_code
-    )
-    RETURNING organization_id INTO v_organization_id;
+select * from appointments 
 
-    IF p_departments IS NULL OR json_array_length(p_departments) = 0 THEN
-        RETURN json_build_object('success', TRUE, 'organization_id', v_organization_id);
-    END IF;
-
-    FOR dept_obj IN SELECT * FROM json_array_elements(p_departments)
-    LOOP
-        INSERT INTO m_department(
-            organization_id, department_name, department_name_ll, state_code
-        ) VALUES (
-            v_organization_id,
-            dept_obj->>'dept_name',
-            dept_obj->>'dept_name_ll',
-            p_state_code
-        ) RETURNING department_id INTO v_department_id;
-
-        IF dept_obj->'services' IS NULL
-           OR json_typeof(dept_obj->'services') <> 'array'
-           OR json_array_length(dept_obj->'services') = 0 THEN
-            CONTINUE;
-        END IF;
-
-        FOR service_obj IN SELECT * FROM json_array_elements(dept_obj->'services')
-        LOOP
-            INSERT INTO m_services(
-                organization_id, department_id, service_name, service_name_ll, state_code
-            ) VALUES (
-                v_organization_id,
-                v_department_id,
-                service_obj->>'name',
-                service_obj->>'name_ll',
-                p_state_code
-            );
-        END LOOP;
-    END LOOP;
-
-    RETURN json_build_object(
-        'success', TRUE,
-        'organization_id', v_organization_id
-    );
-END;
-$$ LANGUAGE plpgsql;
-select * from appointments
--- 1st------
+--main:
+-- CREATE EXTENSION IF NOT EXISTS pgcrypto;
 CREATE OR REPLACE FUNCTION insert_appointment(
+    /* 🔗 Mandatory references */
     p_visitor_id VARCHAR,
     p_organization_id VARCHAR,
-    p_department_id VARCHAR,
     p_officer_id VARCHAR,
     p_service_id VARCHAR,
     p_purpose TEXT,
     p_appointment_date DATE,
     p_slot_time TIME,
-    p_insert_by VARCHAR,
-    p_insert_ip VARCHAR
-)
-RETURNS VARCHAR AS $$
-DECLARE
-    appointment_id VARCHAR;
-    officer_name VARCHAR;
-    visitor_username VARCHAR;
-BEGIN
-    -- 1️⃣ Insert appointment
-    INSERT INTO appointments(
-        visitor_id,
-        organization_id,
-        department_id,
-        officer_id,
-        service_id,
-        purpose,
-        appointment_date,
-        slot_time,
-        insert_by,
-        insert_ip
-    )
-    VALUES (
-        p_visitor_id,
-        p_organization_id,
-        p_department_id,
-        COALESCE(p_officer_id, 'HELPDESK'),
-        p_service_id,
-        p_purpose,
-        p_appointment_date,
-        p_slot_time,
-        p_insert_by,
-        p_insert_ip
-    )
-    RETURNING appointments.appointment_id INTO appointment_id; -- ✅ table name prefix
 
-    -- 2️⃣ Get officer name for notification
-    SELECT full_name INTO officer_name
-    FROM m_officers
-    WHERE officer_id = p_officer_id;
+    /* 📍 Location (state mandatory) */
+    p_state_code VARCHAR,
 
-    -- 3️⃣ Get visitor username for notification
-    SELECT u.username INTO visitor_username
-    FROM m_visitors_signup vs
-    JOIN m_users u ON u.user_id = vs.user_id
-    WHERE vs.visitor_id = p_visitor_id;
-
-    -- 4️⃣ Insert notification
-   INSERT INTO notifications(
-    username,
-    appointment_id,
-    title,
-    message,
-    type
-)
-VALUES (
-    visitor_username,
-    appointment_id,
-    'Appointment Created',
-    'Your appointment ' || appointment_id ||
-    ' is created and pending approval from ' ||
-    COALESCE(officer_name, 'Helpdesk'),
-    'info'
-);
-
-    -- 5️⃣ Return the appointment ID
-    RETURN appointment_id;
-END;
-$$ LANGUAGE plpgsql;
-
-
-
--- demo
-CREATE OR REPLACE FUNCTION insert_appointment(
-    p_visitor_id VARCHAR,
-    p_organization_id VARCHAR,
-    p_department_id VARCHAR,
-    p_officer_id VARCHAR,
-    p_service_id VARCHAR,
-    p_purpose TEXT,
-    p_appointment_date DATE,
-    p_slot_time TIME,
-    p_insert_by VARCHAR,
-    p_insert_ip VARCHAR
-)
-RETURNS VARCHAR AS $$
-DECLARE
-    appointment_id VARCHAR;
-    officer_name VARCHAR;
-    visitor_username VARCHAR;
-    final_officer_id VARCHAR;
-BEGIN
-    -- 🔹 0️⃣ Decide final officer (Helpdesk fallback)
-    final_officer_id := COALESCE(p_officer_id, 'HELPDESK');
-
-    -- 🔹 1️⃣ Insert appointment (officer_id never NULL)
-    INSERT INTO appointments(
-        visitor_id,
-        organization_id,
-        department_id,
-        officer_id,
-        service_id,
-        purpose,
-        appointment_date,
-        slot_time,
-        insert_by,
-        insert_ip
-    )
-    VALUES (
-        p_visitor_id,
-        p_organization_id,
-        p_department_id,
-        final_officer_id,
-        p_service_id,
-        p_purpose,
-        p_appointment_date,
-        p_slot_time,
-        p_insert_by,
-        p_insert_ip
-    )
-    RETURNING appointments.appointment_id INTO appointment_id;
-
-    -- 🔹 2️⃣ Get officer name (safe for Helpdesk)
-    SELECT full_name
-    INTO officer_name
-    FROM m_officers
-    WHERE officer_id = final_officer_id;
-
-    -- 🔹 3️⃣ Fallback if officer record does not exist
-    officer_name := COALESCE(officer_name, 'Helpdesk');
-
-    -- 🔹 4️⃣ Get visitor username
-    SELECT u.username
-    INTO visitor_username
-    FROM m_visitors_signup vs
-    JOIN m_users u ON u.user_id = vs.user_id
-    WHERE vs.visitor_id = p_visitor_id;
-
-    -- 🔹 5️⃣ Insert notification (never NULL message)
-    INSERT INTO notifications(
-        username,
-        appointment_id,
-        title,
-        message,
-        type
-    )
-    VALUES (
-        visitor_username,
-        appointment_id,
-        'Appointment Created',
-        'Your appointment ' || appointment_id ||
-        ' is created and pending approval from ' || officer_name,
-        'info'
-    );
-
-    -- 🔹 6️⃣ Return appointment ID
-    RETURN appointment_id;
-END;
-$$ LANGUAGE plpgsql;
-
-
-select * from insert_appointment();
-
-select * from get_appointment_details1('APT044');
--- demo2:
-CREATE OR REPLACE FUNCTION insert_appointment(
-    p_visitor_id VARCHAR,
-    p_organization_id VARCHAR,
-    p_department_id VARCHAR,
-    p_officer_id VARCHAR,
-    p_service_id VARCHAR,
-    p_purpose TEXT,
-    p_appointment_date DATE,
-    p_slot_time TIME,
-    p_insert_by VARCHAR,
-    p_insert_ip VARCHAR
+    /* 🔽 OPTIONAL PARAMETERS (DEFAULT NULL) */
+    p_department_id VARCHAR DEFAULT NULL,
+    p_division_code VARCHAR DEFAULT NULL,
+    p_district_code VARCHAR DEFAULT NULL,
+    p_taluka_code VARCHAR DEFAULT NULL,
+    p_insert_by VARCHAR DEFAULT NULL,
+    p_insert_ip VARCHAR DEFAULT NULL
 )
 RETURNS VARCHAR
 LANGUAGE plpgsql
@@ -1336,8 +1228,13 @@ DECLARE
     v_appointment_id VARCHAR;
     v_officer_name VARCHAR;
     v_visitor_username VARCHAR;
+    v_qr_token VARCHAR;
+    v_qr_url TEXT;
 BEGIN
-    -- 1️⃣ Insert appointment
+    /* 🔐 Generate QR token */
+    v_qr_token := encode(gen_random_bytes(16), 'hex');
+
+    /* 1️⃣ Insert appointment */
     INSERT INTO appointments(
         visitor_id,
         organization_id,
@@ -1347,329 +1244,49 @@ BEGIN
         purpose,
         appointment_date,
         slot_time,
+        state_code,
+        division_code,
+        district_code,
+        taluka_code,
         insert_by,
         insert_ip
     )
     VALUES (
         p_visitor_id,
         p_organization_id,
-        p_department_id,
-        COALESCE(p_officer_id, 'HELPDESK'),
-        p_service_id,
-        p_purpose,
-        p_appointment_date,
-        p_slot_time,
-        p_insert_by,
-        p_insert_ip
-    )
-    RETURNING appointment_id INTO v_appointment_id;
-
-    -- 2️⃣ Get officer OR helpdesk full_name
-    SELECT full_name
-    INTO v_officer_name
-    FROM (
-        SELECT full_name
-        FROM m_officers
-        WHERE officer_id = p_officer_id
-
-        UNION ALL
-
-        SELECT full_name
-        FROM m_helpdesk
-        WHERE helpdesk_id = p_officer_id
-    ) t
-    LIMIT 1;
-
-    -- 3️⃣ Safe fallback
-    v_officer_name := COALESCE(v_officer_name, 'Helpdesk');
-
-    -- 4️⃣ Get visitor username
-    SELECT u.username
-    INTO v_visitor_username
-    FROM m_visitors_signup vs
-    JOIN m_users u ON u.user_id = vs.user_id
-    WHERE vs.visitor_id = p_visitor_id;
-
-    -- 5️⃣ Insert notification
-    INSERT INTO notifications(
-        username,
-        appointment_id,
-        title,
-        message,
-        type
-    )
-    VALUES (
-        v_visitor_username,
-        v_appointment_id,
-        'Appointment Created',
-        'Your appointment ' || v_appointment_id ||
-        ' is created and pending approval from ' || v_officer_name,
-        'info'
-    );
-
-    -- 6️⃣ Return appointment ID
-    RETURN v_appointment_id;
-END;
-$$;
-select * from m_visitors_signup;
-select * from appointments
-
--- demo3:
-
-CREATE OR REPLACE FUNCTION insert_appointment(
-    p_visitor_id VARCHAR,
-    p_organization_id VARCHAR,
-    p_department_id VARCHAR,
-    p_officer_id VARCHAR,
-    p_service_id VARCHAR,
-    p_purpose TEXT,
-    p_appointment_date DATE,
-    p_slot_time TIME,
-    p_insert_by VARCHAR,
-    p_insert_ip VARCHAR
-)
-RETURNS VARCHAR AS $$
-DECLARE
-    appointment_id VARCHAR;
-    officer_name VARCHAR;
-    visitor_username VARCHAR;
-    final_officer_id VARCHAR;
-BEGIN
-    -- ✅ 1️⃣ Decide officer or helpdesk (REAL ID)
-    IF p_officer_id IS NULL THEN
-        SELECT helpdesk_id
-        INTO final_officer_id
-        FROM m_helpdesk
-        WHERE is_active = TRUE
-        ORDER BY helpdesk_id
-        LIMIT 1;   -- default helpdesk
-    ELSE
-        final_officer_id := p_officer_id;
-    END IF;
-
-    -- ✅ 2️⃣ Insert appointment
-    INSERT INTO appointments(
-        visitor_id,
-        organization_id,
-        department_id,
-        officer_id,
-        service_id,
-        purpose,
-        appointment_date,
-        slot_time,
-        insert_by,
-        insert_ip
-    )
-    VALUES (
-        p_visitor_id,
-        p_organization_id,
-        p_department_id,
-        final_officer_id,
-        p_service_id,
-        p_purpose,
-        p_appointment_date,
-        p_slot_time,
-        p_insert_by,
-        p_insert_ip
-    )
-    RETURNING appointments.appointment_id INTO appointment_id;
-
-    -- ✅ 3️⃣ Officer / Helpdesk name
-    SELECT COALESCE(o.full_name, h.full_name)
-    INTO officer_name
-    FROM m_helpdesk h
-    FULL JOIN m_officers o
-        ON o.officer_id = final_officer_id
-    WHERE h.helpdesk_id = final_officer_id
-       OR o.officer_id = final_officer_id;
-
-    officer_name := COALESCE(officer_name, 'Helpdesk');
-
-    -- ✅ 4️⃣ Visitor username
-    SELECT u.username
-    INTO visitor_username
-    FROM m_visitors_signup vs
-    JOIN m_users u ON u.user_id = vs.user_id
-    WHERE vs.visitor_id = p_visitor_id;
-
-    -- ✅ 5️⃣ Notification
-    INSERT INTO notifications(
-        username,
-        appointment_id,
-        title,
-        message,
-        type
-    )
-    VALUES (
-        visitor_username,
-        appointment_id,
-        'Appointment Created',
-        'Your appointment ' || appointment_id ||
-        ' is created and pending approval from ' || officer_name,
-        'info'
-    );
-
-    -- ✅ 6️⃣ Return
-    RETURN appointment_id;
-END;
-$$ LANGUAGE plpgsql;
--- demo4:
-CREATE OR REPLACE FUNCTION insert_appointment(
-    p_visitor_id VARCHAR,
-    p_organization_id VARCHAR,
-    p_department_id VARCHAR,
-    p_officer_id VARCHAR,
-    p_service_id VARCHAR,
-    p_purpose TEXT,
-    p_appointment_date DATE,
-    p_slot_time TIME,
-    p_insert_by VARCHAR,
-    p_insert_ip VARCHAR
-)
-RETURNS VARCHAR AS $$
-DECLARE
-    appointment_id VARCHAR;
-    officer_name VARCHAR;
-    visitor_username VARCHAR;
-    final_officer_id VARCHAR;
-BEGIN
-    -- 1️⃣ Decide officer / helpdesk (REAL ID)
-    IF p_officer_id IS NULL THEN
-        SELECT helpdesk_id
-        INTO final_officer_id
-        FROM m_helpdesk
-        WHERE is_active = TRUE
-        ORDER BY helpdesk_id
-        LIMIT 1;
-    ELSE
-        final_officer_id := p_officer_id;
-    END IF;
-
-    -- 2️⃣ Insert appointment
-    INSERT INTO appointments(
-        visitor_id,
-        organization_id,
-        department_id,
-        officer_id,
-        service_id,
-        purpose,
-        appointment_date,
-        slot_time,
-        insert_by,
-        insert_ip
-    )
-    VALUES (
-        p_visitor_id,
-        p_organization_id,
-        p_department_id,
-        final_officer_id,
-        p_service_id,
-        p_purpose,
-        p_appointment_date,
-        p_slot_time,
-        p_insert_by,
-        p_insert_ip
-    )
-    RETURNING appointments.appointment_id INTO appointment_id;
-
-    -- 3️⃣ Officer name lookup
-    SELECT full_name
-    INTO officer_name
-    FROM m_officers
-    WHERE officer_id = final_officer_id;
-
-    -- 4️⃣ Helpdesk fallback
-    IF officer_name IS NULL THEN
-        SELECT full_name
-        INTO officer_name
-        FROM m_helpdesk
-        WHERE helpdesk_id = final_officer_id;
-    END IF;
-
-    officer_name := COALESCE(officer_name, 'Helpdesk');
-
-    -- 5️⃣ Visitor username
-    SELECT u.username
-    INTO visitor_username
-    FROM m_visitors_signup vs
-    JOIN m_users u ON u.user_id = vs.user_id
-    WHERE vs.visitor_id = p_visitor_id;
-
-    -- 6️⃣ Notification
-    INSERT INTO notifications(
-        username,
-        appointment_id,
-        title,
-        message,
-        type
-    )
-    VALUES (
-        visitor_username,
-        appointment_id,
-        'Appointment Created',
-        'Your appointment ' || appointment_id ||
-        ' is created and pending approval from ' || officer_name,
-        'info'
-    );
-
-    RETURN appointment_id;
-END;
-$$ LANGUAGE plpgsql;
--- demo 5 working current in use
-CREATE OR REPLACE FUNCTION insert_appointment(
-    p_visitor_id VARCHAR,
-    p_organization_id VARCHAR,
-    p_department_id VARCHAR,
-    p_officer_id VARCHAR,   -- can be officer_id OR helpdesk_id
-    p_service_id VARCHAR,
-    p_purpose TEXT,
-    p_appointment_date DATE,
-    p_slot_time TIME,
-    p_insert_by VARCHAR,
-    p_insert_ip VARCHAR
-)
-RETURNS VARCHAR
-LANGUAGE plpgsql
-AS $$
-DECLARE
-    v_appointment_id VARCHAR;
-    v_officer_name VARCHAR;
-    v_visitor_username VARCHAR;
-BEGIN
-    -- 1️⃣ Insert appointment (officer_id must be provided)
-    INSERT INTO appointments(
-        visitor_id,
-        organization_id,
-        department_id,
-        officer_id,
-        service_id,
-        purpose,
-        appointment_date,
-        slot_time,
-        insert_by,
-        insert_ip
-    )
-    VALUES (
-        p_visitor_id,
-        p_organization_id,
-        p_department_id,
+        p_department_id,   -- ✅ now optional
         p_officer_id,
         p_service_id,
         p_purpose,
         p_appointment_date,
         p_slot_time,
+        p_state_code,
+        p_division_code,
+        p_district_code,
+        p_taluka_code,
         p_insert_by,
         p_insert_ip
     )
     RETURNING appointment_id INTO v_appointment_id;
 
-    -- 2️⃣ Try getting officer name
+    /* 2️⃣ Build QR URL */
+    v_qr_url :=
+        'http://localhost:3000/qr-checkin/' ||
+        v_appointment_id ||
+        '?token=' ||
+        v_qr_token;
+
+    /* 3️⃣ Update QR path */
+    UPDATE appointments
+    SET qr_code_path = v_qr_url
+    WHERE appointment_id = v_appointment_id;
+
+    /* 4️⃣ Officer name */
     SELECT full_name
     INTO v_officer_name
     FROM m_officers
     WHERE officer_id = p_officer_id;
 
-    -- 3️⃣ If not officer, try helpdesk
     IF v_officer_name IS NULL THEN
         SELECT full_name
         INTO v_officer_name
@@ -1677,14 +1294,14 @@ BEGIN
         WHERE helpdesk_id = p_officer_id;
     END IF;
 
-    -- 4️⃣ Visitor username
+    /* 5️⃣ Visitor username */
     SELECT u.username
     INTO v_visitor_username
     FROM m_visitors_signup vs
     JOIN m_users u ON u.user_id = vs.user_id
     WHERE vs.visitor_id = p_visitor_id;
 
-    -- 5️⃣ Insert notification
+    /* 6️⃣ Notification */
     INSERT INTO notifications(
         username,
         appointment_id,
@@ -1697,13 +1314,14 @@ BEGIN
         v_appointment_id,
         'Appointment Created',
         'Your appointment ' || v_appointment_id ||
-        ' is created and pending approval from ' || v_officer_name,
+        ' is created and pending approval from ' || COALESCE(v_officer_name, 'officer'),
         'info'
     );
 
     RETURN v_appointment_id;
 END;
 $$;
+
 
 -- 
 select * from m_officers;
@@ -1736,7 +1354,8 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-
+select * from get_officers_same_location('27', '01', 'ORG002', '482', null, 'DEP002')
+select * from m_officers
 -- newwwwwwwwww get officers by organization:
 CREATE OR REPLACE FUNCTION get_officers_same_location(
     p_state_code VARCHAR,
@@ -1935,6 +1554,8 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+
+
 ------vistors data
 CREATE OR REPLACE FUNCTION get_visitor_dashboard_by_username(p_username VARCHAR)
 RETURNS JSON
@@ -2018,8 +1639,55 @@ $$;
 SELECT get_visitor_dashboard_by_username('VIS019');
 
 
---------
+------------
+CREATE OR REPLACE FUNCTION insert_multiple_services(p_services jsonb)
+RETURNS jsonb AS $$
+DECLARE
+    item jsonb;
+    v_state_code VARCHAR(2);
+BEGIN
+    FOR item IN SELECT * FROM jsonb_array_elements(p_services)
+    LOOP
+        -- 🔐 Fetch state_code from organization
+        SELECT state_code
+        INTO v_state_code
+        FROM m_organization
+        WHERE organization_id = item->>'organization_id';
 
+        IF v_state_code IS NULL THEN
+            RETURN jsonb_build_object(
+                'status', 'error',
+                'message', 'Invalid organization_id: ' || item->>'organization_id'
+            );
+        END IF;
+
+        INSERT INTO m_services (
+            organization_id,
+            department_id,
+            service_name,
+            service_name_ll,
+            state_code,
+            is_active
+        )
+        VALUES (
+            item->>'organization_id',
+            item->>'department_id',
+            item->>'service_name',
+            item->>'service_name_ll',
+            v_state_code,
+            COALESCE((item->>'is_active')::BOOLEAN, TRUE)
+        );
+    END LOOP;
+
+    RETURN jsonb_build_object(
+        'status', 'success',
+        'message', 'Services inserted successfully'
+    );
+END;
+$$ LANGUAGE plpgsql;
+
+
+---------------
 CREATE OR REPLACE FUNCTION insert_multiple_services(p_services jsonb)
 RETURNS jsonb AS $$
 DECLARE
@@ -2051,6 +1719,44 @@ BEGIN
     );
 END;
 $$ LANGUAGE plpgsql;
+select * from m_services
+
+-- 
+CREATE OR REPLACE FUNCTION update_multiple_services(p_services jsonb)
+RETURNS jsonb AS $$
+DECLARE
+    item jsonb;
+    v_updated INT := 0;
+BEGIN
+    IF p_services IS NULL OR jsonb_array_length(p_services) = 0 THEN
+        RETURN jsonb_build_object(
+            'status', 'failed',
+            'message', 'No services provided'
+        );
+    END IF;
+
+    FOR item IN SELECT * FROM jsonb_array_elements(p_services)
+    LOOP
+        UPDATE m_services
+        SET
+            service_name     = item->>'service_name',
+            service_name_ll  = item->>'service_name_ll',
+            is_active        = COALESCE((item->>'is_active')::BOOLEAN, is_active),
+            updated_date     = NOW()
+        WHERE service_id = item->>'service_id';
+
+        IF FOUND THEN
+            v_updated := v_updated + 1;
+        END IF;
+    END LOOP;
+
+    RETURN jsonb_build_object(
+        'status', 'success',
+        'services_updated', v_updated
+    );
+END;
+$$ LANGUAGE plpgsql;
+
 
 -------------a-----------
 
@@ -2134,7 +1840,213 @@ EXCEPTION
 END;
 $$ LANGUAGE plpgsql;
 
+select * from m_users
 
+CREATE OR REPLACE FUNCTION register_visitor_walkin(
+    p_password_hash VARCHAR,
+    p_full_name VARCHAR,
+    p_gender CHAR(1),
+    p_dob DATE,
+    p_mobile_no VARCHAR,
+    p_email_id VARCHAR DEFAULT NULL,
+    p_state_code VARCHAR DEFAULT NULL,
+    p_division_code VARCHAR DEFAULT NULL,
+    p_district_code VARCHAR DEFAULT NULL,
+    p_taluka_code VARCHAR DEFAULT NULL,
+    p_pincode VARCHAR DEFAULT NULL,
+    p_photo VARCHAR DEFAULT NULL
+)
+RETURNS TABLE(
+    out_user_id VARCHAR,
+    visitor_id VARCHAR,
+    full_name VARCHAR,
+    out_email_id VARCHAR,
+    message VARCHAR
+)
+LANGUAGE plpgsql
+AS $$
+DECLARE
+    v_uid VARCHAR(20);
+    v_visitor_id VARCHAR(20);
+BEGIN
+    /* 1️⃣ Mobile validation */
+    IF EXISTS (
+        SELECT 1 FROM m_visitors_signup
+        WHERE mobile_no = p_mobile_no
+    ) THEN
+        RETURN QUERY
+        SELECT
+            NULL::VARCHAR,
+            NULL::VARCHAR,
+            NULL::VARCHAR,
+            NULL::VARCHAR,
+            'Mobile number already registered'::VARCHAR;
+        RETURN;
+    END IF;
+
+    /* 2️⃣ Email validation only if provided */
+    IF p_email_id IS NOT NULL AND EXISTS (
+        SELECT 1 FROM m_visitors_signup
+        WHERE email_id = p_email_id
+    ) THEN
+        RETURN QUERY
+        SELECT
+            NULL::VARCHAR,
+            NULL::VARCHAR,
+            NULL::VARCHAR,
+            NULL::VARCHAR,
+            'Email already registered'::VARCHAR;
+        RETURN;
+    END IF;
+
+    /* 3️⃣ Insert user */
+    INSERT INTO m_users (
+        username,
+        password_hash,
+        role_code,
+        insert_by,
+        is_first_login
+    )
+    VALUES (
+        'temp_' || p_mobile_no,
+        p_password_hash,
+        'VS',
+        'self',
+        TRUE
+    )
+    RETURNING user_id INTO v_uid;
+
+    /* 4️⃣ Insert visitor (FIXED) */
+    INSERT INTO m_visitors_signup (
+        user_id,
+        full_name,
+        gender,
+        dob,
+        mobile_no,
+        email_id,
+        state_code,
+        division_code,
+        district_code,
+        taluka_code,
+        pincode,
+        photo,
+        insert_by
+    )
+    VALUES (
+        v_uid,
+        p_full_name,
+        p_gender,
+        p_dob,
+        p_mobile_no,
+        p_email_id,
+        p_state_code,
+        p_division_code,
+        p_district_code,
+        p_taluka_code,
+        p_pincode,
+        p_photo,
+        'self'
+    )
+    RETURNING m_visitors_signup.visitor_id INTO v_visitor_id;
+
+    /* 5️⃣ Update username */
+    UPDATE m_users
+    SET username = v_visitor_id
+    WHERE user_id = v_uid;
+
+    /* 6️⃣ Success */
+    RETURN QUERY
+    SELECT
+        v_uid::VARCHAR,
+        v_visitor_id::VARCHAR,
+        p_full_name::VARCHAR,
+        p_email_id::VARCHAR,
+        'Registration successful'::VARCHAR;
+
+EXCEPTION
+    WHEN OTHERS THEN
+        RETURN QUERY
+        SELECT
+            NULL::VARCHAR,
+            NULL::VARCHAR,
+            NULL::VARCHAR,
+            NULL::VARCHAR,
+            ('Registration failed: ' || SQLERRM)::VARCHAR;
+END;
+$$;
+
+
+
+
+select * from walkins;
+
+select * from m_users;
+
+select * from m_visitors_signup;
+
+
+select * from m_officers;
+select * from get_user_by_usernameHelpdesk('HLP003')
+-- helpdesk login function:
+CREATE OR REPLACE FUNCTION get_user_by_usernameHelpdesk(
+    p_login VARCHAR
+)
+RETURNS TABLE(
+    out_user_id VARCHAR,
+    out_username VARCHAR,
+    out_password_hash VARCHAR,
+    out_role_code VARCHAR,
+    out_is_active BOOLEAN,
+    out_organization_id VARCHAR,
+    out_state_code VARCHAR,
+    out_division_code VARCHAR,
+    out_district_code VARCHAR,
+    out_taluka_code VARCHAR
+)
+AS $$
+BEGIN
+    RETURN QUERY
+    SELECT 
+        u.user_id,
+        u.username,
+        u.password_hash,
+        u.role_code,
+        u.is_active,
+
+        -- organization_id (admins removed)
+        COALESCE(
+            o.organization_id,
+            h.organization_id
+        ) AS out_organization_id,
+
+        -- location hierarchy (admins removed)
+        COALESCE(o.state_code, v.state_code, h.state_code) AS out_state_code,
+        COALESCE(o.division_code, v.division_code, h.division_code) AS out_division_code,
+        COALESCE(o.district_code, v.district_code, h.district_code) AS out_district_code,
+        COALESCE(o.taluka_code, v.taluka_code, h.taluka_code) AS out_taluka_code
+
+    FROM m_users u
+    LEFT JOIN m_officers o        ON o.user_id = u.user_id
+    LEFT JOIN m_visitors_signup v ON v.user_id = u.user_id
+    LEFT JOIN m_helpdesk h        ON h.user_id = u.user_id
+
+    WHERE 
+        u.username = p_login
+        OR v.email_id = p_login
+        OR v.mobile_no = p_login
+        OR o.email_id = p_login
+        OR o.mobile_no = p_login
+        OR h.email_id = p_login
+        OR h.mobile_no = p_login;
+END;
+$$ LANGUAGE plpgsql;
+DROP FUNCTION get_user_by_username2(character varying)
+
+select * from get_user_by_username2('khandagalearadhana@gmail.com')
+
+	
+	
+-- 
 CREATE OR REPLACE FUNCTION get_user_by_username2(
     p_login VARCHAR
 )
@@ -2158,10 +2070,59 @@ BEGIN
         u.password_hash,
         u.role_code,
         u.is_active,
-        COALESCE(o.state_code, v.state_code, a.state_code) AS out_state_code,
-        COALESCE(o.division_code, v.division_code, a.division_code) AS out_division_code,
-        COALESCE(o.district_code, v.district_code, a.district_code) AS out_district_code,
-        COALESCE(o.taluka_code, v.taluka_code, a.taluka_code) AS out_taluka_code
+        COALESCE(o.state_code, v.state_code, a.state_code,h.state_code) AS out_state_code,
+        COALESCE(o.division_code, v.division_code, a.division_code,h.division_code) AS out_division_code,
+        COALESCE(o.district_code, v.district_code, a.district_code,h.district_code) AS out_district_code,
+        COALESCE(o.taluka_code, v.taluka_code, a.taluka_code,h.taluka_code) AS out_taluka_code
+    FROM m_users u
+    LEFT JOIN m_officers o ON o.user_id = u.user_id
+    LEFT JOIN m_visitors_signup v ON v.user_id = u.user_id
+    LEFT JOIN m_admins a ON a.user_id = u.user_id
+    LEFT JOIN m_helpdesk h ON h.user_id = u.user_id
+    WHERE 
+        u.username = p_login
+        OR v.email_id = p_login
+        OR v.mobile_no = p_login
+        OR o.email_id = p_login
+        OR o.mobile_no = p_login
+        OR a.email_id = p_login
+        OR a.mobile_no = p_login
+        OR h.email_id = p_login
+        OR h.mobile_no = p_login;
+END;
+$$ LANGUAGE plpgsql;
+-- 
+select * from m_users
+
+CREATE OR REPLACE FUNCTION get_user_by_username2(
+    p_login VARCHAR
+)
+RETURNS TABLE(
+    out_user_id VARCHAR,
+    out_username VARCHAR,
+    out_password_hash VARCHAR,
+    out_role_code VARCHAR,
+    out_is_active BOOLEAN,
+    out_is_first_login BOOLEAN,       -- ✅ ADD THIS
+    out_state_code VARCHAR,
+    out_division_code VARCHAR,
+    out_district_code VARCHAR,
+    out_taluka_code VARCHAR
+)
+AS $$
+BEGIN
+    RETURN QUERY
+    SELECT 
+        u.user_id,
+        u.username,
+        u.password_hash,
+        u.role_code,
+        u.is_active,
+        COALESCE(u.is_first_login, false) AS out_is_first_login,  -- ✅ ADD THIS
+        COALESCE(o.state_code, v.state_code, a.state_code, h.state_code),
+        COALESCE(o.division_code, v.division_code, a.division_code, h.division_code),
+        COALESCE(o.district_code, v.district_code, a.district_code, h.district_code),
+        COALESCE(o.taluka_code, v.taluka_code, a.taluka_code, h.taluka_code)
     FROM m_users u
     LEFT JOIN m_officers o ON o.user_id = u.user_id
     LEFT JOIN m_visitors_signup v ON v.user_id = u.user_id
@@ -2180,294 +2141,16 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE OR REPLACE FUNCTION register_user_by_role(
-    p_password_hash VARCHAR,
-    p_full_name VARCHAR,
-    p_mobile_no VARCHAR,
-    p_email_id VARCHAR,
-    p_designation_code VARCHAR DEFAULT NULL,
-    p_department_id VARCHAR DEFAULT NULL,
-    p_organization_id VARCHAR DEFAULT NULL,
-    p_state_code VARCHAR DEFAULT NULL,
-    p_division_code VARCHAR DEFAULT NULL,
-    p_district_code VARCHAR DEFAULT NULL,
-    p_taluka_code VARCHAR DEFAULT NULL,
-    p_photo VARCHAR DEFAULT NULL,
-    p_role_code VARCHAR DEFAULT 'OF'
-)
-RETURNS TABLE(
-    out_user_id VARCHAR,
-    out_entity_id VARCHAR,
-    full_name VARCHAR,
-    out_email_id VARCHAR,
-    message VARCHAR
-)
-LANGUAGE plpgsql
-AS $$
-DECLARE
-    v_uid VARCHAR(20);
-    v_entity_id VARCHAR(20);
-BEGIN
-    -- 1️⃣ Validate role exists & active
-    IF NOT EXISTS (
-        SELECT 1 FROM m_role r
-        WHERE r.role_code = p_role_code AND r.is_active = TRUE
-    ) THEN
-        RETURN QUERY SELECT NULL, NULL, NULL, NULL, 'Invalid or inactive role code';
-        RETURN;
-    END IF;
 
-    -- 2️⃣ Check duplicates by role
-    IF p_role_code = 'OF' AND EXISTS (
-        SELECT 1 FROM m_officers WHERE mobile_no = p_mobile_no OR email_id = p_email_id
-    ) THEN
-        RETURN QUERY SELECT NULL, NULL, NULL, NULL, 'Officer mobile/email already registered';
-        RETURN;
+SELECT * FROM get_user_by_username2('khandagalearadhana@gmail.com');
 
-    ELSIF p_role_code = 'HD' AND EXISTS (
-        SELECT 1 FROM m_helpdesk WHERE mobile_no = p_mobile_no OR email_id = p_email_id
-    ) THEN
-        RETURN QUERY SELECT NULL, NULL, NULL, NULL, 'Helpdesk mobile/email already registered';
-        RETURN;
+select * from m_users
 
-    ELSIF p_role_code = 'AD' AND EXISTS (
-        SELECT 1 FROM m_admins WHERE mobile_no = p_mobile_no OR email_id = p_email_id
-    ) THEN
-        RETURN QUERY SELECT NULL, NULL, NULL, NULL, 'Admin mobile/email already registered';
-        RETURN;
-    END IF;
 
-    -- 3️⃣ Insert into m_users
-    INSERT INTO m_users (username, password_hash, role_code, insert_by)
-    VALUES ('temp_' || p_mobile_no, p_password_hash, p_role_code, 'system')
-    RETURNING user_id INTO v_uid;
 
-    -- 4️⃣ Insert into respective role table
-    IF p_role_code = 'OF' THEN
-        INSERT INTO m_officers (
-            user_id, full_name, mobile_no, email_id,
-            designation_code, department_id, organization_id,
-            state_code, division_code, district_code, taluka_code,
-            photo, insert_by
-        )
-        VALUES (
-            v_uid, p_full_name, p_mobile_no, p_email_id,
-            p_designation_code, p_department_id, p_organization_id,
-            p_state_code, p_division_code, p_district_code, p_taluka_code,
-            p_photo, 'system'
-        )
-        RETURNING officer_id INTO v_entity_id;
 
-    ELSIF p_role_code = 'HD' THEN
-        INSERT INTO m_helpdesk (
-            user_id, full_name, mobile_no, email_id,
-            assigned_department, assigned_location, photo, insert_by
-        )
-        VALUES (
-            v_uid, p_full_name, p_mobile_no, p_email_id,
-            p_department_id, p_district_code, p_photo, 'system'
-        )
-        RETURNING helpdesk_id INTO v_entity_id;
 
-    ELSIF p_role_code = 'AD' THEN
-    INSERT INTO m_admins (
-        user_id,
-        full_name,
-        email_id,
-        mobile_no,
-        state_code,
-        division_code,
-        district_code,
-        taluka_code,
-        photo,
-        insert_by
-    )
-    VALUES (
-        v_uid,
-        p_full_name,
-        p_email_id,
-        p_mobile_no,
-        p_state_code,
-        p_division_code,
-        p_district_code,
-        p_taluka_code,
-        p_photo,
-        'system'
-    )
-    RETURNING admin_id INTO v_entity_id;
-
-    -- 5️⃣ Update username = entity_id
-    UPDATE m_users SET username = v_entity_id WHERE user_id = v_uid;
-
-    -- 6️⃣ Return proper success structure
-    RETURN QUERY
-    SELECT 
-        v_uid::VARCHAR,
-        v_entity_id::VARCHAR,
-        p_full_name::VARCHAR,
-        p_email_id::VARCHAR,
-        'Registration successful'::VARCHAR;
-
-EXCEPTION
-    WHEN OTHERS THEN
-        RETURN QUERY
-        SELECT
-            NULL::VARCHAR,
-            NULL::VARCHAR,
-            NULL::VARCHAR,
-            NULL::VARCHAR,
-            ('Registration failed: ' || SQLERRM)::VARCHAR;
-END;
-$$;
-
--- working function
-CREATE OR REPLACE FUNCTION register_user_by_role(
-    p_password_hash VARCHAR,
-    p_full_name VARCHAR,
-    p_mobile_no VARCHAR,
-    p_email_id VARCHAR,
-    p_designation_code VARCHAR DEFAULT NULL,
-    p_department_id VARCHAR DEFAULT NULL,
-    p_organization_id VARCHAR DEFAULT NULL,
-    p_state_code VARCHAR DEFAULT NULL,
-    p_division_code VARCHAR DEFAULT NULL,
-    p_district_code VARCHAR DEFAULT NULL,
-    p_taluka_code VARCHAR DEFAULT NULL,
-    p_photo VARCHAR DEFAULT NULL,
-    p_role_code VARCHAR DEFAULT 'OF'
-)
-RETURNS TABLE(
-    out_user_id VARCHAR,
-    out_entity_id VARCHAR,
-    full_name VARCHAR,
-    out_email_id VARCHAR,
-    message VARCHAR
-)
-LANGUAGE plpgsql
-AS $$
-DECLARE
-    v_uid VARCHAR(20);
-    v_entity_id VARCHAR(20);
-BEGIN
-    -- 1️⃣ Validate role exists & active
-    IF NOT EXISTS (
-        SELECT 1 FROM m_role r
-        WHERE r.role_code = p_role_code AND r.is_active = TRUE
-    ) THEN
-        RETURN QUERY
-        SELECT NULL::VARCHAR, NULL::VARCHAR, NULL::VARCHAR, NULL::VARCHAR,
-               'Invalid or inactive role code'::VARCHAR;
-        RETURN;
-    END IF;
-
-    -- 2️⃣ Check duplicates by role
-    IF p_role_code = 'OF' AND EXISTS (
-        SELECT 1 FROM m_officers WHERE mobile_no = p_mobile_no OR email_id = p_email_id
-    ) THEN
-        RETURN QUERY
-        SELECT NULL::VARCHAR, NULL::VARCHAR, NULL::VARCHAR, NULL::VARCHAR,
-               'Officer mobile/email already registered'::VARCHAR;
-        RETURN;
-
-    ELSIF p_role_code = 'HD' AND EXISTS (
-        SELECT 1 FROM m_helpdesk WHERE mobile_no = p_mobile_no OR email_id = p_email_id
-    ) THEN
-        RETURN QUERY
-        SELECT NULL::VARCHAR, NULL::VARCHAR, NULL::VARCHAR, NULL::VARCHAR,
-               'Helpdesk mobile/email already registered'::VARCHAR;
-        RETURN;
-
-    ELSIF p_role_code = 'AD' AND EXISTS (
-        SELECT 1 FROM m_admins WHERE mobile_no = p_mobile_no OR email_id = p_email_id
-    ) THEN
-        RETURN QUERY
-        SELECT NULL::VARCHAR, NULL::VARCHAR, NULL::VARCHAR, NULL::VARCHAR,
-               'Admin mobile/email already registered'::VARCHAR;
-        RETURN;
-    END IF;
-
-    -- 3️⃣ Insert into m_users
-    INSERT INTO m_users (username, password_hash, role_code, insert_by)
-    VALUES ('temp_' || p_mobile_no, p_password_hash, p_role_code, 'system')
-    RETURNING user_id INTO v_uid;
-
-    -- 4️⃣ Insert into respective role table
-    IF p_role_code = 'OF' THEN
-        INSERT INTO m_officers (
-            user_id, full_name, mobile_no, email_id,
-            designation_code, department_id, organization_id,
-            state_code, division_code, district_code, taluka_code,
-            photo, insert_by
-        )
-        VALUES (
-            v_uid, p_full_name, p_mobile_no, p_email_id,
-            p_designation_code, p_department_id, p_organization_id,
-            p_state_code, p_division_code, p_district_code, p_taluka_code,
-            p_photo, 'system'
-        )
-        RETURNING officer_id INTO v_entity_id;
-
-    ELSIF p_role_code = 'HD' THEN
-        INSERT INTO m_helpdesk (
-            user_id, full_name, mobile_no, email_id,
-            designation_code ,
-    department_id ,
-    organization_id ,
-    state_code,
-    division_code,
-    district_code,
-    taluka_code, photo, insert_by
-        )
-        VALUES (
-            v_uid, p_full_name, p_mobile_no, p_email_id,
-            p_designation_code ,
-    p_department_id ,
-    p_organization_id ,
-    p_state_code,
-    p_division_code,
-    p_district_code,
-    p_taluka_code, p_photo, 'system'
-        )
-        RETURNING helpdesk_id INTO v_entity_id;
-
-    ELSIF p_role_code = 'AD' THEN
-        INSERT INTO m_admins (
-            user_id, full_name, email_id, mobile_no,
-            state_code, division_code, district_code, taluka_code,
-            photo, insert_by
-        )
-        VALUES (
-            v_uid, p_full_name, p_email_id, p_mobile_no,
-            p_state_code, p_division_code, p_district_code, p_taluka_code,
-            p_photo, 'system'
-        )
-        RETURNING admin_id INTO v_entity_id;
-    END IF;  -- ✅ THIS WAS MISSING
-
-    -- 5️⃣ Update username = entity_id
-    UPDATE m_users SET username = v_entity_id WHERE user_id = v_uid;
-
-    -- 6️⃣ Success return
-    RETURN QUERY
-    SELECT
-        v_uid::VARCHAR,
-        v_entity_id::VARCHAR,
-        p_full_name::VARCHAR,
-        p_email_id::VARCHAR,
-        'Registration successful'::VARCHAR;
-
-EXCEPTION
-    WHEN OTHERS THEN
-        RETURN QUERY
-        SELECT
-            NULL::VARCHAR,
-            NULL::VARCHAR,
-            NULL::VARCHAR,
-            NULL::VARCHAR,
-            ('Registration failed: ' || SQLERRM)::VARCHAR;
-END;
-$$;
-
+select * from m_visitors_signup
 
 
 ALTER TABLE appointments 
@@ -2485,7 +2168,60 @@ CHECK (
         'cancelled'
     )
 );
+ALTER TABLE appointments
+ALTER COLUMN district_code TYPE VARCHAR(1);
 
+
+
+ALTER TABLE appointments
+ADD COLUMN state_code VARCHAR(2) DEFAULT '27',
+ADD COLUMN division_code VARCHAR(2) DEFAULT '01',
+ADD COLUMN district_code VARCHAR(4) DEFAULT NULL,
+ADD COLUMN taluka_code VARCHAR(4) DEFAULT NULL;
+
+ALTER TABLE appointments
+ADD CONSTRAINT fk_appointments_state
+FOREIGN KEY (state_code)
+REFERENCES m_state(state_code);
+
+ALTER TABLE appointments
+ADD CONSTRAINT fk_appointments_division
+FOREIGN KEY (division_code)
+REFERENCES m_division(division_code);
+
+ALTER TABLE appointments
+ADD CONSTRAINT fk_appointments_district
+FOREIGN KEY (district_code)
+REFERENCES m_district(district_code);
+
+ALTER TABLE appointments
+ADD CONSTRAINT fk_appointments_taluka
+FOREIGN KEY (taluka_code)
+REFERENCES m_taluka(taluka_code);
+
+SELECT 
+    column_name,
+    data_type,
+    is_nullable,
+    column_default
+FROM information_schema.columns
+WHERE table_name = 'appointments'
+ORDER BY ordinal_position;
+
+
+
+SELECT
+    column_name,
+    data_type,
+    character_maximum_length
+FROM information_schema.columns
+WHERE table_name = 'appointments'
+ORDER BY column_name;
+
+ALTER TABLE appointments
+ALTER COLUMN taluka_code TYPE VARCHAR(5);
+
+select * from appointments
 
 ---------m (myprofile)-----------------------------------------
 
@@ -2623,7 +2359,35 @@ SELECT * FROM update_visitor_by_id(
     '233454',
     '1765651173491.jpg'
 );
+select * from m_visitors_signup
+select * from m_users
+select change_user_password('JAN-2026-USR-011','Aaru@369')
+CREATE OR REPLACE FUNCTION change_user_password(
+    p_user_id VARCHAR,
+    p_new_password_hash VARCHAR
+)
+RETURNS TABLE(success BOOLEAN, message TEXT)
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    -- Update password + reset first-login flag
+    UPDATE m_users
+    SET password_hash = p_new_password_hash,
+        is_first_login = FALSE,
+        updated_date = CURRENT_TIMESTAMP
+    WHERE user_id = p_user_id;
 
+    -- Check if user existed
+    IF NOT FOUND THEN
+        RETURN QUERY
+        SELECT FALSE, 'User not found';
+        RETURN;
+    END IF;
+
+    RETURN QUERY
+    SELECT TRUE, 'Password changed successfully';
+END;
+$$;
 
 -- change password
 CREATE OR REPLACE FUNCTION change_user_password(
@@ -2658,8 +2422,83 @@ BEGIN
 END;
 $$;
 
+select * from m_users
+
+-- work
+CREATE OR REPLACE FUNCTION change_user_password(
+    p_user_id VARCHAR,
+    p_new_password_hash VARCHAR
+)
+RETURNS TABLE(success BOOLEAN, message TEXT, is_first_login BOOLEAN)
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    -- Update first-login flag
+    UPDATE m_users
+    SET is_first_login = FALSE,
+        updated_date = CURRENT_TIMESTAMP
+    WHERE user_id = p_user_id;
+
+    -- Update password
+    UPDATE m_users
+    SET password_hash = p_new_password_hash,
+        updated_date = CURRENT_TIMESTAMP
+    WHERE user_id = p_user_id;
+
+    IF NOT FOUND THEN
+        RETURN QUERY
+        SELECT FALSE, 'User not found', NULL;
+        RETURN;
+    END IF;
+
+    RETURN QUERY
+    SELECT TRUE,
+           'Password changed successfully',
+           u.is_first_login   -- ✅ QUALIFIED
+    FROM m_users u
+    WHERE u.user_id = p_user_id;
+END;
+$$;
+
+
+select * from m_users
+
+SELECT column_name, data_type
+FROM information_schema.columns
+WHERE table_name = 'm_users'
+AND column_name = 'is_first_login';
+
+SELECT user_id, is_first_login
+FROM m_users
+WHERE user_id = 'JAN-2026-USR-012';
+
+UPDATE m_users
+SET is_first_login = FALSE
+WHERE user_id = 'JAN-2026-USR-012'
+RETURNING user_id, is_first_login;
+
+SELECT tgname
+FROM pg_trigger
+WHERE tgrelid = 'm_users'::regclass
+AND NOT tgisinternal;
+
+SELECT column_name, data_type
+FROM information_schema.columns
+WHERE table_name = 'm_users'
+AND column_name = 'is_first_login';
+UPDATE m_users
+SET is_first_login = FALSE
+WHERE user_id = 'YOUR_USER_ID'
+RETURNING user_id, is_first_login;
+
+
+SELECT user_id
+FROM m_users
+WHERE user_id = 'JAN-2026-USR-012';
+
+
 SELECT get_visitor_dashboard_by_username('VIS019');
-CREATE OR REPLACE FUNCTION get_officer_dashboard_by_username(p_username VARCHAR)
+CREATE OR REPLACE FUNCTION get_officer_dashboard_by_username(p_username VARCHAR) 
 RETURNS JSON AS $$
 DECLARE
     appointment_data JSON;
@@ -2723,125 +2562,10 @@ END;
 $$ LANGUAGE plpgsql;
 
 SELECT get_officer_dashboard_by_username('OFF005');
+-- 
 
 
-
---deleete appointment function
-CREATE OR REPLACE FUNCTION delete_appointment(
-    p_appointment_id TEXT
-)
-RETURNS JSON AS $$
-DECLARE
-    v_count INT;
-BEGIN
-    SELECT COUNT(*)
-    INTO v_count
-    FROM appointments
-    WHERE appointment_id::TEXT = p_appointment_id
-      AND is_active = TRUE;
-
-    IF v_count = 0 THEN
-        RETURN json_build_object(
-            'success', false,
-            'message', 'Appointment not found or already deleted'
-        );
-    END IF;
-
-    UPDATE appointments
-    SET is_active = FALSE
-    WHERE appointment_id::TEXT = p_appointment_id;
-
-    RETURN json_build_object(
-        'success', true,
-        'message', 'Appointment deleted successfully'
-    );
-END;
-$$ LANGUAGE plpgsql;
-
--- new one summary
-CREATE OR REPLACE FUNCTION get_appointments_summary(
-    p_from_date DATE DEFAULT NULL,
-    p_to_date   DATE DEFAULT NULL
-)
-RETURNS JSON AS $$
-DECLARE
-    total_count INT;
-    total_pages INT;
-    pending_count INT;
-    approved_count INT;
-    rejected_count INT;
-    completed_count INT;
-    appointment_list JSON;
-    page_size INT := 10;
-BEGIN
-    /* ===============================
-       TOTAL COUNT
-    =============================== */
-    SELECT COUNT(*)
-    INTO total_count
-    FROM appointments a
-    WHERE a.is_active = TRUE
-      AND (p_from_date IS NULL OR a.appointment_date >= p_from_date)
-      AND (p_to_date   IS NULL OR a.appointment_date <= p_to_date);
-
-    /* TOTAL PAGES */
-    total_pages := CEIL(total_count::DECIMAL / page_size);
-
-    /* ===============================
-       STATUS COUNTS
-    =============================== */
-    SELECT COUNT(*) INTO pending_count
-    FROM appointments WHERE is_active = TRUE AND status = 'pending';
-
-    SELECT COUNT(*) INTO approved_count
-    FROM appointments WHERE is_active = TRUE AND status = 'approved';
-
-    SELECT COUNT(*) INTO rejected_count
-    FROM appointments WHERE is_active = TRUE AND status = 'rejected';
-
-    SELECT COUNT(*) INTO completed_count
-    FROM appointments WHERE is_active = TRUE AND status = 'completed';
-
-    /* ===============================
-       APPOINTMENT LIST (CORRECT WAY)
-    =============================== */
-    SELECT json_agg(row_data)
-    INTO appointment_list
-    FROM (
-        SELECT
-            json_build_object(
-                'appointment_id', a.appointment_id,
-                'visitor_name', vs.full_name,
-                'appointment_date', a.appointment_date,
-                'slot_time', a.slot_time,
-                'officer_name', off.full_name,
-                'status', a.status
-            ) AS row_data
-        FROM appointments a
-        LEFT JOIN m_visitors_signup vs ON vs.visitor_id = a.visitor_id
-        LEFT JOIN m_officers off ON off.officer_id = a.officer_id
-        WHERE a.is_active = TRUE
-          AND (p_from_date IS NULL OR a.appointment_date >= p_from_date)
-          AND (p_to_date   IS NULL OR a.appointment_date <= p_to_date)
-        ORDER BY a.appointment_date DESC
-        LIMIT page_size
-    ) sub;
-
-    /* ===============================
-       FINAL JSON
-    =============================== */
-    RETURN json_build_object(
-        'total', total_count,
-        'pending', pending_count,
-        'approved', approved_count,
-        'rejected', rejected_count,
-        'completed', completed_count,
-        'appointments', COALESCE(appointment_list, '[]'::json),
-        'total_pages', total_pages
-    );
-END;
-$$ LANGUAGE plpgsql;
-
+drop function get_appointments_summary(INT,INT,INT,INT,INT,INT,JSON);
 CREATE OR REPLACE FUNCTION get_appointments_summary()
 RETURNS JSON AS $$
 DECLARE
@@ -3058,128 +2782,6 @@ select * from m_services
 
 
 DROP FUNCTION get_all_officers()
-CREATE OR REPLACE FUNCTION register_user_by_role(
-    p_password_hash VARCHAR,
-    p_full_name VARCHAR,
-    p_mobile_no VARCHAR,
-    p_email_id VARCHAR,
-    p_designation_code VARCHAR DEFAULT NULL,
-    p_department_id VARCHAR DEFAULT NULL,
-    p_organization_id VARCHAR DEFAULT NULL,
-    p_state_code VARCHAR DEFAULT NULL,
-    p_division_code VARCHAR DEFAULT NULL,
-    p_district_code VARCHAR DEFAULT NULL,
-    p_taluka_code VARCHAR DEFAULT NULL,
-    p_photo VARCHAR DEFAULT NULL,
-    p_role_code VARCHAR DEFAULT 'OF'
-)
-RETURNS TABLE(
-    out_user_id VARCHAR,
-    out_entity_id VARCHAR,
-    full_name VARCHAR,
-    out_email_id VARCHAR,
-    message VARCHAR
-)
-LANGUAGE plpgsql
-AS $$
-DECLARE
-    v_uid VARCHAR(20);
-    v_entity_id VARCHAR(20);
-BEGIN
-    -- 1️⃣ Validate role exists & active
-    IF NOT EXISTS (
-        SELECT 1 FROM m_role r
-        WHERE r.role_code = p_role_code AND r.is_active = TRUE
-    ) THEN
-        RETURN QUERY SELECT NULL, NULL, NULL, NULL, 'Invalid or inactive role code';
-        RETURN;
-    END IF;
-
-    -- 2️⃣ Check duplicates by role
-    IF p_role_code = 'OF' AND EXISTS (
-        SELECT 1 FROM m_officers WHERE mobile_no = p_mobile_no OR email_id = p_email_id
-    ) THEN
-        RETURN QUERY SELECT NULL, NULL, NULL, NULL, 'Officer mobile/email already registered';
-        RETURN;
-
-    ELSIF p_role_code = 'HD' AND EXISTS (
-        SELECT 1 FROM m_helpdesk WHERE mobile_no = p_mobile_no OR email_id = p_email_id
-    ) THEN
-        RETURN QUERY SELECT NULL, NULL, NULL, NULL, 'Helpdesk mobile/email already registered';
-        RETURN;
-
-    ELSIF p_role_code = 'AD' AND EXISTS (
-        SELECT 1 FROM m_admins WHERE mobile_no = p_mobile_no OR email_id = p_email_id
-    ) THEN
-        RETURN QUERY SELECT NULL, NULL, NULL, NULL, 'Admin mobile/email already registered';
-        RETURN;
-    END IF;
-
-    -- 3️⃣ Insert into m_users
-    INSERT INTO m_users (username, password_hash, role_code, insert_by)
-    VALUES ('temp_' || p_mobile_no, p_password_hash, p_role_code, 'system')
-    RETURNING user_id INTO v_uid;
-
-    -- 4️⃣ Insert into respective role table
-    IF p_role_code = 'OF' THEN
-        INSERT INTO m_officers (
-            user_id, full_name, mobile_no, email_id,
-            designation_code, department_id, organization_id,
-            state_code, division_code, district_code, taluka_code,
-            photo, insert_by
-        )
-        VALUES (
-            v_uid, p_full_name, p_mobile_no, p_email_id,
-            p_designation_code, p_department_id, p_organization_id,
-            p_state_code, p_division_code, p_district_code, p_taluka_code,
-            p_photo, 'system'
-        )
-        RETURNING officer_id INTO v_entity_id;
-
-    ELSIF p_role_code = 'HD' THEN
-        INSERT INTO m_helpdesk (
-            user_id, full_name, mobile_no, email_id,
-            assigned_department, assigned_location, photo, insert_by
-        )
-        VALUES (
-            v_uid, p_full_name, p_mobile_no, p_email_id,
-            p_department_id, p_district_code, p_photo, 'system'
-        )
-        RETURNING helpdesk_id INTO v_entity_id;
-
-    ELSIF p_role_code = 'AD' THEN
-        INSERT INTO m_admins (
-            user_id, full_name, email_id, mobile_no, photo, insert_by
-        )
-        VALUES (
-            v_uid, p_full_name, p_email_id, p_mobile_no, p_photo, 'system'
-        )
-        RETURNING admin_id INTO v_entity_id;
-    END IF;
-
-    -- 5️⃣ Update username = entity_id
-    UPDATE m_users SET username = v_entity_id WHERE user_id = v_uid;
-
-    -- 6️⃣ Return proper success structure
-    RETURN QUERY
-    SELECT
-        v_uid::VARCHAR,
-        v_entity_id::VARCHAR,
-        p_full_name::VARCHAR,
-        p_email_id::VARCHAR,
-        'Registration successful'::VARCHAR;
-
-EXCEPTION
-    WHEN OTHERS THEN
-        RETURN QUERY
-        SELECT
-            NULL::VARCHAR,
-            NULL::VARCHAR,
-            NULL::VARCHAR,
-            NULL::VARCHAR,
-            ('Registration failed: ' || SQLERRM)::VARCHAR;
-END;
-$$;
 
 select * from m_officers
  
@@ -3264,272 +2866,7 @@ $$;
 
 select * from m_organization;
 
-
-CREATE OR REPLACE FUNCTION get_appointment_details1(p_appointment_id VARCHAR)
-RETURNS TABLE (
-    appointment_id VARCHAR,
-    visitor_id VARCHAR,
-    visitor_name VARCHAR,
-    organization_id VARCHAR,
-    organization_name VARCHAR,
-    department_id VARCHAR,
-    department_name VARCHAR,
-    officer_id VARCHAR,
-    officer_name VARCHAR,
-    service_id VARCHAR,
-    service_name VARCHAR,
-    purpose TEXT,
-    appointment_date DATE,
-    slot_time TIME,
-    status VARCHAR,
-    reschedule_reason TEXT,
-    qr_code_path VARCHAR
-)
-LANGUAGE plpgsql
-STABLE
-AS $$
-BEGIN
-    RETURN QUERY
-    SELECT
-        a.appointment_id,
-        a.visitor_id,
-        vs.full_name AS visitor_name,         -- Visitor name added
-        a.organization_id,
-        org.organization_name,
-        a.department_id,
-        dept.department_name,
-        a.officer_id,
-        off.full_name AS officer_name,
-        a.service_id,
-        srv.service_name,
-        a.purpose,
-        a.appointment_date,
-        a.slot_time,
-        a.status,
-        a.reschedule_reason,
-        a.qr_code_path
-    FROM appointments a
-    LEFT JOIN m_visitors_signup vs ON vs.visitor_id = a.visitor_id   -- join visitor table
-    LEFT JOIN m_organization org ON org.organization_id = a.organization_id
-    LEFT JOIN m_department dept ON dept.department_id = a.department_id
-    LEFT JOIN m_officers off ON off.officer_id = a.officer_id
-    LEFT JOIN m_services srv ON srv.service_id = a.service_id
-    WHERE a.appointment_id = p_appointment_id
-      AND a.is_active = TRUE;
-END;
-$$;
-
-
-
--- demmo:
 DROP FUNCTION get_appointment_details1(character varying)
-
-CREATE OR REPLACE FUNCTION get_appointment_details1(p_appointment_id VARCHAR)
-RETURNS TABLE (
-    appointment_id VARCHAR,
-    visitor_id VARCHAR,
-    visitor_name VARCHAR,
-    organization_id VARCHAR,
-    organization_name VARCHAR,
-    department_id VARCHAR,
-    department_name VARCHAR,
-    officer_id VARCHAR,
-    officer_name VARCHAR,
-    service_id VARCHAR,
-    service_name VARCHAR,
-    purpose TEXT,
-    appointment_date DATE,
-    slot_time TIME,
-    status VARCHAR,
-    reschedule_reason TEXT,
-    qr_code_path VARCHAR
-)
-LANGUAGE plpgsql
-STABLE
-AS $$
-BEGIN
-    RETURN QUERY
-    SELECT
-        a.appointment_id,
-        a.visitor_id,
-        vs.full_name AS visitor_name,
-        a.organization_id,
-        org.organization_name,
-        a.department_id,
-        dept.department_name,
-        a.officer_id,
-
-        -- 🔹 Officer OR Helpdesk name
-        COALESCE(off.full_name, hd.full_name, 'Helpdesk') AS officer_name,
-
-        a.service_id,
-        srv.service_name,
-        a.purpose,
-        a.appointment_date,
-        a.slot_time,
-        a.status,
-        a.reschedule_reason,
-        a.qr_code_path
-    FROM appointments a
-    LEFT JOIN m_visitors_signup vs 
-        ON vs.visitor_id = a.visitor_id
-
-    LEFT JOIN m_organization org 
-        ON org.organization_id = a.organization_id
-
-    LEFT JOIN m_department dept 
-        ON dept.department_id = a.department_id
-
-    -- 🔹 Officer table
-    LEFT JOIN m_officers off 
-        ON off.officer_id = a.officer_id
-
-    -- 🔹 Helpdesk table
-    LEFT JOIN m_helpdesk hd 
-        ON hd.helpdesk_id = a.officer_id
-
-    LEFT JOIN m_services srv 
-        ON srv.service_id = a.service_id
-
-    WHERE a.appointment_id = p_appointment_id
-      AND a.is_active = TRUE;
-END;
-$$;
-
--------
-CREATE OR REPLACE FUNCTION get_appointment_details1(p_appointment_id VARCHAR)
-RETURNS TABLE (
-    appointment_id VARCHAR,
-    visitor_id VARCHAR,
-    visitor_name VARCHAR,
-    organization_id VARCHAR,
-    organization_name VARCHAR,
-    department_id VARCHAR,
-    department_name VARCHAR,
-    officer_id VARCHAR,
-    officer_name VARCHAR,
-    service_id VARCHAR,
-    service_name VARCHAR,
-    purpose TEXT,
-    appointment_date DATE,
-    slot_time TIME,
-    status VARCHAR,
-    reschedule_reason TEXT,
-    qr_code_path VARCHAR
-)
-LANGUAGE plpgsql
-STABLE
-AS $$
-BEGIN
-    RETURN QUERY
-    SELECT
-        a.appointment_id,
-        a.visitor_id,
-        vs.full_name AS visitor_name,
-        a.organization_id,
-        org.organization_name,
-        a.department_id,
-        dept.department_name,
-        a.officer_id,
-
-        -- ✅ GUARANTEED officer/helpdesk name
-        CASE
-            WHEN a.officer_id = 'HELPDESK' THEN 'Helpdesk'
-            ELSE COALESCE(
-                (SELECT o.full_name FROM m_officers o WHERE o.officer_id = a.officer_id),
-                (SELECT h.full_name FROM m_helpdesk h WHERE h.helpdesk_id = a.officer_id),
-                'Helpdesk'
-            )
-        END AS officer_name,
-
-        a.service_id,
-        srv.service_name,
-        a.purpose,
-        a.appointment_date,
-        a.slot_time,
-        a.status,
-        a.reschedule_reason,
-        a.qr_code_path
-    FROM appointments a
-    LEFT JOIN m_visitors_signup vs ON vs.visitor_id = a.visitor_id
-    LEFT JOIN m_organization org ON org.organization_id = a.organization_id
-    LEFT JOIN m_department dept ON dept.department_id = a.department_id
-    LEFT JOIN m_services srv ON srv.service_id = a.service_id
-    WHERE a.appointment_id = p_appointment_id
-      AND a.is_active = TRUE;
-END;
-$$;
--------demoooo:
-CREATE OR REPLACE FUNCTION get_appointment_details1(p_appointment_id VARCHAR)
-RETURNS TABLE (
-    appointment_id VARCHAR,
-    visitor_id VARCHAR,
-    visitor_name VARCHAR,
-    organization_id VARCHAR,
-    organization_name VARCHAR,
-    department_id VARCHAR,
-    department_name VARCHAR,
-    officer_id VARCHAR,
-    officer_name VARCHAR,
-    service_id VARCHAR,
-    service_name VARCHAR,
-    purpose TEXT,
-    appointment_date DATE,
-    slot_time TIME,
-    status VARCHAR,
-    reschedule_reason TEXT,
-    qr_code_path VARCHAR
-)
-LANGUAGE plpgsql
-STABLE
-AS $$
-BEGIN
-    RETURN QUERY
-    SELECT
-        a.appointment_id,
-        a.visitor_id,
-        vs.full_name AS visitor_name,
-        a.organization_id,
-        org.organization_name,
-        a.department_id,
-        dept.department_name,
-        a.officer_id,
-
-        -- ✅ Officer OR Helpdesk name (NO COALESCE, NO DEFAULT)
-        CASE
-            WHEN o.officer_id IS NOT NULL THEN o.full_name
-            WHEN h.helpdesk_id IS NOT NULL THEN h.full_name
-            ELSE NULL
-        END AS officer_name,
-
-        a.service_id,
-        srv.service_name,
-        a.purpose,
-        a.appointment_date,
-        a.slot_time,
-        a.status,
-        a.reschedule_reason,
-        a.qr_code_path
-    FROM appointments a
-    LEFT JOIN m_visitors_signup vs
-        ON vs.visitor_id = a.visitor_id
-    LEFT JOIN m_organization org
-        ON org.organization_id = a.organization_id
-    LEFT JOIN m_department dept
-        ON dept.department_id = a.department_id
-    LEFT JOIN m_services srv
-        ON srv.service_id = a.service_id
-
-    -- 🔹 Join both tables safely
-    LEFT JOIN m_officers o
-        ON o.officer_id = a.officer_id
-    LEFT JOIN m_helpdesk h
-        ON h.helpdesk_id = a.officer_id
-
-    WHERE a.appointment_id = p_appointment_id
-      AND a.is_active = TRUE;
-END;
-$$;
 --------
 CREATE OR REPLACE FUNCTION get_appointment_details1(p_appointment_id VARCHAR)
 RETURNS TABLE (
@@ -3549,6 +2886,7 @@ RETURNS TABLE (
     slot_time TIME,
     status VARCHAR,
     reschedule_reason TEXT,
+    cancelled_reason TEXT,
     qr_code_path VARCHAR
 )
 LANGUAGE plpgsql
@@ -3556,6 +2894,10 @@ STABLE
 AS $$
 BEGIN
     RETURN QUERY
+
+    /* =======================
+       NORMAL APPOINTMENTS
+    ======================== */
     SELECT
         a.appointment_id,
         a.visitor_id,
@@ -3566,15 +2908,12 @@ BEGIN
         dept.department_name,
         a.officer_id,
 
-        -- ✅ Explicitly qualified officer/helpdesk lookup
         (
             SELECT x.full_name
             FROM (
                 SELECT o.officer_id AS staff_id, o.full_name
                 FROM m_officers o
-
                 UNION ALL
-
                 SELECT h.helpdesk_id AS staff_id, h.full_name
                 FROM m_helpdesk h
             ) x
@@ -3589,25 +2928,70 @@ BEGIN
         a.slot_time,
         a.status,
         a.reschedule_reason,
+        a.cancelled_reason,
         a.qr_code_path
     FROM appointments a
-    LEFT JOIN m_visitors_signup vs
-        ON vs.visitor_id = a.visitor_id
-    LEFT JOIN m_organization org
-        ON org.organization_id = a.organization_id
-    LEFT JOIN m_department dept
-        ON dept.department_id = a.department_id
-    LEFT JOIN m_services srv
-        ON srv.service_id = a.service_id
+    LEFT JOIN m_visitors_signup vs ON vs.visitor_id = a.visitor_id
+    LEFT JOIN m_organization org ON org.organization_id = a.organization_id
+    LEFT JOIN m_department dept ON dept.department_id = a.department_id
+    LEFT JOIN m_services srv ON srv.service_id = a.service_id
     WHERE a.appointment_id = p_appointment_id
-      AND a.is_active = TRUE;
+      AND a.is_active = TRUE
+
+    UNION ALL
+
+    /* =======================
+       WALK-IN APPOINTMENTS
+    ======================== */
+    SELECT
+        w.walkin_id AS appointment_id,
+        w.visitor_id,
+        vs.full_name AS visitor_name,
+        w.organization_id,
+        org.organization_name,
+        w.department_id,
+        dept.department_name,
+        w.officer_id,
+
+        (
+            SELECT x.full_name
+            FROM (
+                SELECT o.officer_id AS staff_id, o.full_name
+                FROM m_officers o
+                UNION ALL
+                SELECT h.helpdesk_id AS staff_id, h.full_name
+                FROM m_helpdesk h
+            ) x
+            WHERE x.staff_id = w.officer_id
+            LIMIT 1
+        ) AS officer_name,
+
+        w.service_id,
+        srv.service_name,
+        w.purpose,
+        w.walkin_date AS appointment_date,
+        w.slot_time,
+        w.status,
+        w.reschedule_reason,
+        NULL::TEXT AS cancelled_reason,   -- ✅ not in walkins
+        NULL::VARCHAR AS qr_code_path     -- ✅ not in walkins
+    FROM walkins w
+    LEFT JOIN m_visitors_signup vs ON vs.visitor_id = w.visitor_id
+    LEFT JOIN m_organization org ON org.organization_id = w.organization_id
+    LEFT JOIN m_department dept ON dept.department_id = w.department_id
+    LEFT JOIN m_services srv ON srv.service_id = w.service_id
+    WHERE w.walkin_id = p_appointment_id
+      AND w.is_active = TRUE;
+
 END;
 $$;
 
-
+select * from walkins
+ALTER TABLE walkins
+	ADD COLUMN updated_date TIMESTAMP DEFAULT NULL;
 ------
 select * from appointments
-SELECT * FROM get_appointment_details1('APT052');
+SELECT * FROM get_appointment_details1('W00053');
 
 CREATE OR REPLACE FUNCTION get_active_departments_count()
 RETURNS INTEGER AS $$
@@ -3776,6 +3160,16 @@ ADD COLUMN taluka_code VARCHAR(4);
 Select * from m_organization
 Select * from m_department
 
+
+SELECT
+    column_name,
+    data_type,
+    is_nullable
+FROM information_schema.columns
+WHERE table_name = 'm_services'
+ORDER BY ordinal_position;
+
+	
 CREATE OR REPLACE FUNCTION insert_organization_data(
     p_organization_name     TEXT,
     p_organization_name_ll  TEXT,
@@ -3891,6 +3285,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+drop function get_organizations();
 
 --get organization by location:
 CREATE OR REPLACE FUNCTION get_organizations_by_location(
@@ -3934,9 +3329,10 @@ BEGIN
 END;
 $$;
 
-SELECT * FROM get_organizations_by_location('27');
+SELECT * FROM get_organizations_by_location('27','01','482',null);
+select * from walkins;
 
-select * from m_users;
+select * from m_helpdesk;
 
 INSERT INTO m_helpdesk (
     user_id,
@@ -3971,3 +3367,4987 @@ VALUES (
 
 select * from m_designation;
 select * from m_role;
+
+--Add organization edit:
+
+ALTER TABLE m_department
+ADD COLUMN division_code VARCHAR(2),
+ADD COLUMN district_code VARCHAR(3),
+ADD COLUMN taluka_code VARCHAR(4),
+ADD COLUMN address TEXT,
+ADD COLUMN pincode VARCHAR(6);
+
+DROP FUNCTION IF EXISTS insert_department_data(TEXT, JSON);
+
+
+CREATE OR REPLACE FUNCTION insert_department_data(
+    p_organization_id TEXT,
+    p_departments JSON
+)
+RETURNS JSON AS
+$$
+DECLARE
+    v_department_id VARCHAR(10);
+    dept_obj JSON;
+    service_obj JSON;
+
+    -- 📍 Location details from organization
+    v_state_code     VARCHAR(2);
+    v_division_code  VARCHAR(2);
+    v_district_code  VARCHAR(3);
+    v_taluka_code    VARCHAR(4);
+    v_address        TEXT;
+    v_pincode        VARCHAR(6);
+
+    v_inserted_departments INT := 0;
+    v_inserted_services INT := 0;
+BEGIN
+    -- 🛑 Validate Organization & fetch location
+    SELECT
+        state_code,
+        division_code,
+        district_code,
+        taluka_code,
+        address,
+        pincode
+    INTO
+        v_state_code,
+        v_division_code,
+        v_district_code,
+        v_taluka_code,
+        v_address,
+        v_pincode
+    FROM m_organization
+    WHERE organization_id = p_organization_id;
+
+    IF NOT FOUND THEN
+        RETURN json_build_object(
+            'success', FALSE,
+            'message', 'Organization not found'
+        );
+    END IF;
+
+    -- 🛑 Validate Department list
+    IF p_departments IS NULL OR json_array_length(p_departments) = 0 THEN
+        RETURN json_build_object(
+            'success', FALSE,
+            'message', 'No departments provided'
+        );
+    END IF;
+
+    -- ✅ Loop departments
+    FOR dept_obj IN SELECT * FROM json_array_elements(p_departments)
+    LOOP
+        INSERT INTO m_department (
+            organization_id,
+            department_name,
+            department_name_ll,
+            state_code,
+            division_code,
+            district_code,
+            taluka_code,
+            address,
+            pincode
+        ) VALUES (
+            p_organization_id,
+            dept_obj->>'dept_name',
+            dept_obj->>'dept_name_ll',
+            v_state_code,
+            v_division_code,
+            v_district_code,
+            v_taluka_code,
+            v_address,
+            v_pincode
+        )
+        RETURNING department_id INTO v_department_id;
+
+        v_inserted_departments := v_inserted_departments + 1;
+
+        -- ✅ Services
+        IF dept_obj->'services' IS NOT NULL
+           AND json_typeof(dept_obj->'services') = 'array'
+           AND json_array_length(dept_obj->'services') > 0 THEN
+
+            FOR service_obj IN SELECT * FROM json_array_elements(dept_obj->'services')
+            LOOP
+                INSERT INTO m_services (
+                    organization_id,
+                    department_id,
+                    service_name,
+                    service_name_ll,
+                    state_code,
+                    division_code,
+                    district_code,
+                    taluka_code,
+address,
+                    pincode
+                ) VALUES (
+                    p_organization_id,
+                    v_department_id,
+                    service_obj->>'name',
+                    service_obj->>'name_ll',
+                    v_state_code,
+                    v_division_code,
+                    v_district_code,
+                    v_taluka_code,
+v_address,
+                    v_pincode
+                );
+
+                v_inserted_services := v_inserted_services + 1;
+            END LOOP;
+
+        END IF;
+    END LOOP;
+
+    RETURN json_build_object(
+        'success', TRUE,
+        'message', 'Departments and services inserted successfully',
+        'organization_id', p_organization_id,
+        'departments_added', v_inserted_departments,
+        'services_added', v_inserted_services
+    );
+
+EXCEPTION
+    WHEN OTHERS THEN
+        RETURN json_build_object(
+            'success', FALSE,
+            'message', 'Error inserting data: ' || SQLERRM
+        );
+END;
+$$ LANGUAGE plpgsql;
+
+select * from m_department;
+
+
+-- update department:
+CREATE OR REPLACE FUNCTION update_department_data(
+    p_organization_id TEXT,
+    p_departments JSON
+)
+RETURNS JSON AS
+$$
+DECLARE
+    dept_obj JSON;
+    service_obj JSON;
+
+    v_department_id VARCHAR;
+    v_service_id VARCHAR;
+
+    -- 📍 Location details
+    v_state_code     VARCHAR(2);
+    v_division_code  VARCHAR(2);
+    v_district_code  VARCHAR(3);
+    v_taluka_code    VARCHAR(4);
+    v_address        TEXT;
+    v_pincode        VARCHAR(6);
+
+    v_updated_departments INT := 0;
+    v_updated_services INT := 0;
+    v_inserted_services INT := 0;
+BEGIN
+    -- 🔍 Fetch organization location
+    SELECT
+        state_code,
+        division_code,
+        district_code,
+        taluka_code,
+        address,
+        pincode
+    INTO
+        v_state_code,
+        v_division_code,
+        v_district_code,
+        v_taluka_code,
+        v_address,
+        v_pincode
+    FROM m_organization
+    WHERE organization_id = p_organization_id;
+
+    IF NOT FOUND THEN
+        RETURN json_build_object(
+            'success', FALSE,
+            'message', 'Organization not found'
+        );
+    END IF;
+
+    IF p_departments IS NULL OR json_array_length(p_departments) = 0 THEN
+        RETURN json_build_object(
+            'success', FALSE,
+            'message', 'No departments provided'
+        );
+    END IF;
+
+    -- 🔁 Loop departments
+    FOR dept_obj IN SELECT * FROM json_array_elements(p_departments)
+    LOOP
+        v_department_id := dept_obj->>'department_id';
+
+        IF v_department_id IS NULL THEN
+            CONTINUE;
+        END IF;
+
+        -- 🏢 Update department
+        UPDATE m_department
+        SET
+            department_name     = dept_obj->>'dept_name',
+            department_name_ll  = dept_obj->>'dept_name_ll',
+            state_code          = v_state_code,
+            division_code       = v_division_code,
+            district_code       = v_district_code,
+            taluka_code         = v_taluka_code,
+            address             = v_address,
+            pincode             = v_pincode,
+            updated_date        = NOW()
+        WHERE department_id = v_department_id
+          AND organization_id = p_organization_id;
+
+        IF FOUND THEN
+            v_updated_departments := v_updated_departments + 1;
+        END IF;
+
+        -- 🔁 Services
+        IF dept_obj->'services' IS NOT NULL
+           AND json_typeof(dept_obj->'services') = 'array' THEN
+
+            FOR service_obj IN SELECT * FROM json_array_elements(dept_obj->'services')
+            LOOP
+                v_service_id := service_obj->>'service_id';
+
+                -- 🔄 Update existing service
+                IF v_service_id IS NOT NULL THEN
+                    UPDATE m_services
+                    SET
+                        service_name     = service_obj->>'name',
+                        service_name_ll  = service_obj->>'name_ll',
+                        state_code       = v_state_code,
+                        division_code    = v_division_code,
+                        district_code    = v_district_code,
+                        taluka_code      = v_taluka_code,
+                        address          = v_address,
+                        pincode          = v_pincode,
+                        updated_date     = NOW()
+                    WHERE service_id = v_service_id
+                      AND department_id = v_department_id
+                      AND organization_id = p_organization_id;
+
+                    IF FOUND THEN
+                        v_updated_services := v_updated_services + 1;
+                    END IF;
+
+                -- ➕ Insert new service
+                ELSE
+                    INSERT INTO m_services (
+                        organization_id,
+                        department_id,
+                        service_name,
+                        service_name_ll,
+                        state_code,
+                        division_code,
+                        district_code,
+                        taluka_code,
+                        address,
+                        pincode
+                    ) VALUES (
+                        p_organization_id,
+                        v_department_id,
+                        service_obj->>'name',
+                        service_obj->>'name_ll',
+                        v_state_code,
+                        v_division_code,
+                        v_district_code,
+                        v_taluka_code,
+                        v_address,
+                        v_pincode
+                    );
+
+                    v_inserted_services := v_inserted_services + 1;
+                END IF;
+            END LOOP;
+        END IF;
+    END LOOP;
+
+    RETURN json_build_object(
+        'success', TRUE,
+        'message', 'Departments and services updated successfully',
+        'organization_id', p_organization_id,
+        'departments_updated', v_updated_departments,
+        'services_updated', v_updated_services,
+        'services_inserted', v_inserted_services
+    );
+
+EXCEPTION
+    WHEN OTHERS THEN
+        RETURN json_build_object(
+            'success', FALSE,
+            'message', 'Error updating data: ' || SQLERRM
+        );
+END;
+$$ LANGUAGE plpgsql;
+
+
+
+
+SELECT organization_id, state_code
+FROM m_organization
+WHERE organization_id = 'ORG017';  -- your org
+
+SELECT
+    tgname,
+    pg_get_triggerdef(t.oid)
+FROM pg_trigger t
+JOIN pg_class c ON c.oid = t.tgrelid
+WHERE c.relname = 'm_services'
+  AND NOT t.tgisinternal;
+
+
+
+ALTER TABLE m_services
+ADD COLUMN division_code VARCHAR(2),
+ADD COLUMN district_code VARCHAR(3),
+ADD COLUMN taluka_code VARCHAR(4),
+ADD COLUMN address TEXT,
+ADD COLUMN pincode VARCHAR(6);
+
+
+Select * from m_services
+Select * from m_admins
+Select * from m_department
+
+
+SELECT column_name
+FROM information_schema.columns
+WHERE table_name = 'm_officers'
+
+	select * from m_admins
+
+ALTER TABLE m_admins
+-- Admin address fields
+
+-- ADD COLUMN organization_id VARCHAR(10),
+-- ADD COLUMN department_id VARCHAR(10),
+-- ADD COLUMN designation_code VARCHAR(5),
+ADD COLUMN address VARCHAR(500),
+ADD COLUMN pincode VARCHAR(10),
+-- ADD COLUMN state_code VARCHAR(2),
+-- ADD COLUMN district_code VARCHAR(3),
+-- ADD COLUMN division_code VARCHAR(3),
+-- ADD COLUMN taluka_code VARCHAR(4),
+-- Officer-specific address fields
+ADD COLUMN officer_address VARCHAR(500),
+ADD COLUMN officer_state_code VARCHAR(2),
+ADD COLUMN officer_district_code VARCHAR(3),
+ADD COLUMN officer_division_code VARCHAR(3),
+ADD COLUMN officer_taluka_code VARCHAR(4),
+ADD COLUMN officer_pincode VARCHAR(10);
+
+ALTER TABLE m_admins
+ADD CONSTRAINT fk_officer_state FOREIGN KEY (officer_state_code) REFERENCES m_state(state_code),
+ADD CONSTRAINT fk_officer_division FOREIGN KEY (officer_division_code) REFERENCES m_division(division_code),
+ADD CONSTRAINT fk_officer_district FOREIGN KEY (officer_district_code) REFERENCES m_district(district_code),
+ADD CONSTRAINT fk_officer_taluka FOREIGN KEY (officer_taluka_code) REFERENCES m_taluka(taluka_code);
+ALTER TABLE m_admins
+ADD CONSTRAINT fk_state FOREIGN KEY (state_code) REFERENCES m_state(state_code),
+ADD CONSTRAINT fk_division FOREIGN KEY (division_code) REFERENCES m_division(division_code),
+ADD CONSTRAINT fkr_district FOREIGN KEY (district_code) REFERENCES m_district(district_code),
+ADD CONSTRAINT fk_taluka FOREIGN KEY (taluka_code) REFERENCES m_taluka(taluka_code);
+
+ALTER TABLE m_admins
+-- Add gender column
+ADD COLUMN gender VARCHAR(10);
+
+-- main working:
+CREATE OR REPLACE FUNCTION register_user_by_role(
+    p_password_hash VARCHAR,
+    p_full_name VARCHAR,
+    p_mobile_no VARCHAR,
+    p_email_id VARCHAR,
+    p_gender VARCHAR DEFAULT NULL,
+    p_designation_code VARCHAR DEFAULT NULL,
+    p_department_id VARCHAR DEFAULT NULL,
+    p_organization_id VARCHAR DEFAULT NULL,
+    p_officer_address VARCHAR DEFAULT NULL,
+    p_officer_state_code VARCHAR DEFAULT NULL,
+    p_officer_district_code VARCHAR DEFAULT NULL,
+    p_officer_division_code VARCHAR DEFAULT NULL,
+    p_officer_taluka_code VARCHAR DEFAULT NULL,
+    p_officer_pincode VARCHAR DEFAULT NULL,
+    p_photo VARCHAR DEFAULT NULL,
+    p_role_code VARCHAR DEFAULT 'OF'
+)
+RETURNS TABLE(
+    out_user_id VARCHAR,
+    out_entity_id VARCHAR,
+    full_name VARCHAR,
+    out_email_id VARCHAR,
+    message VARCHAR
+)
+LANGUAGE plpgsql
+AS $$
+DECLARE
+    v_uid VARCHAR(20);
+    v_entity_id VARCHAR(20);
+
+    -- organization location
+    v_org_state VARCHAR(2);
+    v_org_division VARCHAR(3);
+    v_org_district VARCHAR(3);
+    v_org_taluka VARCHAR(4);
+    v_org_address VARCHAR(255);
+    v_org_pincode VARCHAR(10);
+
+BEGIN
+    -- 1️⃣ Validate role exists & active
+    IF NOT EXISTS (
+        SELECT 1 FROM m_role r
+        WHERE r.role_code = p_role_code AND r.is_active = TRUE
+    ) THEN
+        RETURN QUERY SELECT NULL, NULL, NULL, NULL, 'Invalid or inactive role code';
+        RETURN;
+    END IF;
+
+    -- 2️⃣ Check duplicates by role
+    IF p_role_code = 'OF' AND EXISTS (
+        SELECT 1 FROM m_officers WHERE mobile_no = p_mobile_no OR email_id = p_email_id
+    ) THEN
+        RETURN QUERY SELECT NULL, NULL, NULL, NULL, 'Officer mobile/email already registered';
+        RETURN;
+
+    ELSIF p_role_code = 'HD' AND EXISTS (
+        SELECT 1 FROM m_helpdesk WHERE mobile_no = p_mobile_no OR email_id = p_email_id
+    ) THEN
+        RETURN QUERY SELECT NULL, NULL, NULL, NULL, 'Helpdesk mobile/email already registered';
+        RETURN;
+
+    ELSIF p_role_code = 'AD' AND EXISTS (
+        SELECT 1 FROM m_admins WHERE mobile_no = p_mobile_no OR email_id = p_email_id
+    ) THEN
+        RETURN QUERY SELECT NULL, NULL, NULL, NULL, 'Admin mobile/email already registered';
+        RETURN;
+    END IF;
+
+    -- 3️⃣ Insert into m_users
+    INSERT INTO m_users (username, password_hash, role_code, insert_by)
+    VALUES ('temp_' || p_mobile_no, p_password_hash, p_role_code, 'system')
+    RETURNING user_id INTO v_uid;
+
+    -- 4️⃣ Get organization location if provided
+    IF p_organization_id IS NOT NULL THEN
+    SELECT state_code, division_code, district_code, taluka_code, address, pincode
+    INTO v_org_state, v_org_division, v_org_district, v_org_taluka, v_org_address, v_org_pincode
+    FROM m_organization
+    WHERE organization_id = p_organization_id;
+END IF;
+
+
+    -- 5️⃣ Insert into role tables with all columns identical
+    IF p_role_code = 'OF' THEN
+        INSERT INTO m_officers (
+            user_id, full_name, gender, email_id, mobile_no,
+            designation_code, department_id, organization_id,
+            state_code, division_code, district_code, taluka_code,
+            address, pincode,
+            officer_address, officer_state_code, officer_district_code, officer_division_code, officer_taluka_code, officer_pincode,
+            photo, insert_by
+        )
+        VALUES (
+            v_uid, p_full_name, p_gender, p_email_id, p_mobile_no,
+            p_designation_code, p_department_id, p_organization_id,
+            v_org_state, v_org_division, v_org_district, v_org_taluka,v_org_address, v_org_pincode,
+            p_officer_address, p_officer_state_code, p_officer_district_code, p_officer_division_code, p_officer_taluka_code, p_officer_pincode,
+            p_photo, 'system'
+        )
+        RETURNING officer_id INTO v_entity_id;
+
+    ELSIF p_role_code = 'HD' THEN
+        INSERT INTO m_helpdesk (
+            user_id, full_name, gender, email_id, mobile_no,
+            designation_code, department_id, organization_id,
+            state_code, division_code, district_code, taluka_code,
+            address, pincode,
+            officer_address, officer_state_code, officer_district_code, officer_division_code, officer_taluka_code, officer_pincode,
+            photo, insert_by
+        )
+        VALUES (
+            v_uid, p_full_name, p_gender, p_email_id, p_mobile_no,
+            p_designation_code, p_department_id, p_organization_id,
+            v_org_state, v_org_division, v_org_district, v_org_taluka,v_org_address, v_org_pincode,
+            p_officer_address, p_officer_state_code, p_officer_district_code, p_officer_division_code, p_officer_taluka_code, p_officer_pincode,
+            p_photo, 'system'
+        )
+        RETURNING helpdesk_id INTO v_entity_id;
+
+    ELSIF p_role_code = 'AD' THEN
+        INSERT INTO m_admins (
+            user_id, full_name, gender, email_id, mobile_no,
+            designation_code, department_id, organization_id,
+            state_code, division_code, district_code, taluka_code,
+            address, pincode,
+            officer_address, officer_state_code, officer_district_code, officer_division_code, officer_taluka_code, officer_pincode,
+            photo, insert_by
+        )
+        VALUES (
+            v_uid, p_full_name, p_gender, p_email_id, p_mobile_no,
+            p_designation_code, p_department_id, p_organization_id,
+            v_org_state, v_org_division, v_org_district, v_org_taluka,v_org_address, v_org_pincode,
+            p_officer_address, p_officer_state_code, p_officer_district_code, p_officer_division_code, p_officer_taluka_code, p_officer_pincode,
+            p_photo, 'system'
+        )
+        RETURNING admin_id INTO v_entity_id;
+    END IF;
+
+    -- 6️⃣ Update username = entity_id
+    UPDATE m_users SET username = v_entity_id WHERE user_id = v_uid;
+
+    -- 7️⃣ Return success
+    RETURN QUERY
+    SELECT
+        v_uid::VARCHAR,
+        v_entity_id::VARCHAR,
+        p_full_name::VARCHAR,
+        p_email_id::VARCHAR,
+        'Registration successful'::VARCHAR;
+
+EXCEPTION
+    WHEN OTHERS THEN
+        RETURN QUERY
+        SELECT
+            NULL::VARCHAR,
+            NULL::VARCHAR,
+            NULL::VARCHAR,
+            NULL::VARCHAR,
+            ('Registration failed: ' || SQLERRM)::VARCHAR;
+END;
+$$;
+
+select * from m_organization
+
+ALTER TABLE m_officers
+ADD COLUMN address VARCHAR(500),
+ADD COLUMN pincode VARCHAR(10);
+ADD COLUMN state_code VARCHAR(2),
+ADD COLUMN district_code VARCHAR(3),
+ADD COLUMN division_code VARCHAR(3),
+ADD COLUMN taluka_code VARCHAR(4),
+-- Officer-specific address fields
+ALTER TABLE m_officers
+ADD COLUMN officer_address VARCHAR(500),
+ADD COLUMN officer_state_code VARCHAR(2),
+ADD COLUMN officer_district_code VARCHAR(3),
+ADD COLUMN officer_division_code VARCHAR(3),
+ADD COLUMN officer_taluka_code VARCHAR(4),
+ADD COLUMN officer_pincode VARCHAR(10);
+
+ALTER TABLE m_officers
+ADD CONSTRAINT fk_state FOREIGN KEY (state_code) REFERENCES m_state(state_code),
+ADD CONSTRAINT fk_division FOREIGN KEY (division_code) REFERENCES m_division(division_code),
+ADD CONSTRAINT fkr_district FOREIGN KEY (district_code) REFERENCES m_district(district_code),
+ADD CONSTRAINT fk_taluka FOREIGN KEY (taluka_code) REFERENCES m_taluka(taluka_code);
+;
+
+ALTER TABLE m_officers
+-- Add gender column
+ADD COLUMN gender VARCHAR(10);
+
+SELECT setval( 'm_organization_id_seq', (SELECT COALESCE(MAX(organization_id), 0) FROM m_organization) + 1, false );
+
+SELECT setval(
+    'm_organization_id_seq',
+    COALESCE(
+        MAX(CAST(SUBSTRING(organization_id FROM 4) AS INTEGER)),
+        0
+    )
+)
+FROM m_organization;
+
+
+SELECT setval(
+    'm_department_id_seq',
+    COALESCE(
+        MAX(CAST(SUBSTRING(department_id FROM 4) AS INTEGER)),
+        0
+    )
+)
+FROM m_department;
+
+
+SELECT setval(
+    'm_services_id_seq',
+    COALESCE(
+        MAX(CAST(SUBSTRING(service_id FROM 4) AS INTEGER)),
+        0
+    )
+)
+FROM m_services;
+
+-------------------------------------------------------------------------------------------
+
+--deleete appointment function
+CREATE OR REPLACE FUNCTION delete_appointment(
+    p_appointment_id TEXT
+)
+RETURNS JSON AS $$
+DECLARE
+    v_count INT;
+BEGIN
+    SELECT COUNT(*)
+    INTO v_count
+    FROM appointments
+    WHERE appointment_id::TEXT = p_appointment_id
+      AND is_active = TRUE;
+
+    IF v_count = 0 THEN
+        RETURN json_build_object(
+            'success', false,
+            'message', 'Appointment not found or already deleted'
+        );
+    END IF;
+
+    UPDATE appointments
+    SET is_active = FALSE
+    WHERE appointment_id::TEXT = p_appointment_id;
+
+    RETURN json_build_object(
+        'success', true,
+        'message', 'Appointment deleted successfully'
+    );
+END;
+$$ LANGUAGE plpgsql;
+
+
+
+
+-- new one summary
+CREATE OR REPLACE FUNCTION get_appointments_summary(
+    p_from_date DATE DEFAULT NULL,
+    p_to_date   DATE DEFAULT NULL
+)
+RETURNS JSON AS $$
+DECLARE
+    total_count INT;
+    total_pages INT;
+    pending_count INT;
+    approved_count INT;
+    rejected_count INT;
+    completed_count INT;
+    appointment_list JSON;
+    page_size INT := 10;
+BEGIN
+    /* ===============================
+       TOTAL COUNT
+    =============================== */
+    SELECT COUNT(*)
+    INTO total_count
+    FROM appointments a
+    WHERE a.is_active = TRUE
+      AND (p_from_date IS NULL OR a.appointment_date >= p_from_date)
+      AND (p_to_date   IS NULL OR a.appointment_date <= p_to_date);
+
+    /* TOTAL PAGES */
+    total_pages := CEIL(total_count::DECIMAL / page_size);
+
+    /* ===============================
+       STATUS COUNTS
+    =============================== */
+    SELECT COUNT(*) INTO pending_count
+    FROM appointments WHERE is_active = TRUE AND status = 'pending';
+
+    SELECT COUNT(*) INTO approved_count
+    FROM appointments WHERE is_active = TRUE AND status = 'approved';
+
+    SELECT COUNT(*) INTO rejected_count
+    FROM appointments WHERE is_active = TRUE AND status = 'rejected';
+
+    SELECT COUNT(*) INTO completed_count
+    FROM appointments WHERE is_active = TRUE AND status = 'completed';
+
+    /* ===============================
+       APPOINTMENT LIST (CORRECT WAY)
+    =============================== */
+    SELECT json_agg(row_data)
+    INTO appointment_list
+    FROM (
+        SELECT
+            json_build_object(
+                'appointment_id', a.appointment_id,
+                'visitor_name', vs.full_name,
+                'appointment_date', a.appointment_date,
+                'slot_time', a.slot_time,
+                'officer_name', off.full_name,
+                'status', a.status
+            ) AS row_data
+        FROM appointments a
+        LEFT JOIN m_visitors_signup vs ON vs.visitor_id = a.visitor_id
+        LEFT JOIN m_officers off ON off.officer_id = a.officer_id
+        WHERE a.is_active = TRUE
+          AND (p_from_date IS NULL OR a.appointment_date >= p_from_date)
+          AND (p_to_date   IS NULL OR a.appointment_date <= p_to_date)
+        ORDER BY a.appointment_date DESC
+        LIMIT page_size
+    ) sub;
+
+    /* ===============================
+       FINAL JSON
+    =============================== */
+    RETURN json_build_object(
+        'total', total_count,
+        'pending', pending_count,
+        'approved', approved_count,
+        'rejected', rejected_count,
+        'completed', completed_count,
+        'appointments', COALESCE(appointment_list, '[]'::json),
+        'total_pages', total_pages
+    );
+END;
+$$ LANGUAGE plpgsql;
+
+
+drop function get_appointments_summary();
+select * from get_organization_by_id('ORG001')
+-- get organization detail by id:
+CREATE OR REPLACE FUNCTION get_organization_by_id(
+    p_organization_id VARCHAR
+)
+RETURNS JSON
+LANGUAGE plpgsql
+AS $$
+DECLARE
+    v_result JSON;
+BEGIN
+    -- 🔍 Validate organization
+    IF NOT EXISTS (
+        SELECT 1 FROM m_organization WHERE organization_id = p_organization_id
+    ) THEN
+        RETURN json_build_object(
+            'success', false,
+            'message', 'Organization not found'
+        );
+    END IF;
+
+    -- 📦 Build full organization JSON
+    SELECT json_build_object(
+        'success', true,
+
+        -- 🏢 Organization
+        'organization', json_build_object(
+            'organization_id', o.organization_id,
+            'organization_name', o.organization_name,
+            'organization_name_ll', o.organization_name_ll,
+            'address', o.address,
+            'pincode', o.pincode,
+            'state_code', o.state_code,
+            'state_name', s.state_name,
+            'division_code', o.division_code,
+            'division_name', dv.division_name,
+            'district_code', o.district_code,
+            'district_name', dt.district_name,
+            'taluka_code', o.taluka_code,
+            'taluka_name', tk.taluka_name,
+            'is_active', o.is_active,
+            'insert_date', o.insert_date
+        ),
+
+        -- 🏬 Departments + Services
+        'departments', COALESCE((
+            SELECT json_agg(
+                json_build_object(
+                    'department_id', d.department_id,
+                    'department_name', d.department_name,
+                    'department_name_ll', d.department_name_ll,
+
+                    'services', COALESCE((
+                        SELECT json_agg(
+                            json_build_object(
+                                'service_id', s.service_id,
+                                'service_name', s.service_name,
+                                'service_name_ll', s.service_name_ll,
+                                'is_active', s.is_active
+                            )
+                        )
+                        FROM m_services s
+                        WHERE s.department_id = d.department_id
+                          AND s.is_active = true
+                    ), '[]'::json)
+                )
+            )
+            FROM m_department d
+            WHERE d.organization_id = o.organization_id
+              AND d.is_active = true
+        ), '[]'::json)
+
+    )
+    INTO v_result
+    FROM m_organization o
+    LEFT JOIN m_state s     ON s.state_code = o.state_code
+    LEFT JOIN m_division dv ON dv.division_code = o.division_code
+    LEFT JOIN m_district dt ON dt.district_code = o.district_code
+    LEFT JOIN m_taluka tk   ON tk.taluka_code = o.taluka_code
+    WHERE o.organization_id = p_organization_id;
+
+    RETURN v_result;
+END;
+$$;
+
+
+SELECT get_organization_by_id('ORG017');
+select * from m_organization;
+SELECT COUNT(*) 
+FROM m_officers 
+WHERE department_id = v_department_id;
+
+SELECT COUNT(*)
+FROM m_officers
+WHERE department_id = 'DEP001';
+
+
+-- update only organization data:
+CREATE OR REPLACE FUNCTION update_organization_only(
+    p_organization_id       VARCHAR(10),
+    p_organization_name     TEXT,
+    p_organization_name_ll  TEXT,
+    p_state_code            TEXT,
+    p_address               TEXT,
+    p_pincode               VARCHAR(6),
+    p_division_code         VARCHAR(2),
+    p_district_code         VARCHAR(3),
+    p_taluka_code           VARCHAR(4)
+)
+RETURNS JSON AS
+$$
+BEGIN
+    -- ===============================
+    -- UPDATE ORGANIZATION ONLY
+    -- ===============================
+    UPDATE m_organization
+    SET
+        organization_name     = p_organization_name,
+        organization_name_ll  = p_organization_name_ll,
+        state_code            = p_state_code,
+        address               = p_address,
+        pincode               = p_pincode,
+        division_code         = p_division_code,
+        district_code         = p_district_code,
+        taluka_code           = p_taluka_code,
+        updated_date          = CURRENT_TIMESTAMP
+    WHERE organization_id = p_organization_id;
+
+    -- ===============================
+    -- NOT FOUND CHECK
+    -- ===============================
+    IF NOT FOUND THEN
+        RETURN json_build_object(
+            'success', FALSE,
+            'message', 'Organization not found'
+        );
+    END IF;
+
+    -- ===============================
+    -- SUCCESS RESPONSE
+    -- ===============================
+    RETURN json_build_object(
+        'success', TRUE,
+        'organization_id', p_organization_id,
+        'message', 'Organization updated successfully'
+    );
+END;
+$$ LANGUAGE plpgsql;
+
+
+CREATE OR REPLACE FUNCTION update_organization_dept_service_only(
+    p_organization_id VARCHAR(10),
+    p_org_data JSON,
+    p_departments JSON
+)
+RETURNS JSON
+LANGUAGE plpgsql
+AS $$
+DECLARE
+    dept_obj JSON;
+    srv_obj  JSON;
+BEGIN
+    -- ===============================
+    -- UPDATE ORGANIZATION
+    -- ===============================
+    UPDATE m_organization
+    SET
+        organization_name     = p_org_data->>'organization_name',
+        organization_name_ll  = p_org_data->>'organization_name_ll',
+        state_code            = p_org_data->>'state_code',
+        address               = p_org_data->>'address',
+        pincode               = p_org_data->>'pincode',
+        division_code         = p_org_data->>'division_code',
+        district_code         = p_org_data->>'district_code',
+        taluka_code           = p_org_data->>'taluka_code',
+        updated_date          = CURRENT_TIMESTAMP
+    WHERE organization_id = p_organization_id;
+
+    IF NOT FOUND THEN
+        RETURN json_build_object(
+            'success', FALSE,
+            'message', 'Organization not found'
+        );
+    END IF;
+
+    -- ===============================
+    -- UPDATE DEPARTMENTS (ONLY)
+    -- ===============================
+    FOR dept_obj IN SELECT * FROM json_array_elements(p_departments)
+    LOOP
+        IF dept_obj ? 'department_id' THEN
+            UPDATE m_department
+            SET
+                department_name     = dept_obj->>'dept_name',
+                department_name_ll  = dept_obj->>'dept_name_ll',
+                updated_date        = CURRENT_TIMESTAMP
+            WHERE department_id = dept_obj->>'department_id'
+              AND organization_id = p_organization_id;
+        END IF;
+
+        -- ===============================
+        -- UPDATE SERVICES (ONLY)
+        -- ===============================
+        IF dept_obj ? 'services' THEN
+            FOR srv_obj IN SELECT * FROM json_array_elements(dept_obj->'services')
+            LOOP
+                IF srv_obj ? 'service_id' THEN
+                    UPDATE m_services
+                    SET
+                        service_name     = srv_obj->>'name',
+                        service_name_ll  = srv_obj->>'name_ll',
+                        updated_date     = CURRENT_TIMESTAMP
+                    WHERE service_id = srv_obj->>'service_id'
+                      AND organization_id = p_organization_id;
+                END IF;
+            END LOOP;
+        END IF;
+    END LOOP;
+
+    -- ===============================
+    -- SUCCESS
+    -- ===============================
+    RETURN json_build_object(
+        'success', TRUE,
+        'message', 'Organization, departments and services updated successfully'
+    );
+END;
+$$;
+
+
+
+drop function get_department_by_id(VARCHAR);
+	drop function get_department_by_id(TEXT)
+-- get department by id:
+CREATE OR REPLACE FUNCTION get_department_by_id(
+    p_department_id VARCHAR
+)
+RETURNS JSON
+LANGUAGE plpgsql
+AS $$
+DECLARE
+    dept_data JSON;
+BEGIN
+    SELECT row_to_json(d)
+    INTO dept_data
+    FROM (
+        SELECT
+            department_id,
+            organization_id,
+            department_name,
+            department_name_ll,
+            state_code,
+            division_code,
+            district_code,
+            taluka_code,
+            address,
+            pincode,
+            insert_date,
+            updated_date
+        FROM m_department
+        WHERE department_id = p_department_id
+    ) d;
+
+    IF dept_data IS NULL THEN
+        RETURN json_build_object(
+            'success', FALSE,
+            'message', 'Department not found'
+        );
+    END IF;
+
+    RETURN json_build_object(
+        'success', TRUE,
+        'data', dept_data
+    );
+END;
+$$;
+
+
+select * from get_department_by_id('DEP010')
+
+SELECT department_id
+FROM m_department
+WHERE department_id = 'DEP001';
+
+select * from get_service_by_id('SRV012')
+-- getservices by id:
+CREATE OR REPLACE FUNCTION get_service_by_id(
+    p_service_id VARCHAR
+)
+RETURNS JSON
+LANGUAGE plpgsql
+AS $$
+DECLARE
+    result JSON;
+BEGIN
+    SELECT row_to_json(s)
+    INTO result
+    FROM (
+        SELECT
+            service_id,
+            organization_id,
+            department_id,
+            service_name,
+            service_name_ll,
+            state_code,
+            is_active
+        FROM m_services
+        WHERE service_id = p_service_id
+    ) s;
+
+    RETURN result;
+END;
+$$;
+
+
+
+----------------------------------
+-- Helpdesk
+/* 1) fetch helpdesk user by username (used for login - controller will still bcrypt-compare) */
+CREATE OR REPLACE FUNCTION get_helpdesk_user_by_username(p_username VARCHAR)
+RETURNS TABLE (
+  user_id VARCHAR,
+  username VARCHAR,
+  password_hash VARCHAR,
+  role_code VARCHAR,
+  is_active BOOLEAN
+)
+LANGUAGE sql
+AS $$
+  SELECT user_id, username, password_hash, role_code, is_active
+  FROM m_users
+  WHERE username = p_username
+    AND is_active = TRUE
+    AND role_code = 'HD';
+$$;
+
+select * from m_helpdesk;
+
+/* 2) fetch helpdesk details by user_id */
+CREATE OR REPLACE FUNCTION get_helpdesk_by_userid(p_user_id VARCHAR)
+RETURNS TABLE (
+    helpdesk_id VARCHAR,
+    user_id VARCHAR,
+    full_name VARCHAR,
+    mobile_no VARCHAR,
+    email_id VARCHAR,
+    designation_code VARCHAR,
+    department_id VARCHAR,
+    organization_id VARCHAR,
+    state_code VARCHAR,
+    division_code VARCHAR,
+    district_code VARCHAR,
+    taluka_code VARCHAR,
+    availability_status VARCHAR,
+    photo VARCHAR
+)
+LANGUAGE sql
+AS $$
+    SELECT
+        helpdesk_id,
+        user_id,
+        full_name,
+        mobile_no,
+        email_id,
+        designation_code,
+        department_id,
+        organization_id,
+        state_code,
+        division_code,
+        district_code,
+        taluka_code,
+        availability_status,
+        photo
+    FROM m_helpdesk
+    WHERE user_id = p_user_id
+      AND is_active = TRUE;
+$$;
+
+SELECT *
+FROM get_helpdesk_by_userid('DEC-2025-USR-005');
+
+/* 3) helpdesk dashboard - returns JSON with sections (today, completed, pending, rescheduled, reassigned, walkins) */
+-- REQUIRED column names in m_helpdesk:
+-- state_code, district_code, division_code, taluka_code
+SELECT get_helpdesk_dashboard('27');
+
+select * from walkins;
+select * from m_visitor_signup;
+
+select * from get_helpdesk_dashboard('27')
+
+CREATE OR REPLACE FUNCTION get_helpdesk_dashboard(
+  p_state VARCHAR,
+  p_district VARCHAR DEFAULT NULL,
+  p_division VARCHAR DEFAULT NULL,
+  p_taluka VARCHAR DEFAULT NULL,
+  p_date DATE DEFAULT CURRENT_DATE
+)
+RETURNS JSON
+LANGUAGE plpgsql
+AS $$
+DECLARE
+  today_apps JSON;
+  completed_apps JSON;
+  pending_apps JSON;
+  rescheduled_apps JSON;
+  walkins_apps JSON;
+BEGIN
+
+  /* TODAY */
+  SELECT COALESCE(json_agg(row_to_json(t)), '[]'::json)
+  INTO today_apps
+  FROM (
+    SELECT
+      a.appointment_id,
+      a.appointment_date,
+      a.slot_time,
+      a.status,
+      v.full_name AS visitor_name,
+      v.email_id AS visitor_email,
+      v.mobile_no AS visitor_phone,
+      s.service_name
+    FROM appointments a
+    JOIN m_visitors_signup v ON v.visitor_id = a.visitor_id
+    JOIN m_services s ON s.service_id = a.service_id
+    JOIN m_helpdesk h ON h.user_id = a.officer_id
+    WHERE a.appointment_date = p_date
+      AND h.state_code = p_state
+      AND (p_district IS NULL OR h.district_code = p_district)
+      AND (p_division IS NULL OR h.division_code = p_division)
+      AND (p_taluka IS NULL OR h.taluka_code = p_taluka)
+    ORDER BY a.slot_time
+  ) t;
+
+  /* COMPLETED */
+  SELECT COALESCE(json_agg(row_to_json(t)), '[]'::json)
+  INTO completed_apps
+  FROM (
+    SELECT
+      a.appointment_id,
+      a.appointment_date,
+      a.slot_time,
+      a.status,
+      v.full_name AS visitor_name,
+      s.service_name
+    FROM appointments a
+    JOIN m_visitors_signup v ON v.visitor_id = a.visitor_id
+    JOIN m_services s ON s.service_id = a.service_id
+    JOIN m_helpdesk h ON h.user_id = a.officer_id
+    WHERE a.status = 'completed'
+      AND h.state_code = p_state
+      AND (p_district IS NULL OR h.district_code = p_district)
+      AND (p_division IS NULL OR h.division_code = p_division)
+      AND (p_taluka IS NULL OR h.taluka_code = p_taluka)
+    ORDER BY a.appointment_date DESC
+    LIMIT 20
+  ) t;
+
+  /* PENDING */
+  SELECT COALESCE(json_agg(row_to_json(t)), '[]'::json)
+  INTO pending_apps
+  FROM (
+    SELECT
+      a.appointment_id,
+      a.appointment_date,
+      a.slot_time,
+      a.status,
+      v.full_name AS visitor_name,
+      s.service_name
+    FROM appointments a
+    JOIN m_visitors_signup v ON v.visitor_id = a.visitor_id
+    JOIN m_services s ON s.service_id = a.service_id
+    JOIN m_helpdesk h ON h.user_id = a.officer_id
+    WHERE a.status = 'pending'
+      AND h.state_code = p_state
+      AND (p_district IS NULL OR h.district_code = p_district)
+      AND (p_division IS NULL OR h.division_code = p_division)
+      AND (p_taluka IS NULL OR h.taluka_code = p_taluka)
+    ORDER BY a.appointment_date
+    LIMIT 20
+  ) t;
+
+  /* RESCHEDULED */
+  SELECT COALESCE(json_agg(row_to_json(t)), '[]'::json)
+  INTO rescheduled_apps
+  FROM (
+    SELECT
+      a.appointment_id,
+      a.appointment_date,
+      a.slot_time,
+      a.status,
+      a.reschedule_reason,
+      v.full_name AS visitor_name,
+      s.service_name
+    FROM appointments a
+    JOIN m_visitors_signup v ON v.visitor_id = a.visitor_id
+    JOIN m_services s ON s.service_id = a.service_id
+    JOIN m_helpdesk h ON h.user_id = a.officer_id
+    WHERE a.status = 'rescheduled'
+      AND h.state_code = p_state
+      AND (p_district IS NULL OR h.district_code = p_district)
+      AND (p_division IS NULL OR h.division_code = p_division)
+      AND (p_taluka IS NULL OR h.taluka_code = p_taluka)
+    ORDER BY a.updated_date DESC
+    LIMIT 20
+  ) t;
+
+  /* WALKINS */
+  SELECT COALESCE(json_agg(row_to_json(t)), '[]'::json)
+  INTO walkins_apps
+  FROM (
+    SELECT
+      w.walkin_id,
+      w.walkin_date,
+      w.status,
+      w.full_name AS visitor_name,
+      w.mobile_no AS visitor_phone,
+      w.email_id AS visitor_email,
+      w.purpose
+    FROM walkins w
+    WHERE w.state_code = p_state
+      AND (p_district IS NULL OR w.district_code = p_district)
+      AND (p_division IS NULL OR w.division_code = p_division)
+      AND (p_taluka IS NULL OR w.taluka_code = p_taluka)
+    ORDER BY w.walkin_date DESC
+    LIMIT 20
+  ) t;
+
+  RETURN json_build_object(
+    'success', TRUE,
+    'today_appointments', today_apps,
+    'completed_appointments', completed_apps,
+    'pending_appointments', pending_apps,
+    'rescheduled_appointments', rescheduled_apps,
+    'walkin_appointments', walkins_apps
+  );
+END;
+$$;
+
+SELECT get_helpdesk_dashboard2('HLP002', CURRENT_DATE);
+
+
+-- demo
+CREATE OR REPLACE FUNCTION get_helpdesk_dashboard2(
+  p_helpdesk_id VARCHAR,          -- logged-in helpdesk_id
+  p_date DATE DEFAULT CURRENT_DATE
+)
+RETURNS JSON
+LANGUAGE plpgsql
+AS $$
+DECLARE
+  today_apps JSON;
+  completed_apps JSON;
+  pending_apps JSON;
+  rescheduled_apps JSON;
+  walkins_apps JSON;
+BEGIN
+
+  /* -------- TODAY -------- */
+  SELECT COALESCE(json_agg(row_to_json(t)), '[]'::json)
+  INTO today_apps
+  FROM (
+    SELECT
+      a.appointment_id,
+      a.appointment_date,
+      a.slot_time,
+      a.status,
+      v.full_name AS visitor_name,
+      v.email_id AS visitor_email,
+      v.mobile_no AS visitor_phone,
+      s.service_name
+    FROM appointments a
+    JOIN m_helpdesk h
+         ON h.user_id = a.officer_id
+        AND h.helpdesk_id = p_helpdesk_id
+    JOIN m_visitors_signup v ON v.visitor_id = a.visitor_id
+    JOIN m_services s ON s.service_id = a.service_id
+    WHERE a.appointment_date = p_date
+    ORDER BY a.slot_time
+  ) t;
+
+  /* -------- COMPLETED -------- */
+  SELECT COALESCE(json_agg(row_to_json(t)), '[]'::json)
+  INTO completed_apps
+  FROM (
+    SELECT
+      a.appointment_id,
+      a.appointment_date,
+      a.slot_time,
+      a.status,
+      v.full_name AS visitor_name,
+      s.service_name
+    FROM appointments a
+    JOIN m_helpdesk h
+         ON h.user_id = a.officer_id
+        AND h.helpdesk_id = p_helpdesk_id
+    JOIN m_visitors_signup v ON v.visitor_id = a.visitor_id
+    JOIN m_services s ON s.service_id = a.service_id
+    WHERE LOWER(a.status) = 'completed'
+    ORDER BY a.appointment_date DESC
+    LIMIT 20
+  ) t;
+
+  /* -------- PENDING -------- */
+  SELECT COALESCE(json_agg(row_to_json(t)), '[]'::json)
+  INTO pending_apps
+  FROM (
+    SELECT
+      a.appointment_id,
+      a.appointment_date,
+      a.slot_time,
+      a.status,
+      v.full_name AS visitor_name,
+      s.service_name
+    FROM appointments a
+    JOIN m_helpdesk h
+         ON h.user_id = a.officer_id
+        AND h.helpdesk_id = p_helpdesk_id
+    JOIN m_visitors_signup v ON v.visitor_id = a.visitor_id
+    JOIN m_services s ON s.service_id = a.service_id
+    WHERE LOWER(a.status) = 'pending'
+    ORDER BY a.appointment_date
+    LIMIT 20
+  ) t;
+
+  /* -------- RESCHEDULED -------- */
+  SELECT COALESCE(json_agg(row_to_json(t)), '[]'::json)
+  INTO rescheduled_apps
+  FROM (
+    SELECT
+      a.appointment_id,
+      a.appointment_date,
+      a.slot_time,
+      a.status,
+      a.reschedule_reason,
+      v.full_name AS visitor_name,
+      s.service_name
+    FROM appointments a
+    JOIN m_helpdesk h
+         ON h.user_id = a.officer_id
+        AND h.helpdesk_id = p_helpdesk_id
+    JOIN m_visitors_signup v ON v.visitor_id = a.visitor_id
+    JOIN m_services s ON s.service_id = a.service_id
+    WHERE LOWER(a.status) = 'rescheduled'
+    ORDER BY a.updated_date DESC
+    LIMIT 20
+  ) t;
+
+  /* -------- WALKINS (OPTIONAL) -------- */
+  /* -------- WALKINS -------- */
+SELECT COALESCE(json_agg(row_to_json(t)), '[]'::json)
+INTO walkins_apps
+FROM (
+  SELECT
+    w.walkin_id,
+    w.walkin_date,
+    w.status,
+    w.full_name AS visitor_name,
+    w.mobile_no AS visitor_phone,
+    w.email_id AS visitor_email,
+    w.purpose
+  FROM walkins w
+  JOIN m_helpdesk h
+       ON h.user_id = w.user_id   -- 🔴 IMPORTANT
+      AND h.helpdesk_id = p_helpdesk_id
+  ORDER BY w.walkin_date DESC
+  LIMIT 20
+) t;
+
+  RETURN json_build_object(
+    'success', TRUE,
+    'today_appointments', today_apps,
+    'completed_appointments', completed_apps,
+    'pending_appointments', pending_apps,
+    'rescheduled_appointments', rescheduled_apps,
+    'walkin_appointments', walkins_apps
+  );
+END;
+$$;
+
+
+
+
+SELECT appointment_id, appointment_date
+FROM appointments
+WHERE appointment_date::date = CURRENT_DATE;
+
+-- 
+/* 4) register helpdesk (controller should pass already-hashed password) */
+CREATE OR REPLACE FUNCTION register_helpdesk(
+  p_username VARCHAR,
+  p_password_hash VARCHAR,
+  p_full_name VARCHAR,
+  p_email VARCHAR,
+  p_phone VARCHAR,
+  p_location VARCHAR
+)
+RETURNS JSON
+LANGUAGE plpgsql
+AS $$
+DECLARE
+  v_user_id VARCHAR;
+BEGIN
+  IF EXISTS (SELECT 1 FROM m_users WHERE username = p_username) THEN
+    RETURN json_build_object('success', FALSE, 'message', 'Username already exists');
+  END IF;
+
+  INSERT INTO m_users (username, password_hash, role_code)
+  VALUES (p_username, p_password_hash, 'HD')
+  RETURNING user_id INTO v_user_id;
+
+  INSERT INTO m_helpdesk (user_id, full_name, email_id, mobile_no, assigned_location)
+  VALUES (v_user_id, p_full_name, p_email, p_phone, p_location);
+
+  RETURN json_build_object('success', TRUE, 'user_id', v_user_id);
+END;
+$$;
+
+
+/* 5) book walk-in appointment via helpdesk */
+CREATE OR REPLACE FUNCTION book_walkin_helpdesk(
+  p_full_name VARCHAR,
+  p_mobile_no VARCHAR,
+  p_email_id VARCHAR,
+  p_id_proof_no VARCHAR,
+  p_organization_id VARCHAR,
+  p_department_id VARCHAR,
+  p_officer_id VARCHAR,
+  p_purpose VARCHAR,
+  p_appointment_date DATE,
+  p_time_slot TIME
+)
+RETURNS JSON
+LANGUAGE plpgsql
+AS $$
+DECLARE
+  v_id VARCHAR;
+BEGIN
+  INSERT INTO walkins (
+    full_name, mobile_no, email_id, id_proof_no,
+    organization_id, department_id, officer_id,
+    purpose, appointment_date, time_slot,
+    status, is_walkin
+  )
+  VALUES (
+    p_full_name, p_mobile_no, p_email_id, p_id_proof_no,
+    p_organization_id, p_department_id, p_officer_id,
+    p_purpose, p_appointment_date, p_time_slot,
+    'pending', TRUE
+  )
+  RETURNING walkin_id INTO v_id;
+
+  RETURN json_build_object('success', TRUE, 'walkin_id', v_id);
+END;
+$$;
+
+/* 6) get officers for booking */
+CREATE OR REPLACE FUNCTION get_officers_for_booking_function(p_org VARCHAR, p_dept VARCHAR)
+RETURNS JSON
+LANGUAGE sql
+AS $$
+  SELECT COALESCE(json_agg(row_to_json(t)), '[]'::json) FROM (
+    SELECT officer_id, full_name, designation_code, mobile_no, email_id
+    FROM m_officers
+    WHERE organization_id = p_org
+      AND department_id = p_dept
+      AND is_active = TRUE
+    ORDER BY full_name ASC
+  ) t;
+$$;
+
+select * from get_all_appointments_by_department_function('2026-01-09')
+
+/* 7) get all appointments grouped by department (returns JSON) */
+CREATE OR REPLACE FUNCTION get_all_appointments_by_department_function(p_date DATE)
+RETURNS JSON
+LANGUAGE plpgsql
+AS $$
+DECLARE
+  depts JSON;
+  appts JSON;
+  grouped JSON;
+BEGIN
+  SELECT COALESCE(json_agg(row_to_json(d)), '[]'::json)
+  INTO depts
+  FROM (
+    SELECT DISTINCT d.department_id, d.department_name, o.organization_name
+    FROM m_department d
+    JOIN m_organization o ON d.organization_id = o.organization_id
+    WHERE d.is_active = TRUE
+    ORDER BY d.department_name
+  ) d;
+
+  SELECT COALESCE(json_agg(row_to_json(a)), '[]'::json)
+  INTO appts
+  FROM (
+    SELECT
+      a.appointment_id,
+      a.appointment_date,
+      a.slot_time,
+      a.status,
+      a.purpose,
+      a.reschedule_reason,
+      a.department_id,
+      a.officer_id,
+      a.visitor_id,
+      v.full_name AS visitor_name,
+      v.email_id AS visitor_email,
+      v.mobile_no AS visitor_phone,
+      s.service_name,
+      d.department_name,
+      o.full_name AS officer_name,
+      o.designation_code AS officer_designation,
+      org.organization_name
+    FROM appointments a
+    LEFT JOIN m_visitors_signup v ON a.visitor_id = v.visitor_id
+    LEFT JOIN m_services s ON a.service_id = s.service_id
+    LEFT JOIN m_department d ON a.department_id = d.department_id
+    LEFT JOIN m_officers o ON a.officer_id = o.officer_id
+    LEFT JOIN m_organization org ON a.organization_id = org.organization_id
+    WHERE a.appointment_date::date = p_date
+    ORDER BY d.department_name, o.full_name, a.slot_time
+  ) a;
+
+  RETURN json_build_object('success', TRUE, 'departments', depts, 'appointments', appts);
+
+EXCEPTION
+  WHEN others THEN
+    RETURN json_build_object('success', FALSE, 'message', 'Error in get_all_appointments_by_department_function: ' || SQLERRM);
+END;
+$$;
+
+
+/* 8) get notifications for helpdesk (simple recent appointment updates) */
+-- working:
+select * from get_helpdesk_notifications('DEP001');
+CREATE OR REPLACE FUNCTION get_helpdesk_notifications(p_department_id VARCHAR)
+RETURNS JSON
+LANGUAGE sql
+AS $$
+  SELECT COALESCE(json_agg(row_to_json(t)), '[]'::json)
+  FROM (
+    SELECT
+      a.appointment_id,
+      a.status,
+      v.full_name AS visitor_name,
+      s.service_name,
+      a.updated_date AS updated_at,
+      a.insert_date AS created_at
+    FROM appointments a
+    LEFT JOIN m_visitors_signup v ON a.visitor_id = v.visitor_id
+    LEFT JOIN m_services s ON a.service_id = s.service_id
+    WHERE (
+        p_department_id IS NULL
+        OR a.department_id = p_department_id
+    )
+    ORDER BY COALESCE(a.updated_date, a.insert_date) DESC
+    LIMIT 20
+  ) t;
+$$;
+select * from get_user_by_mobile_no('1234567890')
+-- helpdesk officer availability:
+CREATE OR REPLACE FUNCTION public.get_officer_availability(
+  p_helpdesk_id integer,
+  p_location_id integer,
+  p_appointment_date date DEFAULT CURRENT_DATE
+)
+RETURNS TABLE(
+  officer_id integer,
+  officer_name text,
+  department_name text,
+  appointments jsonb
+)
+LANGUAGE plpgsql
+STABLE
+AS $$
+BEGIN
+  RETURN QUERY
+  SELECT
+    o.officer_id,
+    o.officer_name,
+    d.department_name,
+    json_agg(
+      json_build_object(
+        'appointment_id', a.appointment_id,
+        'visitor_name', a.visitor_name,
+        'slot_time', a.slot_time,
+        'status', a.status
+      )
+    ) FILTER (WHERE a.appointment_id IS NOT NULL) :: jsonb AS appointments
+  FROM m_officers o
+  LEFT JOIN m_departments d ON o.department_id = d.department_id
+  LEFT JOIN t_appointments a
+    ON o.officer_id = a.officer_id
+    AND DATE(a.appointment_date) = COALESCE(p_appointment_date, CURRENT_DATE)
+    AND a.status IN ('scheduled', 'completed')
+  WHERE (p_location_id IS NULL OR o.location_id = p_location_id)
+    AND (p_helpdesk_id IS NULL OR o.helpdesk_id = p_helpdesk_id)
+  GROUP BY o.officer_id, o.officer_name, d.department_name
+  ORDER BY o.officer_name;
+END;
+$$;
+
+drop function get_officer_availability(VARCHAR,DATE);
+-- new :
+CREATE OR REPLACE FUNCTION public.get_officer_availability(
+  p_helpdesk_id VARCHAR,
+  p_appointment_date DATE DEFAULT CURRENT_DATE
+)
+RETURNS TABLE(
+  officer_id VARCHAR,
+  officer_name TEXT,
+  department_name TEXT,
+  appointments JSONB
+)
+LANGUAGE plpgsql
+STABLE
+AS $$
+BEGIN
+  RETURN QUERY
+  SELECT
+    o.officer_id,
+    o.full_name::TEXT AS officer_name,   -- ✅ CAST FIX
+    d.department_name::TEXT,
+    COALESCE(
+      jsonb_agg(
+        jsonb_build_object(
+          'appointment_id', a.appointment_id,
+          'visitor_name', v.full_name,
+          'slot_time', a.slot_time,
+          'status', a.status
+        )
+      ) FILTER (WHERE a.appointment_id IS NOT NULL),
+      '[]'::jsonb
+    ) AS appointments
+  FROM m_helpdesk h
+  JOIN m_officers o
+    ON o.department_id   = h.department_id
+   AND o.organization_id = h.organization_id
+   AND o.state_code      = h.state_code
+   AND o.division_code   = h.division_code
+   AND o.district_code   = h.district_code
+   AND o.taluka_code     = h.taluka_code
+  LEFT JOIN m_department d
+    ON o.department_id = d.department_id
+  LEFT JOIN appointments a
+    ON a.officer_id = o.officer_id
+   AND a.appointment_date = COALESCE(p_appointment_date, CURRENT_DATE)
+   AND a.status IN ('scheduled', 'completed')
+  LEFT JOIN m_visitors_signup v
+    ON v.visitor_id = a.visitor_id
+  WHERE
+    h.helpdesk_id = p_helpdesk_id
+    AND h.is_active = TRUE
+    AND o.is_active = TRUE
+  GROUP BY
+    o.officer_id,
+    o.full_name,
+    d.department_name
+  ORDER BY o.full_name;
+END;
+$$;
+
+
+
+
+select * from appointments;
+
+
+SELECT * FROM get_officer_availability(
+  'HLP002',
+  '2026-01-09'
+);
+
+-----------------test
+SELECT
+  department_id,
+  LENGTH(department_id),
+  LENGTH(TRIM(department_id)),
+  department_id = 'DEP010' AS direct_match,
+  TRIM(department_id) = 'DEP010' AS trim_match
+FROM m_department;
+
+SELECT
+  department_id,
+  encode(department_id::bytea, 'escape')
+FROM m_department
+WHERE department_id LIKE '%DEP%';
+SELECT * FROM get_department_by_id_json('DEP010');
+
+CREATE OR REPLACE FUNCTION get_department_by_id_json(p_department_id VARCHAR)
+RETURNS JSONB
+LANGUAGE sql
+AS $$
+  SELECT jsonb_build_object(
+    'department_id', d.department_id,
+    'organization_id', d.organization_id,
+    'department_name', d.department_name,
+    'department_name_ll', d.department_name_ll,
+    'state_code', d.state_code,
+    'services', COALESCE(jsonb_agg(
+      jsonb_build_object(
+        'service_id', s.service_id,
+        'service_name', s.service_name,
+        'service_name_ll', s.service_name_ll
+      )
+    ) FILTER (WHERE s.service_id IS NOT NULL), '[]'::jsonb)
+  )
+  FROM m_department d
+  LEFT JOIN m_services s ON s.department_id = d.department_id
+  WHERE d.department_id = p_department_id
+  GROUP BY d.department_id;
+$$;
+
+
+select * from m_helpdesk;
+drop function get_visitor_by_id(VARCHAR)
+select * from get_visitor_details('VIS019')
+-- get visitor by id:
+CREATE OR REPLACE FUNCTION get_visitor_details(
+    p_visitor_id VARCHAR DEFAULT NULL,
+    p_mobile_no  VARCHAR DEFAULT NULL,
+    p_email_id   VARCHAR DEFAULT NULL
+)
+RETURNS JSON
+LANGUAGE plpgsql
+AS $$
+DECLARE
+    visitor_data JSON;
+BEGIN
+    SELECT json_build_object(
+        'visitor_id', v.visitor_id,
+        'user_id', v.user_id,
+        'full_name', v.full_name,
+        'gender', v.gender,
+        'dob', v.dob,
+        'mobile_no', v.mobile_no,
+        'email_id', v.email_id,
+        'state_code', v.state_code,
+        'division_code', v.division_code,
+        'district_code', v.district_code,
+        'taluka_code', v.taluka_code,
+        'pincode', v.pincode,
+        'photo', v.photo,
+        'is_active', v.is_active,
+        'insert_date', v.insert_date,
+        'updated_date', v.updated_date
+    )
+    INTO visitor_data
+    FROM m_visitors_signup v
+    WHERE
+        (p_visitor_id IS NOT NULL AND v.visitor_id = p_visitor_id)
+        OR
+        (p_visitor_id IS NULL AND p_mobile_no IS NOT NULL AND v.mobile_no = p_mobile_no)
+        OR
+        (p_visitor_id IS NULL AND p_mobile_no IS NULL AND p_email_id IS NOT NULL AND v.email_id = p_email_id)
+    LIMIT 1;
+
+    IF visitor_data IS NULL THEN
+        RETURN json_build_object(
+            'status', 'error',
+            'message', 'Visitor not found'
+        );
+    END IF;
+
+    RETURN json_build_object(
+        'status', 'success',
+        'data', visitor_data
+    );
+END;
+$$;
+
+
+SELECT column_name
+FROM information_schema.columns
+WHERE table_name = 'walkins'
+ORDER BY ordinal_position;
+
+drop function insert_walkin_appointment(VARCHAR,VARCHAR,)
+
+
+	ALTER TABLE walkins ADD CONSTRAINT chk_assignment
+CHECK (
+    (officer_id IS NOT NULL AND helpdesk_id IS NULL)
+ OR (officer_id IS NULL AND helpdesk_id IS NOT NULL)
+);
+
+
+-- insert walkin appointment:
+CREATE OR REPLACE FUNCTION insert_walkin_appointment(
+    /* 👤 Walk-in person */
+    p_full_name VARCHAR,
+    p_gender CHAR(1),
+    p_mobile_no VARCHAR,
+    p_email_id VARCHAR,
+
+    /* 🔗 References */
+    p_visitor_id VARCHAR,
+    p_organization_id VARCHAR,
+    p_department_id VARCHAR,
+    p_service_id VARCHAR,
+
+    /* 📝 Appointment */
+    p_purpose TEXT,
+    p_walkin_date DATE,
+    p_slot_time TIME,
+
+    /* 📍 Location */
+    p_state_code VARCHAR,
+
+    /* 🔽 OPTIONAL PARAMETERS (ALL DEFAULTS AT END) */
+    p_division_code VARCHAR DEFAULT NULL,
+    p_district_code VARCHAR DEFAULT NULL,
+    p_taluka_code VARCHAR DEFAULT NULL,
+    p_officer_id VARCHAR DEFAULT NULL,
+    p_helpdesk_id VARCHAR DEFAULT NULL,
+    p_insert_by VARCHAR DEFAULT NULL,
+    p_insert_ip VARCHAR DEFAULT NULL
+)
+RETURNS VARCHAR
+LANGUAGE plpgsql
+AS $$
+DECLARE
+    v_walkin_id VARCHAR;
+BEGIN
+    /* 🚫 Assignment rule */
+    IF (p_officer_id IS NULL AND p_helpdesk_id IS NULL)
+       OR (p_officer_id IS NOT NULL AND p_helpdesk_id IS NOT NULL) THEN
+        RAISE EXCEPTION 'Provide either officer_id OR helpdesk_id (not both)';
+    END IF;
+
+    INSERT INTO walkins (
+        full_name, gender, mobile_no, email_id,
+        visitor_id, organization_id, department_id,
+        officer_id, helpdesk_id,
+        service_id, purpose, walkin_date, slot_time,
+        status, remarks,
+        state_code, division_code, district_code, taluka_code,
+        insert_by, insert_ip
+    )
+    VALUES (
+        p_full_name, p_gender, p_mobile_no, p_email_id,
+        p_visitor_id, p_organization_id, p_department_id,
+        p_officer_id, p_helpdesk_id,
+        p_service_id, p_purpose, p_walkin_date, p_slot_time,
+        'pending', NULL,
+        p_state_code, p_division_code, p_district_code, p_taluka_code,
+        p_insert_by, p_insert_ip
+    )
+    RETURNING walkin_id INTO v_walkin_id;
+
+    RETURN v_walkin_id;
+END;
+$$;
+
+
+
+-- analytics:
+CREATE OR REPLACE FUNCTION get_walkins_trend(
+    p_date_type TEXT DEFAULT 'day',
+    p_state_code      VARCHAR DEFAULT NULL,
+    p_division_code   VARCHAR DEFAULT NULL,
+    p_district_code   VARCHAR DEFAULT NULL,
+    p_taluka_code     VARCHAR DEFAULT NULL,
+    p_from_date DATE DEFAULT NULL,
+    p_to_date DATE DEFAULT NULL,
+    p_organization_id VARCHAR DEFAULT NULL,
+    p_department_id   VARCHAR DEFAULT NULL,
+    p_service_id      VARCHAR DEFAULT NULL
+)
+RETURNS TABLE (
+    period TEXT,
+    count  BIGINT
+)
+LANGUAGE sql
+AS $$
+    SELECT
+        CASE
+            WHEN p_date_type = 'day'
+                THEN TO_CHAR(w.walkin_date, 'YYYY-MM-DD')
+            WHEN p_date_type = 'month'
+                THEN TO_CHAR(w.walkin_date, 'YYYY-MM')
+            WHEN p_date_type = 'year'
+                THEN TO_CHAR(w.walkin_date, 'YYYY')
+            ELSE TO_CHAR(w.walkin_date, 'YYYY-MM-DD')
+        END AS period,
+        COUNT(*) AS count
+    FROM walkins w
+    WHERE 1 = 1
+      AND (p_state_code      IS NULL OR w.state_code = p_state_code)
+      AND (p_division_code   IS NULL OR w.division_code = p_division_code)
+      AND (p_district_code   IS NULL OR w.district_code = p_district_code)
+      AND (p_taluka_code     IS NULL OR w.taluka_code = p_taluka_code)
+      AND (p_organization_id IS NULL OR w.organization_id = p_organization_id)
+      AND (p_department_id   IS NULL OR w.department_id = p_department_id)
+      AND (p_service_id      IS NULL OR w.service_id = p_service_id)
+      AND (p_from_date IS NULL OR w.walkin_date >= p_from_date)
+      AND (p_to_date   IS NULL OR w.walkin_date <= p_to_date)
+    GROUP BY period
+    ORDER BY period;
+$$;
+
+CREATE OR REPLACE FUNCTION get_walkins_by_department(
+    p_state_code        VARCHAR DEFAULT NULL,
+    p_division_code     VARCHAR DEFAULT NULL,
+    p_district_code     VARCHAR DEFAULT NULL,
+    p_taluka_code       VARCHAR DEFAULT NULL,
+    p_from_date         DATE DEFAULT NULL,
+    p_to_date           DATE DEFAULT NULL,
+    p_organization_id   VARCHAR DEFAULT NULL,
+    p_department_id     VARCHAR DEFAULT NULL
+)
+RETURNS TABLE (
+    department_id   VARCHAR,
+    department_name TEXT,
+    count           BIGINT
+)
+LANGUAGE sql
+AS $$
+    SELECT
+        d.department_id,
+        d.department_name,
+        COUNT(w.walkin_id) AS count
+    FROM walkins w
+    JOIN m_department d
+      ON w.department_id = d.department_id
+    WHERE 1 = 1
+      AND (p_state_code      IS NULL OR w.state_code = p_state_code)
+      AND (p_division_code   IS NULL OR w.division_code = p_division_code)
+      AND (p_district_code   IS NULL OR w.district_code = p_district_code)
+      AND (p_taluka_code     IS NULL OR w.taluka_code = p_taluka_code)
+      AND (p_organization_id IS NULL OR w.organization_id = p_organization_id)
+      AND (p_department_id   IS NULL OR w.department_id = p_department_id)
+      AND (p_from_date IS NULL OR w.walkin_date >= p_from_date)
+      AND (p_to_date   IS NULL OR w.walkin_date <= p_to_date)
+    GROUP BY d.department_id, d.department_name
+    ORDER BY count DESC;
+$$;
+
+CREATE OR REPLACE FUNCTION get_walkins_by_service(
+    p_state_code        VARCHAR DEFAULT NULL,
+    p_division_code     VARCHAR DEFAULT NULL,
+    p_district_code     VARCHAR DEFAULT NULL,
+    p_taluka_code       VARCHAR DEFAULT NULL,
+    p_from_date         DATE DEFAULT NULL,
+    p_to_date           DATE DEFAULT NULL,
+    p_organization_id   VARCHAR DEFAULT NULL,
+    p_department_id     VARCHAR DEFAULT NULL,
+    p_service_id        VARCHAR DEFAULT NULL
+)
+RETURNS TABLE (
+    service_id   VARCHAR,
+    service_name TEXT,
+    count        BIGINT
+)
+LANGUAGE sql
+AS $$
+    SELECT
+        s.service_id,
+        s.service_name,
+        COUNT(w.walkin_id) AS count
+    FROM walkins w
+    JOIN m_services s
+      ON w.service_id = s.service_id
+    WHERE 1 = 1
+      AND (p_state_code      IS NULL OR w.state_code = p_state_code)
+      AND (p_division_code   IS NULL OR w.division_code = p_division_code)
+      AND (p_district_code   IS NULL OR w.district_code = p_district_code)
+      AND (p_taluka_code     IS NULL OR w.taluka_code = p_taluka_code)
+      AND (p_organization_id IS NULL OR w.organization_id = p_organization_id)
+      AND (p_department_id   IS NULL OR w.department_id = p_department_id)
+      AND (p_service_id      IS NULL OR w.service_id = p_service_id)
+      AND (p_from_date IS NULL OR w.walkin_date >= p_from_date)
+      AND (p_to_date   IS NULL OR w.walkin_date <= p_to_date)
+    GROUP BY s.service_id, s.service_name
+    ORDER BY count DESC;
+$$;
+
+CREATE OR REPLACE FUNCTION get_walkin_kpis(
+    p_state_code      VARCHAR DEFAULT NULL,
+    p_division_code   VARCHAR DEFAULT NULL,
+    p_district_code   VARCHAR DEFAULT NULL,
+    p_taluka_code     VARCHAR DEFAULT NULL,
+    p_organization_id VARCHAR DEFAULT NULL,
+    p_department_id   VARCHAR DEFAULT NULL,
+    p_from_date       DATE DEFAULT NULL,
+    p_to_date         DATE DEFAULT NULL
+)
+RETURNS TABLE (
+    total_walkins        BIGINT,
+    today_walkins        BIGINT,
+    approved_walkins     BIGINT,
+    completed_walkins    BIGINT,
+    pending_walkins      BIGINT,
+    rejected_walkins     BIGINT
+)
+LANGUAGE sql
+AS $$
+    SELECT
+        COUNT(*) AS total_walkins,
+
+        COUNT(*) FILTER (
+            WHERE walkin_date = CURRENT_DATE
+        ) AS today_walkins,
+
+        COUNT(*) FILTER (
+            WHERE status = 'approved'
+        ) AS approved_walkins,
+
+        COUNT(*) FILTER (
+            WHERE status = 'completed'
+        ) AS completed_walkins,
+
+        COUNT(*) FILTER (
+            WHERE status = 'pending'
+        ) AS pending_walkins,
+
+        COUNT(*) FILTER (
+            WHERE status IN ('rejected', 'cancelled')
+        ) AS rejected_walkins
+
+    FROM walkins
+    WHERE
+        (p_state_code      IS NULL OR state_code = p_state_code)
+        AND (p_division_code   IS NULL OR division_code = p_division_code)
+        AND (p_district_code   IS NULL OR district_code = p_district_code)
+        AND (p_taluka_code     IS NULL OR taluka_code = p_taluka_code)
+        AND (p_organization_id IS NULL OR organization_id = p_organization_id)
+        AND (p_department_id   IS NULL OR department_id = p_department_id)
+        AND (p_from_date IS NULL OR walkin_date >= p_from_date)
+        AND (p_to_date   IS NULL OR walkin_date <= p_to_date);
+$$;
+
+CREATE OR REPLACE FUNCTION get_application_appointment_kpis(
+    p_state_code      VARCHAR DEFAULT NULL,
+    p_division_code   VARCHAR DEFAULT NULL,
+    p_district_code   VARCHAR DEFAULT NULL,
+    p_taluka_code     VARCHAR DEFAULT NULL,
+    p_organization_id VARCHAR DEFAULT NULL,
+    p_department_id   VARCHAR DEFAULT NULL,
+    p_service_id      VARCHAR DEFAULT NULL,
+    p_from_date       DATE DEFAULT NULL,
+    p_to_date         DATE DEFAULT NULL
+)
+RETURNS TABLE (
+    total_appointments        BIGINT,
+    upcoming_appointments     BIGINT,
+    completed_appointments    BIGINT,
+    rejected_appointments     BIGINT,
+    pending_appointments      BIGINT
+)
+LANGUAGE sql
+AS $$
+    SELECT
+        COUNT(*) AS total_appointments,
+        COUNT(*) FILTER (WHERE status = 'approved') AS upcoming_appointments,
+        COUNT(*) FILTER (WHERE status = 'completed') AS completed_appointments,
+        COUNT(*) FILTER (WHERE status IN ('rejected','cancelled','no-show')) AS rejected_appointments,
+        COUNT(*) FILTER (WHERE status = 'pending') AS pending_appointments
+    FROM appointments
+    WHERE is_active = TRUE
+      AND (p_state_code      IS NULL OR state_code = p_state_code)
+      AND (p_division_code   IS NULL OR division_code = p_division_code)
+      AND (p_district_code   IS NULL OR district_code = p_district_code)
+      AND (p_taluka_code     IS NULL OR taluka_code = p_taluka_code)
+      AND (p_organization_id IS NULL OR organization_id = p_organization_id)
+      AND (p_department_id   IS NULL OR department_id = p_department_id)
+      AND (p_service_id      IS NULL OR service_id = p_service_id)
+      AND (p_from_date IS NULL OR appointment_date >= p_from_date)
+      AND (p_to_date   IS NULL OR appointment_date <= p_to_date);
+$$;
+
+
+CREATE OR REPLACE FUNCTION get_application_appointments_trend(
+    p_date_type TEXT DEFAULT 'month',
+    p_state_code      VARCHAR DEFAULT NULL,
+    p_division_code   VARCHAR DEFAULT NULL,
+    p_district_code   VARCHAR DEFAULT NULL,
+    p_taluka_code     VARCHAR DEFAULT NULL,
+    p_from_date DATE DEFAULT NULL,
+    p_to_date DATE DEFAULT NULL,
+    p_organization_id VARCHAR DEFAULT NULL,
+    p_department_id   VARCHAR DEFAULT NULL,
+    p_service_id      VARCHAR DEFAULT NULL
+)
+RETURNS TABLE (
+    period TEXT,
+    count BIGINT
+)
+LANGUAGE sql
+AS $$
+    SELECT
+        CASE
+            WHEN p_date_type = 'today' THEN TO_CHAR(appointment_date, 'DD Mon')
+            WHEN p_date_type = 'week'  THEN TO_CHAR(appointment_date, 'DD Mon')
+            WHEN p_date_type = 'month' THEN TO_CHAR(appointment_date, 'Mon YYYY')
+            WHEN p_date_type = 'year'  THEN TO_CHAR(appointment_date, 'YYYY')
+            ELSE TO_CHAR(appointment_date, 'DD Mon')
+        END AS period,
+        COUNT(*) AS count
+    FROM appointments
+    WHERE is_active = TRUE
+      AND (p_state_code      IS NULL OR state_code = p_state_code)
+      AND (p_division_code   IS NULL OR division_code = p_division_code)
+      AND (p_district_code   IS NULL OR district_code = p_district_code)
+      AND (p_taluka_code     IS NULL OR taluka_code = p_taluka_code)
+      AND (p_organization_id IS NULL OR organization_id = p_organization_id)
+      AND (p_department_id   IS NULL OR department_id = p_department_id)
+      AND (p_service_id      IS NULL OR service_id = p_service_id)
+      AND (p_from_date IS NULL OR appointment_date >= p_from_date)
+      AND (p_to_date   IS NULL OR appointment_date <= p_to_date)
+    GROUP BY period
+    ORDER BY MIN(appointment_date);
+$$;
+
+CREATE OR REPLACE FUNCTION get_appointments_by_department(
+    p_state_code        VARCHAR DEFAULT NULL,
+    p_division_code     VARCHAR DEFAULT NULL,
+    p_district_code     VARCHAR DEFAULT NULL,
+    p_taluka_code       VARCHAR DEFAULT NULL,
+    p_from_date         DATE DEFAULT NULL,
+    p_to_date           DATE DEFAULT NULL,
+    p_organization_id   VARCHAR DEFAULT NULL,
+    p_department_id     VARCHAR DEFAULT NULL
+)
+RETURNS TABLE (
+    department_id   VARCHAR,
+    department_name TEXT,
+    count           BIGINT
+)
+LANGUAGE sql
+AS $$
+    SELECT
+        d.department_id,
+        d.department_name,
+        COUNT(a.appointment_id) AS count
+    FROM appointments a
+    JOIN m_department d
+      ON a.department_id = d.department_id
+    WHERE a.is_active = TRUE
+      AND (p_state_code      IS NULL OR a.state_code = p_state_code)
+      AND (p_division_code   IS NULL OR a.division_code = p_division_code)
+      AND (p_district_code   IS NULL OR a.district_code = p_district_code)
+      AND (p_taluka_code     IS NULL OR a.taluka_code = p_taluka_code)
+      AND (p_organization_id IS NULL OR a.organization_id = p_organization_id)
+      AND (p_department_id   IS NULL OR a.department_id = p_department_id)
+      AND (p_from_date IS NULL OR a.appointment_date >= p_from_date)
+      AND (p_to_date   IS NULL OR a.appointment_date <= p_to_date)
+    GROUP BY d.department_id, d.department_name
+    ORDER BY count DESC;
+$$;
+
+
+CREATE OR REPLACE FUNCTION get_appointments_by_service(
+    p_state_code        VARCHAR DEFAULT NULL,
+    p_division_code     VARCHAR DEFAULT NULL,
+    p_district_code     VARCHAR DEFAULT NULL,
+    p_taluka_code       VARCHAR DEFAULT NULL,
+    p_from_date         DATE DEFAULT NULL,
+    p_to_date           DATE DEFAULT NULL,
+    p_organization_id   VARCHAR DEFAULT NULL,
+    p_department_id     VARCHAR DEFAULT NULL,
+    p_service_id        VARCHAR DEFAULT NULL
+)
+RETURNS TABLE (
+    service_id   VARCHAR,
+    service_name TEXT,
+    count        BIGINT
+)
+LANGUAGE sql
+AS $$
+    SELECT
+        s.service_id,
+        s.service_name,
+        COUNT(a.appointment_id) AS count
+    FROM appointments a
+    JOIN m_services s
+      ON a.service_id = s.service_id
+    WHERE a.is_active = TRUE
+      AND (p_state_code      IS NULL OR a.state_code = p_state_code)
+      AND (p_division_code   IS NULL OR a.division_code = p_division_code)
+      AND (p_district_code   IS NULL OR a.district_code = p_district_code)
+      AND (p_taluka_code     IS NULL OR a.taluka_code = p_taluka_code)
+      AND (p_organization_id IS NULL OR a.organization_id = p_organization_id)
+      AND (p_department_id   IS NULL OR a.department_id = p_department_id)
+      AND (p_service_id      IS NULL OR a.service_id = p_service_id)
+      AND (p_from_date IS NULL OR a.appointment_date >= p_from_date)
+      AND (p_to_date   IS NULL OR a.appointment_date <= p_to_date)
+    GROUP BY s.service_id, s.service_name
+    ORDER BY count DESC;
+$$;
+
+DROP FUNCTION create_walkin_appointment(character varying,character varying,character varying,character varying,character varying,text,date,time without time zone,character varying,character varying,character varying,character varying,character varying,character varying,character varying,character varying,character varying,text,character varying,character varying,timestamp without time zone)
+ALTER TABLE walkins ALTER COLUMN officer_id DROP NOT NULL;
+select *  from walkins
+
+ALTER TABLE walkins
+DROP COLUMN helpdesk_id;
+ALTER TABLE notifications ADD COLUMN walkin_id VARCHAR REFERENCES walkins(walkin_id);
+
+-- insert walkins main:
+CREATE OR REPLACE FUNCTION create_walkin_appointment(
+    /* 🔴 Mandatory parameters (NO defaults first) */
+    p_visitor_id VARCHAR,
+    p_organization_id VARCHAR,
+    p_service_id VARCHAR,
+    p_purpose TEXT,
+    p_walkin_date DATE,
+    p_slot_time TIME,
+    p_insert_by VARCHAR,
+    p_insert_ip VARCHAR,
+    p_full_name VARCHAR,
+    p_gender VARCHAR,
+    p_mobile_no VARCHAR,
+    p_email_id VARCHAR,
+    p_state_code VARCHAR,
+    p_division_code VARCHAR,
+    p_officer_id VARCHAR,        -- officer OR helpdesk
+
+    /* 🟢 Optional parameters (ALL defaults below) */
+    p_department_id VARCHAR DEFAULT NULL,
+    p_status VARCHAR DEFAULT 'pending',
+    p_remarks TEXT DEFAULT NULL,
+    p_district_code VARCHAR DEFAULT NULL,
+    p_taluka_code VARCHAR DEFAULT NULL,
+    p_insert_date TIMESTAMP DEFAULT NULL
+)
+RETURNS VARCHAR
+LANGUAGE plpgsql
+AS $$
+DECLARE
+    v_walkin_id VARCHAR;
+    v_officer_name VARCHAR;
+    v_visitor_username VARCHAR;
+BEGIN
+    /* 1️⃣ Insert walk-in */
+    INSERT INTO walkins (
+        visitor_id,
+        organization_id,
+        department_id,
+        officer_id,
+        service_id,
+        purpose,
+        walkin_date,
+        slot_time,
+        insert_by,
+        insert_ip,
+        full_name,
+        gender,
+        mobile_no,
+        email_id,
+        status,
+        state_code,
+        division_code,
+        remarks,
+        district_code,
+        taluka_code,
+        insert_date
+    )
+    VALUES (
+        p_visitor_id,
+        p_organization_id,
+        p_department_id,          -- ✅ DEFAULT NULL
+        p_officer_id,
+        p_service_id,
+        p_purpose,
+        p_walkin_date,
+        p_slot_time,
+        p_insert_by,
+        p_insert_ip,
+        p_full_name,
+        p_gender,
+        p_mobile_no,
+        p_email_id,
+        p_status,
+        p_state_code,
+        p_division_code,
+        p_remarks,
+        p_district_code,
+        p_taluka_code,
+        COALESCE(p_insert_date, NOW())
+    )
+    RETURNING walkin_id INTO v_walkin_id;
+
+    /* 2️⃣ Officer / Helpdesk name */
+    SELECT full_name
+    INTO v_officer_name
+    FROM m_officers
+    WHERE officer_id = p_officer_id;
+
+    IF v_officer_name IS NULL THEN
+        SELECT full_name
+        INTO v_officer_name
+        FROM m_helpdesk
+        WHERE helpdesk_id = p_officer_id;
+    END IF;
+
+    /* 3️⃣ Visitor username */
+    SELECT u.username
+    INTO v_visitor_username
+    FROM m_visitors_signup vs
+    JOIN m_users u ON u.user_id = vs.user_id
+    WHERE vs.visitor_id = p_visitor_id;
+
+    /* 4️⃣ Notification */
+    INSERT INTO notifications (
+        username,
+        walkin_id,
+        title,
+        message,
+        type
+    )
+    VALUES (
+        v_visitor_username,
+        v_walkin_id,
+        'Walk-in Created',
+        'Your walk-in ' || v_walkin_id ||
+        ' is created and pending approval from ' ||
+        COALESCE(v_officer_name, 'officer'),
+        'info'
+    );
+
+    RETURN v_walkin_id;
+END;
+$$;
+
+select * from walkins
+-- get helpdesk dashboard:main function working:
+select * from get_helpdesk_dashboard_counts('HLP002')
+	
+	SELECT COUNT(*)
+FROM walkins
+WHERE walkin_date::date = CURRENT_DATE;
+
+SELECT DISTINCT
+  organization_id,
+  department_id,
+  state_code,
+  division_code,
+  district_code,
+  taluka_code
+FROM walkins
+WHERE walkin_date::date = CURRENT_DATE;
+
+
+CREATE OR REPLACE FUNCTION get_helpdesk_dashboard_counts(
+    p_helpdesk_id TEXT
+)
+RETURNS JSON
+LANGUAGE plpgsql
+AS $$
+DECLARE
+    v_helpdesk RECORD;
+
+    v_today_appointments INT := 0;
+    v_pending INT := 0;
+    v_completed INT := 0;
+    v_rejected INT := 0;
+    v_rescheduled INT := 0;
+    v_walkins INT := 0;
+BEGIN
+    -- 1️⃣ Fetch helpdesk details
+    SELECT *
+    INTO v_helpdesk
+    FROM m_helpdesk
+    WHERE helpdesk_id = p_helpdesk_id
+      AND is_active = true;
+
+    IF NOT FOUND THEN
+        RAISE EXCEPTION 'Helpdesk not found or inactive';
+    END IF;
+
+    -- 2️⃣ Today’s Appointments
+    SELECT COUNT(*)
+    INTO v_today_appointments
+    FROM appointments a
+    WHERE a.organization_id = v_helpdesk.organization_id
+      AND a.department_id = v_helpdesk.department_id
+      AND a.state_code = v_helpdesk.state_code
+      AND a.division_code = v_helpdesk.division_code
+      AND a.district_code = v_helpdesk.district_code
+      AND a.taluka_code = v_helpdesk.taluka_code
+      AND a.is_active = true
+      AND a.appointment_date = CURRENT_DATE;
+
+   -- 3️⃣ Pending Appointments (FIXED)
+SELECT COUNT(*)
+INTO v_pending
+FROM appointments a
+WHERE a.organization_id = v_helpdesk.organization_id
+  AND (a.department_id = v_helpdesk.department_id OR v_helpdesk.department_id IS NULL)
+  AND a.state_code = v_helpdesk.state_code
+  AND a.division_code = v_helpdesk.division_code
+  AND a.district_code = v_helpdesk.district_code
+  AND a.taluka_code = v_helpdesk.taluka_code
+  AND a.is_active = true
+  AND UPPER(a.status) = 'PENDING';
+
+    -- 4️⃣ Completed Appointments
+    SELECT COUNT(*)
+    INTO v_completed
+    FROM appointments a
+    WHERE a.organization_id = v_helpdesk.organization_id
+      AND a.department_id = v_helpdesk.department_id
+      AND a.state_code = v_helpdesk.state_code
+      AND a.division_code = v_helpdesk.division_code
+      AND a.district_code = v_helpdesk.district_code
+      AND a.taluka_code = v_helpdesk.taluka_code
+      AND a.is_active = true
+      AND a.status = 'COMPLETED';
+
+    -- 5️⃣ Rejected Appointments
+    SELECT COUNT(*)
+    INTO v_rejected
+    FROM appointments a
+    WHERE a.organization_id = v_helpdesk.organization_id
+      AND a.department_id = v_helpdesk.department_id
+      AND a.state_code = v_helpdesk.state_code
+      AND a.division_code = v_helpdesk.division_code
+      AND a.district_code = v_helpdesk.district_code
+      AND a.taluka_code = v_helpdesk.taluka_code
+      AND a.is_active = true
+      AND a.status = 'REJECTED';
+
+    -- 6️⃣ Rescheduled Appointments
+    SELECT COUNT(*)
+    INTO v_rescheduled
+    FROM appointments a
+    WHERE a.organization_id = v_helpdesk.organization_id
+      AND a.department_id = v_helpdesk.department_id
+      AND a.state_code = v_helpdesk.state_code
+      AND a.division_code = v_helpdesk.division_code
+      AND a.district_code = v_helpdesk.district_code
+      AND a.taluka_code = v_helpdesk.taluka_code
+      AND a.is_active = true
+      AND a.status = 'RESCHEDULED';
+
+    -- 7️⃣ Walk-ins (Today) - FIXED
+SELECT COUNT(*)
+INTO v_walkins
+FROM walkins w
+WHERE w.organization_id = v_helpdesk.organization_id
+  AND (w.department_id = v_helpdesk.department_id OR v_helpdesk.department_id IS NULL)
+  AND w.state_code = v_helpdesk.state_code
+  AND w.division_code = v_helpdesk.division_code
+  AND w.district_code = v_helpdesk.district_code
+  AND w.taluka_code = v_helpdesk.taluka_code
+  AND w.walkin_date::date = CURRENT_DATE;
+
+    -- 8️⃣ Return JSON
+    RETURN json_build_object(
+        'today_appointments', v_today_appointments,
+        'pending_appointments', v_pending,
+        'completed_appointments', v_completed,
+        'rejected_appointments', v_rejected,
+        'rescheduled_appointments', v_rescheduled,
+        'walkins', v_walkins
+    );
+END;
+$$;
+
+
+SELECT status, is_active, COUNT(*)
+FROM appointments
+GROUP BY status, is_active;
+
+ALTER TABLE m_slot_config
+ALTER COLUMN department_id SET DEFAULT NULL;
+
+
+-- admin slot config:
+
+CREATE TABLE m_slot_config (
+    slot_config_id SERIAL PRIMARY KEY,
+
+    -- =========================
+    -- ORG HIERARCHY
+    -- =========================
+    organization_id VARCHAR(10) NOT NULL,
+    department_id   VARCHAR(10),
+    service_id      VARCHAR(10),
+    officer_id      VARCHAR(20),
+
+    -- =========================
+    -- LOCATION HIERARCHY
+    -- =========================
+    state_code    VARCHAR(2) NOT NULL,
+    division_code VARCHAR(3),
+    district_code VARCHAR(3),
+    taluka_code   VARCHAR(4), -- NULL = applies to all talukas of district
+
+    -- =========================
+    -- SLOT RULES
+    -- =========================
+    day_of_week SMALLINT NOT NULL CHECK (day_of_week BETWEEN 1 AND 7),
+    start_time TIME NOT NULL,
+    end_time   TIME NOT NULL,
+
+    slot_duration_minutes INT NOT NULL CHECK (slot_duration_minutes > 0),
+    buffer_minutes INT DEFAULT 0 CHECK (buffer_minutes >= 0),
+    max_capacity INT NOT NULL CHECK (max_capacity > 0),
+
+    -- =========================
+    -- VALIDITY
+    -- =========================
+    effective_from DATE NOT NULL,
+    effective_to   DATE,
+
+    is_active BOOLEAN DEFAULT TRUE,
+
+    insert_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+    -- =========================
+    -- FOREIGN KEYS
+    -- =========================
+    FOREIGN KEY (organization_id) REFERENCES m_organization(organization_id),
+    FOREIGN KEY (department_id)   REFERENCES m_department(department_id),
+    FOREIGN KEY (service_id)      REFERENCES m_services(service_id),
+    FOREIGN KEY (officer_id)      REFERENCES m_officers(officer_id),
+
+    FOREIGN KEY (state_code)      REFERENCES m_state(state_code),
+    FOREIGN KEY (division_code)   REFERENCES m_division(division_code),
+    FOREIGN KEY (district_code)   REFERENCES m_district(district_code),
+    FOREIGN KEY (taluka_code)     REFERENCES m_taluka(taluka_code)
+);
+
+
+CREATE TABLE m_slot_breaks (
+    break_id SERIAL PRIMARY KEY,
+
+    slot_config_id INT NOT NULL,
+
+    break_start TIME NOT NULL,
+    break_end   TIME NOT NULL,
+
+    reason VARCHAR(100),
+    is_active BOOLEAN DEFAULT TRUE,
+
+    insert_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+    FOREIGN KEY (slot_config_id)
+        REFERENCES m_slot_config(slot_config_id)
+        ON DELETE CASCADE,
+
+    CHECK (break_start < break_end)
+);
+
+CREATE TABLE m_slot_holidays (
+    holiday_id SERIAL PRIMARY KEY,
+
+    organization_id VARCHAR(10),
+    department_id   VARCHAR(10),
+    service_id      VARCHAR(10),
+
+    state_code    VARCHAR(2),
+    division_code VARCHAR(3),
+    district_code VARCHAR(3),
+    taluka_code   VARCHAR(4),
+
+    holiday_date DATE NOT NULL,
+    description VARCHAR(100),
+
+    is_active BOOLEAN DEFAULT TRUE,
+    insert_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+    FOREIGN KEY (organization_id) REFERENCES m_organization(organization_id),
+    FOREIGN KEY (department_id)   REFERENCES m_department(department_id),
+    FOREIGN KEY (service_id)      REFERENCES m_services(service_id),
+
+    FOREIGN KEY (state_code)      REFERENCES m_state(state_code),
+    FOREIGN KEY (division_code)   REFERENCES m_division(division_code),
+    FOREIGN KEY (district_code)   REFERENCES m_district(district_code),
+    FOREIGN KEY (taluka_code)     REFERENCES m_taluka(taluka_code)
+);
+
+CREATE UNIQUE INDEX ux_slot_config_scope
+ON m_slot_config (
+    organization_id,
+    department_id,
+    service_id,
+    officer_id,
+    state_code,
+    division_code,
+    district_code,
+    taluka_code,
+    day_of_week,
+    effective_from
+);
+
+SELECT * FROM get_available_slots(
+    p_date => '2026-01-15',
+    p_organization_id => 'ORG002',
+    p_service_id => 'SER002',
+    p_officer_id => 'OFF005',
+    p_state_code => '27',
+    p_division_code => '01',
+    p_department_id => 'DEP002',
+    p_district_code => '482',
+    p_taluka_code => NULL
+);
+
+SELECT
+  '2026-01-31'::date AS date,
+  EXTRACT(DOW FROM '2026-01-31'::date) AS raw_dow,
+  ((EXTRACT(DOW FROM '2026-01-31'::date)::INT + 6) % 7) + 1 AS normalized_dow;
+
+SELECT slot_config_id, day_of_week
+FROM m_slot_config
+WHERE organization_id = 'ORG002'
+  AND officer_id = 'OFF005'
+  AND is_active = true;
+
+
+SELECT proname, proargnames, proargtypes
+FROM pg_proc
+WHERE proname = 'get_available_slots';
+
+
+select * from m_slot_config
+
+SELECT
+    slot_config_id,
+    organization_id,
+    service_id,
+    department_id,
+    day_of_week,
+    start_time,
+    end_time,
+    is_active,
+    effective_from,
+    effective_to
+FROM m_slot_config
+WHERE district_code ='482'
+  AND is_active = true;
+
+
+
+
+
+SELECT DISTINCT day_of_week
+FROM m_slot_config
+WHERE organization_id = 'ORG002';
+
+
+
+
+
+
+SELECT
+  CURRENT_DATE,
+  EXTRACT(DOW FROM CURRENT_DATE),
+  ((EXTRACT(DOW FROM CURRENT_DATE)::INT + 6) % 7) + 1;
+
+
+
+
+SELECT *
+FROM m_slot_config
+WHERE day_of_week = 3
+  AND is_active = true;
+
+
+
+
+
+
+SELECT
+  slot_time,
+  slot_end_time
+FROM generate_time_slots(
+  '09:00',
+  '17:00',
+  INTERVAL '15 minutes'
+);
+
+SELECT
+  EXTRACT(DOW FROM DATE '2026-01-20') + 1 AS computed,
+  day_of_week
+FROM m_slot_config
+WHERE organization_id = 'ORG013';
+
+DROP FUNCTION get_available_slots(date,character varying,character varying,character varying,character varying,character varying,character varying,character varying,character varying)
+-- get available slots:::
+CREATE OR REPLACE FUNCTION get_available_slots(
+    p_date DATE,
+    p_organization_id VARCHAR,
+    p_service_id VARCHAR,
+    p_officer_id VARCHAR,
+    p_state_code VARCHAR,
+    p_division_code VARCHAR,
+    p_department_id VARCHAR DEFAULT NULL,
+    p_district_code VARCHAR DEFAULT NULL,
+    p_taluka_code VARCHAR DEFAULT NULL
+)
+RETURNS TABLE (
+    slot_time TIME,
+    slot_end_time TIME,
+    used_count INT,
+    max_capacity INT,
+    is_available BOOLEAN
+)
+LANGUAGE plpgsql
+AS $$
+DECLARE
+    v_day_of_week INT;
+    v_slot_config m_slot_config;
+BEGIN
+    /* ✅ FIXED day_of_week */
+    v_day_of_week := ((EXTRACT(DOW FROM p_date)::INT + 6) % 7) + 1;
+
+    /* ✅ SLOT CONFIG */
+    SELECT *
+    INTO v_slot_config
+    FROM m_slot_config
+    WHERE is_active = TRUE
+      AND organization_id = p_organization_id
+      AND (officer_id = p_officer_id OR officer_id IS NULL)
+      AND (service_id = p_service_id OR service_id IS NULL)
+      AND (department_id = p_department_id OR department_id IS NULL)
+      AND state_code = p_state_code
+      AND (division_code = p_division_code OR division_code IS NULL)
+      AND (district_code = p_district_code OR district_code IS NULL)
+      AND (taluka_code = p_taluka_code OR taluka_code IS NULL)
+      AND day_of_week = v_day_of_week
+      AND p_date BETWEEN effective_from AND COALESCE(effective_to, p_date)
+    ORDER BY
+      (officer_id IS NOT NULL) DESC,
+      (service_id IS NOT NULL) DESC,
+      (department_id IS NOT NULL) DESC
+    LIMIT 1;
+
+    IF NOT FOUND THEN
+        RETURN;
+    END IF;
+
+    /* HOLIDAY CHECK */
+    IF EXISTS (
+        SELECT 1 FROM m_slot_holidays h
+        WHERE h.holiday_date = p_date
+          AND h.is_active = TRUE
+          AND (h.organization_id = p_organization_id OR h.organization_id IS NULL)
+    ) THEN
+        RETURN;
+    END IF;
+
+    /* SLOT GENERATION */
+    RETURN QUERY
+    WITH generated_slots AS (
+        SELECT
+            gs AS slot_ts,
+            gs + (v_slot_config.slot_duration_minutes || ' minutes')::INTERVAL AS slot_end_ts
+        FROM generate_series(
+            p_date + v_slot_config.start_time,
+            p_date + v_slot_config.end_time
+              - (v_slot_config.slot_duration_minutes || ' minutes')::INTERVAL,
+            (v_slot_config.slot_duration_minutes + v_slot_config.buffer_minutes || ' minutes')::INTERVAL
+        ) gs
+    ),
+    appointment_counts AS (
+        SELECT a.slot_time AS slot_ts, COUNT(*) cnt
+        FROM appointments a
+        WHERE a.appointment_date = p_date
+          AND a.officer_id = p_officer_id
+          AND a.status IN ('pending','approved','rescheduled')
+        GROUP BY a.slot_time
+    ),
+    walkin_counts AS (
+        SELECT w.slot_time AS slot_ts, COUNT(*) cnt
+        FROM walkins w
+        WHERE w.walkin_date = p_date
+          AND w.officer_id = p_officer_id
+          AND w.status IN ('pending','approved','rescheduled')
+        GROUP BY w.slot_time
+    ),
+    total_usage AS (
+        SELECT
+            COALESCE(a.slot_ts, w.slot_ts) slot_ts,
+            COALESCE(a.cnt,0) + COALESCE(w.cnt,0) used_count
+        FROM appointment_counts a
+        FULL JOIN walkin_counts w ON a.slot_ts = w.slot_ts
+    )
+    SELECT
+        g.slot_ts::TIME,
+        g.slot_end_ts::TIME,
+        COALESCE(t.used_count,0)::INT,
+        v_slot_config.max_capacity,
+        COALESCE(t.used_count,0) < v_slot_config.max_capacity
+    FROM generated_slots g
+    LEFT JOIN total_usage t ON t.slot_ts = g.slot_ts::TIME
+    WHERE p_date > CURRENT_DATE OR g.slot_ts::TIME > CURRENT_TIME
+    ORDER BY g.slot_ts;
+END;
+$$;
+
+select * from appointments;
+
+SELECT slot_config_id, officer_id
+FROM m_slot_config
+WHERE organization_id = 'ORG002';
+
+delete from m_slot_config;
+
+
+select * from m_slot_config;
+----------------------------------------------------------------
+
+INSERT INTO m_slot_config (
+    organization_id, department_id, service_id, officer_id,
+    state_code, division_code, district_code, taluka_code,
+    day_of_week, start_time, end_time,
+    slot_duration_minutes, buffer_minutes, max_capacity,
+    effective_from
+)
+VALUES (
+    'ORG001', NULL, NULL, NULL,
+    '27', NULL, NULL, NULL,
+    1, '09:00', '10:00',
+    15, 0, 1,
+    CURRENT_DATE
+);
+Select * from m_slot_config
+INSERT INTO m_slot_breaks (slot_config_id, break_start, break_end, reason)
+VALUES (1, '13:00', '14:00', 'Lunch break');
+
+INSERT INTO m_slot_holidays (organization_id, state_code, holiday_date, description)
+VALUES ('ORG001', '27', '2026-01-26', 'Republic Day');
+
+------------------------
+
+
+CREATE OR REPLACE FUNCTION check_slot_config_conflict(
+    p_organization_id VARCHAR,
+    p_department_id   VARCHAR,
+    p_service_id      VARCHAR,
+    p_officer_id      VARCHAR,
+
+    p_state_code    VARCHAR,
+    p_division_code VARCHAR,
+    p_district_code VARCHAR,
+    p_taluka_code   VARCHAR,
+
+    p_day_of_week SMALLINT,
+    p_start_time TIME,
+    p_end_time TIME,
+
+    p_effective_from DATE,
+    p_effective_to   DATE,
+
+    p_slot_config_id INT DEFAULT NULL
+)
+RETURNS BOOLEAN
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    RETURN EXISTS (
+        SELECT 1
+        FROM m_slot_config c
+        WHERE c.is_active = TRUE
+          AND (p_slot_config_id IS NULL OR c.slot_config_id <> p_slot_config_id)
+
+          AND c.organization_id = p_organization_id
+          AND (c.department_id = p_department_id OR c.department_id IS NULL)
+          AND (c.service_id = p_service_id OR c.service_id IS NULL)
+          AND (c.officer_id = p_officer_id OR c.officer_id IS NULL)
+
+          AND c.state_code = p_state_code
+          AND (c.division_code = p_division_code OR c.division_code IS NULL)
+          AND (c.district_code = p_district_code OR c.district_code IS NULL)
+          AND (c.taluka_code = p_taluka_code OR c.taluka_code IS NULL)
+
+          AND c.day_of_week = p_day_of_week
+
+          -- ⏰ time overlap
+          AND c.start_time < p_end_time
+          AND c.end_time > p_start_time
+
+          -- 📅 date overlap
+          AND daterange(c.effective_from, COALESCE(c.effective_to, 'infinity')) &&
+              daterange(p_effective_from, COALESCE(p_effective_to, 'infinity'))
+    );
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION create_slot_config(
+    p_organization_id VARCHAR,
+    p_department_id   VARCHAR,
+    p_service_id      VARCHAR,
+    p_officer_id      VARCHAR,
+
+    p_state_code    VARCHAR,
+    p_division_code VARCHAR,
+    p_district_code VARCHAR,
+    p_taluka_code   VARCHAR,
+
+    p_day_of_week SMALLINT,
+    p_start_time TIME,
+    p_end_time TIME,
+
+    p_slot_duration_minutes INT,
+    p_buffer_minutes INT,
+    p_max_capacity INT,
+
+    p_effective_from DATE,
+    p_effective_to   DATE,
+
+    p_breaks JSONB
+)
+RETURNS INT
+LANGUAGE plpgsql
+AS $$
+DECLARE
+    v_slot_config_id INT;
+    b JSONB;
+BEGIN
+    -- 🔒 Conflict check
+    IF check_slot_config_conflict(
+        p_organization_id, p_department_id, p_service_id, p_officer_id,
+        p_state_code, p_division_code, p_district_code, p_taluka_code,
+        p_day_of_week, p_start_time, p_end_time,
+        p_effective_from, p_effective_to,
+        NULL
+    ) THEN
+        RAISE EXCEPTION 'Slot configuration conflict detected';
+    END IF;
+
+    INSERT INTO m_slot_config (
+        organization_id, department_id, service_id, officer_id,
+        state_code, division_code, district_code, taluka_code,
+        day_of_week, start_time, end_time,
+        slot_duration_minutes, buffer_minutes, max_capacity,
+        effective_from, effective_to
+    )
+    VALUES (
+        p_organization_id, p_department_id, p_service_id, p_officer_id,
+        p_state_code, p_division_code, p_district_code, p_taluka_code,
+        p_day_of_week, p_start_time, p_end_time,
+        p_slot_duration_minutes, p_buffer_minutes, p_max_capacity,
+        p_effective_from, p_effective_to
+    )
+    RETURNING slot_config_id INTO v_slot_config_id;
+
+    -- ⏸ Insert breaks
+    IF p_breaks IS NOT NULL THEN
+        FOR b IN SELECT * FROM jsonb_array_elements(p_breaks)
+        LOOP
+            INSERT INTO m_slot_breaks (
+                slot_config_id,
+                break_start,
+                break_end,
+                reason
+            )
+            VALUES (
+                v_slot_config_id,
+                (b->>'from')::TIME,
+                (b->>'to')::TIME,
+                b->>'reason'
+            );
+        END LOOP;
+    END IF;
+
+    RETURN v_slot_config_id;
+END;
+$$;
+
+SELECT
+    n.nspname AS schema_name,
+    p.proname AS function_name,
+    pg_get_functiondef(p.oid)
+FROM pg_proc p
+JOIN pg_namespace n ON n.oid = p.pronamespace
+WHERE p.proname = 'get_available_slots';
+
+DROP FUNCTION IF EXISTS get_available_slots(
+    VARCHAR, VARCHAR, VARCHAR, VARCHAR, VARCHAR, VARCHAR, VARCHAR, DATE
+);
+
+
+-- get current slots:
+CREATE OR REPLACE FUNCTION get_available_slots(
+    -- REQUIRED
+    p_organization_id VARCHAR,
+    p_service_id      VARCHAR,
+    p_date            DATE,
+
+    -- OPTIONAL
+    p_department_id   VARCHAR DEFAULT NULL,
+    p_state_code      VARCHAR DEFAULT NULL,
+    p_division_code   VARCHAR DEFAULT NULL,
+    p_district_code   VARCHAR DEFAULT NULL,
+    p_taluka_code     VARCHAR DEFAULT NULL
+)
+RETURNS TABLE (
+    slot_config_id INT,
+    slot_start_time TIME,
+    slot_end_time   TIME,
+    max_capacity INT
+)
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    RETURN QUERY
+    SELECT
+        sc.slot_config_id,
+        gs.slot_start_ts::TIME AS slot_start_time,
+        (gs.slot_start_ts
+            + make_interval(mins => sc.slot_duration_minutes)
+        )::TIME AS slot_end_time,
+        sc.max_capacity
+    FROM m_slot_config sc
+    CROSS JOIN LATERAL generate_series(
+        -- START TIMESTAMP
+        (p_date::timestamp + sc.start_time),
+
+        -- LAST POSSIBLE SLOT START
+        (p_date::timestamp + sc.end_time)
+            - make_interval(mins => sc.slot_duration_minutes),
+
+        -- STEP = SLOT + BUFFER
+        make_interval(mins => sc.slot_duration_minutes + sc.buffer_minutes)
+    ) AS gs(slot_start_ts)
+    WHERE
+        sc.organization_id = p_organization_id
+        AND sc.service_id = p_service_id
+
+        AND (p_department_id IS NULL OR sc.department_id = p_department_id)
+
+        AND (p_state_code IS NULL OR sc.state_code = p_state_code)
+        AND (p_division_code IS NULL OR sc.division_code = p_division_code)
+        AND (p_district_code IS NULL OR sc.district_code = p_district_code)
+        AND (p_taluka_code IS NULL OR sc.taluka_code = p_taluka_code)
+
+        AND sc.day_of_week = EXTRACT(DOW FROM p_date)
+        AND p_date BETWEEN sc.effective_from AND sc.effective_to;
+END;
+$$;
+
+
+
+---------
+CREATE OR REPLACE FUNCTION deactivate_slot_config(
+    p_slot_config_id INT
+)
+RETURNS VOID
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    UPDATE m_slot_config
+    SET is_active = FALSE
+    WHERE slot_config_id = p_slot_config_id;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION get_slot_configs()
+RETURNS TABLE (
+    slot_config_id INT,
+
+    organization_id VARCHAR,
+    organization_name VARCHAR,
+
+    department_id VARCHAR,
+    department_name VARCHAR,
+
+    service_id VARCHAR,
+    service_name VARCHAR,
+
+    officer_id VARCHAR,
+    officer_name VARCHAR,
+
+    state_code VARCHAR,
+    state_name VARCHAR,
+
+    division_code VARCHAR,
+    division_name VARCHAR,
+
+    district_code VARCHAR,
+    district_name VARCHAR,
+
+    taluka_code VARCHAR,
+    taluka_name VARCHAR,
+
+    day_of_week SMALLINT,
+
+    start_time TIME,
+    end_time TIME,
+
+    slot_duration_minutes INT,
+    buffer_minutes INT,
+    max_capacity INT,
+
+    effective_from DATE,
+    effective_to DATE,
+
+    is_active BOOLEAN
+)
+LANGUAGE sql
+AS $$
+SELECT
+    sc.slot_config_id,
+
+    sc.organization_id,
+    org.organization_name,
+
+    sc.department_id,
+    dept.department_name,
+
+    sc.service_id,
+    srv.service_name,
+
+    sc.officer_id,
+    off.full_name,
+
+    sc.state_code,
+    st.state_name,
+
+    sc.division_code,
+    div.division_name,
+
+    sc.district_code,
+    dist.district_name,
+
+    sc.taluka_code,
+    tal.taluka_name,
+
+    sc.day_of_week,
+
+    sc.start_time,
+    sc.end_time,
+
+    sc.slot_duration_minutes,
+    sc.buffer_minutes,
+    sc.max_capacity,
+
+    sc.effective_from,
+    sc.effective_to,
+
+    sc.is_active
+FROM m_slot_config sc
+LEFT JOIN m_organization org ON org.organization_id = sc.organization_id
+LEFT JOIN m_department dept ON dept.department_id = sc.department_id
+LEFT JOIN m_services srv ON srv.service_id = sc.service_id
+LEFT JOIN m_officers off ON off.officer_id = sc.officer_id
+
+LEFT JOIN m_state st ON st.state_code = sc.state_code
+LEFT JOIN m_division div ON div.division_code = sc.division_code
+LEFT JOIN m_district dist ON dist.district_code = sc.district_code
+LEFT JOIN m_taluka tal ON tal.taluka_code = sc.taluka_code
+
+ORDER BY sc.insert_date DESC;
+$$;
+select * from m_organization
+
+select * from m_department
+CREATE OR REPLACE FUNCTION preview_generated_slots(
+    p_start_time TIME,
+    p_end_time TIME,
+    p_slot_minutes INT,
+    p_buffer_minutes INT
+)
+RETURNS TABLE (
+    slot_time TIME,
+    slot_end_time TIME
+)
+LANGUAGE sql
+AS $$
+SELECT
+    gs::TIME AS slot_time,
+    (gs + (p_slot_minutes || ' minutes')::INTERVAL)::TIME AS slot_end_time
+FROM generate_series(
+    TIMESTAMP '1970-01-01' + p_start_time,
+    TIMESTAMP '1970-01-01' + p_end_time
+        - (p_slot_minutes || ' minutes')::INTERVAL,
+    (p_slot_minutes + p_buffer_minutes || ' minutes')::INTERVAL
+) gs
+ORDER BY gs;
+$$;
+
+
+Select * from m_slot_config
+
+CREATE OR REPLACE FUNCTION change_officer_password(
+    p_officer_id VARCHAR,
+    p_new_password TEXT
+)
+RETURNS BOOLEAN
+LANGUAGE plpgsql
+AS $$
+DECLARE
+    v_user_id VARCHAR;
+BEGIN
+    -- Get user_id linked to officer
+    SELECT user_id
+    INTO v_user_id
+    FROM m_officers
+    WHERE officer_id = p_officer_id;
+
+    -- Officer not found
+    IF v_user_id IS NULL THEN
+        RETURN FALSE;
+    END IF;
+
+    -- Update password in m_users
+    UPDATE m_users
+    SET password_hash = crypt(p_new_password, gen_salt('bf'))
+    WHERE user_id = v_user_id;
+
+    RETURN TRUE;
+END;
+$$;
+
+alter table m_helpdesk add column gender varchar(10);
+alter table m_helpdesk add column address varchar(255);
+alter table m_helpdesk add column pincode varchar(06);
+alter table m_helpdesk add column officer_state_code varchar(02);
+alter table m_helpdesk add column officer_division_code varchar(02);
+alter table m_helpdesk add column officer_district_code varchar(03);
+alter table m_helpdesk add column officer_taluka_code varchar(04);
+alter table m_helpdesk add column officer_pincode varchar(06);
+
+SELECT change_officer_password('OFF014', 'Rahul@123');
+
+
+CREATE OR REPLACE FUNCTION get_officer_dashboard(p_officer_id VARCHAR)
+RETURNS JSON
+LANGUAGE plpgsql
+AS $$
+DECLARE
+  result JSON;
+BEGIN
+  SELECT json_build_object(
+    'full_name', o.full_name,
+    'designation', COALESCE(o.designation_code, ''),
+
+    'stats', json_build_object(
+      'today', (
+        SELECT COUNT(*)
+        FROM appointments
+        WHERE officer_id = p_officer_id
+          AND DATE(appointment_date) = CURRENT_DATE
+      ),
+      'pending', (
+        SELECT COUNT(*)
+        FROM appointments
+        WHERE officer_id = p_officer_id
+          AND status = 'pending'
+      ),
+      'completed', (
+        SELECT COUNT(*)
+        FROM appointments
+        WHERE officer_id = p_officer_id
+          AND status = 'completed'
+      ),
+      'rescheduled', (
+        SELECT COUNT(*)
+        FROM appointments
+        WHERE officer_id = p_officer_id
+          AND status = 'rescheduled'
+      ),
+      'walkins', (
+        SELECT COUNT(*)
+        FROM walkins
+        WHERE officer_id = p_officer_id
+      )
+    ),
+
+    'today_appointments', (
+      SELECT COALESCE(json_agg(t), '[]'::json)
+      FROM (
+        SELECT
+          a.appointment_id,
+          a.visitor_id,
+          a.purpose,
+          a.status,
+          a.appointment_date,
+          a.slot_time,
+          v.full_name        AS visitor_name,
+          v.mobile_no        AS visitor_mobile,
+          v.email_id         AS visitor_email,
+          s.service_name,
+          d.department_name,
+          org.organization_name
+        FROM appointments a
+        LEFT JOIN m_visitors_signup v ON a.visitor_id = v.visitor_id
+        LEFT JOIN m_services s ON a.service_id = s.service_id
+        LEFT JOIN m_department d ON a.department_id = d.department_id
+        LEFT JOIN m_organization org ON a.organization_id = org.organization_id
+        WHERE a.officer_id = p_officer_id
+          AND DATE(a.appointment_date) = CURRENT_DATE
+        ORDER BY a.slot_time
+      ) t
+    ),
+
+    'pending_appointments', (
+      SELECT COALESCE(json_agg(p), '[]'::json)
+      FROM (
+        SELECT *
+        FROM appointments
+        WHERE officer_id = p_officer_id
+          AND status = 'pending'
+        ORDER BY appointment_date, slot_time
+        LIMIT 20
+      ) p
+    ),
+
+    'rescheduled_appointments', (
+      SELECT COALESCE(json_agg(r), '[]'::json)
+      FROM (
+        SELECT *
+        FROM appointments
+        WHERE officer_id = p_officer_id
+          AND status = 'rescheduled'
+        ORDER BY appointment_date, slot_time
+        LIMIT 20
+      ) r
+    ),
+
+    'completed_appointments', (
+      SELECT COALESCE(json_agg(c), '[]'::json)
+      FROM (
+        SELECT *
+        FROM appointments
+        WHERE officer_id = p_officer_id
+          AND status = 'completed'
+        ORDER BY updated_date DESC
+        LIMIT 20
+      ) c
+    ),
+
+    'walkin_appointments', (
+      SELECT COALESCE(json_agg(w), '[]'::json)
+      FROM (
+        SELECT
+          walkin_id AS appointment_id,
+          full_name AS visitor_name,
+          mobile_no AS visitor_mobile,
+          email_id  AS visitor_email,
+          purpose,
+          status,
+          COALESCE(walkin_date) AS appointment_date,
+          slot_time AS slot_time
+        FROM walkins
+        WHERE officer_id = p_officer_id
+        ORDER BY COALESCE(walkin_date) DESC
+        LIMIT 20
+      ) w
+    ),
+
+    'recent_activity', (
+      SELECT COALESCE(json_agg(r), '[]'::json)
+      FROM (
+        SELECT
+          a.appointment_id,
+          a.purpose,
+          a.status,
+          a.appointment_date,
+          a.slot_time,
+          v.full_name AS visitor_name,
+          COALESCE(a.updated_date, a.insert_date) AS activity_date
+        FROM appointments a
+        LEFT JOIN m_visitors_signup v ON a.visitor_id = v.visitor_id
+        WHERE a.officer_id = p_officer_id
+        ORDER BY COALESCE(a.updated_date, a.insert_date) DESC
+        LIMIT 5
+      ) r
+    )
+  )
+  INTO result
+  FROM m_officers o
+  WHERE o.officer_id = p_officer_id;
+
+  RETURN result;
+END;
+$$;
+select * from get_officer_dashboard('OFF005')
+-- new function:
+CREATE OR REPLACE FUNCTION get_officer_dashboard(p_officer_id VARCHAR)
+RETURNS JSON
+LANGUAGE plpgsql
+AS $$
+DECLARE
+  result JSON;
+BEGIN
+  SELECT json_build_object(
+    'full_name', o.full_name,
+    'designation', COALESCE(o.designation_code, ''),
+
+    /* =======================
+       STATS
+       ======================= */
+    'stats', json_build_object(
+
+      /* Today (appointments + walkins) */
+      'today',
+      (
+        SELECT COUNT(*) FROM (
+          SELECT appointment_id
+          FROM appointments
+          WHERE officer_id = p_officer_id
+            AND appointment_date::date = CURRENT_DATE
+
+          UNION ALL
+
+          SELECT walkin_id
+          FROM walkins
+          WHERE officer_id = p_officer_id
+            AND walkin_date::date = CURRENT_DATE
+        ) t
+      ),
+
+      /* Pending – LAST 7 DAYS (appointments + walkins) */
+      'pending',
+(
+  SELECT COUNT(*) FROM (
+    SELECT appointment_id
+    FROM appointments
+    WHERE officer_id = p_officer_id
+      AND status = 'pending'
+      AND appointment_date::date BETWEEN CURRENT_DATE AND CURRENT_DATE + 5
+
+    UNION ALL
+
+    SELECT walkin_id
+    FROM walkins
+    WHERE officer_id = p_officer_id
+      AND status = 'pending'
+      AND walkin_date::date BETWEEN CURRENT_DATE AND CURRENT_DATE + 5
+  ) x
+),
+
+      /* Completed – TODAY (appointments + walkins) */
+      'completed',
+      (
+        SELECT COUNT(*) FROM (
+          SELECT appointment_id
+          FROM appointments
+          WHERE officer_id = p_officer_id
+            AND status = 'completed'
+            AND appointment_date::date = CURRENT_DATE
+
+          UNION ALL
+
+          SELECT walkin_id
+          FROM walkins
+          WHERE officer_id = p_officer_id
+            AND status = 'completed'
+            AND walkin_date::date = CURRENT_DATE
+        ) c
+      ),
+
+      /* Rescheduled – TODAY (appointments + walkins) */
+      'rescheduled',
+      (
+        SELECT COUNT(*) FROM (
+          SELECT appointment_id
+          FROM appointments
+          WHERE officer_id = p_officer_id
+            AND status = 'rescheduled'
+            AND appointment_date::date = CURRENT_DATE
+
+          UNION ALL
+
+          SELECT walkin_id
+          FROM walkins
+          WHERE officer_id = p_officer_id
+            AND status = 'rescheduled'
+            AND walkin_date::date = CURRENT_DATE
+        ) r
+      ),
+
+      /* Walkins – TODAY */
+      'walkins',
+      (
+        SELECT COUNT(*)
+        FROM walkins
+        WHERE officer_id = p_officer_id
+          AND walkin_date::date = CURRENT_DATE
+      )
+    ),
+
+    /* =======================
+       LISTS (Appointments + Walkins combined)
+       ======================= */
+
+    /* ✅ TODAY LIST (Appointments + Walkins) */
+    'today_appointments',
+    (
+      SELECT COALESCE(json_agg(x ORDER BY x.slot_time), '[]'::json)
+      FROM (
+        /* Appointments */
+        SELECT
+          ap.appointment_id AS appointment_id,
+          ap.visitor_id,
+          v.full_name AS visitor_name,
+          v.mobile_no AS visitor_mobile,
+          v.email_id  AS visitor_email,
+          ap.purpose,
+          ap.status,
+          ap.appointment_date AS appointment_date,
+          ap.slot_time,
+          'APPOINTMENT'::TEXT AS source_type
+        FROM appointments ap
+        LEFT JOIN m_visitors_signup v ON v.visitor_id = ap.visitor_id
+        WHERE ap.officer_id = p_officer_id
+          AND ap.appointment_date::date = CURRENT_DATE
+
+        UNION ALL
+
+        /* Walkins */
+        SELECT
+          w.walkin_id AS appointment_id,
+          w.visitor_id,
+          w.full_name AS visitor_name,
+          w.mobile_no AS visitor_mobile,
+          w.email_id  AS visitor_email,
+          w.purpose,
+          w.status,
+          w.walkin_date AS appointment_date,
+          w.slot_time,
+          'WALKIN'::TEXT AS source_type
+        FROM walkins w
+        WHERE w.officer_id = p_officer_id
+          AND w.walkin_date::date = CURRENT_DATE
+      ) x
+    ),
+
+    /* ✅ PENDING LIST – LAST 7 DAYS (Appointments + Walkins) */
+    'pending_appointments',
+(
+  SELECT COALESCE(json_agg(x ORDER BY x.appointment_date, x.slot_time), '[]'::json)
+  FROM (
+    /* ✅ Appointments */
+    SELECT
+      ap.appointment_id AS appointment_id,
+      ap.visitor_id,
+      v.full_name AS visitor_name,
+      v.mobile_no AS visitor_mobile,
+      v.email_id  AS visitor_email,
+      ap.purpose,
+      ap.status,
+      ap.appointment_date AS appointment_date,
+      ap.slot_time,
+      'APPOINTMENT'::TEXT AS source_type
+    FROM appointments ap
+    LEFT JOIN m_visitors_signup v ON v.visitor_id = ap.visitor_id
+    WHERE ap.officer_id = p_officer_id
+      AND ap.status = 'pending'
+      AND ap.appointment_date::date BETWEEN CURRENT_DATE AND CURRENT_DATE + 5
+
+    UNION ALL
+
+    /* ✅ Walkins */
+    SELECT
+      w.walkin_id AS appointment_id,
+      w.visitor_id,
+      w.full_name AS visitor_name,
+      w.mobile_no AS visitor_mobile,
+      w.email_id  AS visitor_email,
+      w.purpose,
+      w.status,
+      w.walkin_date AS appointment_date,
+      w.slot_time,
+      'WALKIN'::TEXT AS source_type
+    FROM walkins w
+    WHERE w.officer_id = p_officer_id
+      AND w.status = 'pending'
+      AND w.walkin_date::date BETWEEN CURRENT_DATE AND CURRENT_DATE + 5
+  ) x
+  LIMIT 50
+),
+
+    /* ✅ RESCHEDULED LIST – TODAY (Appointments + Walkins) */
+    'rescheduled_appointments',
+    (
+      SELECT COALESCE(json_agg(x ORDER BY x.slot_time), '[]'::json)
+      FROM (
+        /* Appointments */
+        SELECT
+          ap.appointment_id AS appointment_id,
+          ap.visitor_id,
+          v.full_name AS visitor_name,
+          v.mobile_no AS visitor_mobile,
+          v.email_id  AS visitor_email,
+          ap.purpose,
+          ap.status,
+          ap.appointment_date AS appointment_date,
+          ap.slot_time,
+          'APPOINTMENT'::TEXT AS source_type
+        FROM appointments ap
+        LEFT JOIN m_visitors_signup v ON v.visitor_id = ap.visitor_id
+        WHERE ap.officer_id = p_officer_id
+          AND ap.status = 'rescheduled'
+          AND ap.appointment_date::date = CURRENT_DATE
+
+        UNION ALL
+
+        /* Walkins */
+        SELECT
+          w.walkin_id AS appointment_id,
+          w.visitor_id,
+          w.full_name AS visitor_name,
+          w.mobile_no AS visitor_mobile,
+          w.email_id  AS visitor_email,
+          w.purpose,
+          w.status,
+          w.walkin_date AS appointment_date,
+          w.slot_time,
+          'WALKIN'::TEXT AS source_type
+        FROM walkins w
+        WHERE w.officer_id = p_officer_id
+          AND w.status = 'rescheduled'
+          AND w.walkin_date::date = CURRENT_DATE
+      ) x
+      LIMIT 50
+    ),
+
+    /* ✅ COMPLETED LIST – TODAY (Appointments + Walkins) */
+    'completed_appointments',
+    (
+      SELECT COALESCE(json_agg(x ORDER BY x.slot_time), '[]'::json)
+      FROM (
+        /* Appointments */
+        SELECT
+          ap.appointment_id AS appointment_id,
+          ap.visitor_id,
+          v.full_name AS visitor_name,
+          v.mobile_no AS visitor_mobile,
+          v.email_id  AS visitor_email,
+          ap.purpose,
+          ap.status,
+          ap.appointment_date AS appointment_date,
+          ap.slot_time,
+          'APPOINTMENT'::TEXT AS source_type
+        FROM appointments ap
+        LEFT JOIN m_visitors_signup v ON v.visitor_id = ap.visitor_id
+        WHERE ap.officer_id = p_officer_id
+          AND ap.status = 'completed'
+          AND ap.appointment_date::date = CURRENT_DATE
+
+        UNION ALL
+
+        /* Walkins */
+        SELECT
+          w.walkin_id AS appointment_id,
+          w.visitor_id,
+          w.full_name AS visitor_name,
+          w.mobile_no AS visitor_mobile,
+          w.email_id  AS visitor_email,
+          w.purpose,
+          w.status,
+          w.walkin_date AS appointment_date,
+          w.slot_time,
+          'WALKIN'::TEXT AS source_type
+        FROM walkins w
+        WHERE w.officer_id = p_officer_id
+          AND w.status = 'completed'
+          AND w.walkin_date::date = CURRENT_DATE
+      ) x
+      LIMIT 50
+    ),
+
+    /* OPTIONAL: keep walkins separately also */
+    'walkin_appointments',
+    (
+      SELECT COALESCE(json_agg(w ORDER BY w.slot_time), '[]'::json)
+      FROM (
+        SELECT
+          walkin_id AS appointment_id,
+          visitor_id,
+          full_name AS visitor_name,
+          mobile_no AS visitor_mobile,
+          email_id  AS visitor_email,
+          purpose,
+          status,
+          walkin_date AS appointment_date,
+          slot_time,
+          'WALKIN'::TEXT AS source_type
+        FROM walkins
+        WHERE officer_id = p_officer_id
+          AND walkin_date::date = CURRENT_DATE
+      ) w
+    )
+
+  )
+  INTO result
+  FROM m_officers o
+  WHERE o.officer_id = p_officer_id;
+
+  RETURN result;
+END;
+$$;
+
+select * from walkins;
+
+
+
+CREATE OR REPLACE FUNCTION update_appointment_status(
+    p_appointment_id VARCHAR,
+    p_status VARCHAR,
+    p_officer_id VARCHAR,
+    p_reason TEXT DEFAULT NULL
+)
+RETURNS JSON
+LANGUAGE plpgsql
+AS $$
+DECLARE
+    v_updated_row appointments%ROWTYPE;
+    visitor_username VARCHAR;
+    officer_name TEXT;
+    v_message TEXT;
+    v_title TEXT;
+    v_type TEXT;
+BEGIN
+    -- 1️⃣ Validate required inputs
+    IF p_appointment_id IS NULL
+       OR p_status IS NULL
+       OR p_officer_id IS NULL THEN
+        RETURN json_build_object(
+            'success', FALSE,
+            'message', 'Appointment ID, status, and officer ID are required'
+        );
+    END IF;
+
+    -- 2️⃣ Validate status (ONLY allowed states)
+    IF LOWER(p_status) NOT IN ('approved', 'rejected', 'completed') THEN
+        RETURN json_build_object(
+            'success', FALSE,
+            'message', 'Invalid status. Must be approved, rejected, or completed'
+        );
+    END IF;
+
+    -- 3️⃣ Verify appointment belongs to officer
+    IF NOT EXISTS (
+        SELECT 1
+        FROM appointments
+        WHERE appointment_id = p_appointment_id
+          AND officer_id = p_officer_id
+    ) THEN
+        RETURN json_build_object(
+            'success', FALSE,
+            'message', 'Appointment not found or does not belong to this officer'
+        );
+    END IF;
+
+    -- 4️⃣ Fetch visitor username
+    SELECT visitor_id
+    INTO visitor_username
+    FROM appointments
+    WHERE appointment_id = p_appointment_id;
+
+    -- 5️⃣ Fetch officer name
+    SELECT full_name
+    INTO officer_name
+    FROM m_officers
+    WHERE officer_id = p_officer_id;
+
+    -- 6️⃣ Update appointment
+    UPDATE appointments
+    SET
+        status = LOWER(p_status),
+        updated_date = NOW(),
+        update_by = p_officer_id,
+        reschedule_reason = p_reason
+    WHERE appointment_id = p_appointment_id
+    RETURNING * INTO v_updated_row;
+
+    -- 7️⃣ Build notification (status-specific)
+    CASE LOWER(p_status)
+        WHEN 'approved' THEN
+            v_title   := 'Appointment Approved';
+            v_message := 'Your appointment ' || p_appointment_id ||
+                         ' has been approved by ' ||
+                         COALESCE(officer_name, 'Helpdesk');
+            v_type := 'success';
+
+        WHEN 'rejected' THEN
+            v_title   := 'Appointment Rejected';
+            v_message := 'Your appointment ' || p_appointment_id ||
+                         ' has been rejected by ' ||
+                         COALESCE(officer_name, 'Helpdesk') ||
+                         CASE
+                             WHEN p_reason IS NOT NULL THEN
+                                 '. Reason: ' || p_reason
+                             ELSE ''
+                         END;
+            v_type := 'error';
+
+        WHEN 'completed' THEN
+            v_title   := 'Appointment Completed';
+            v_message := 'Your appointment ' || p_appointment_id ||
+                         ' has been completed by ' ||
+                         COALESCE(officer_name, 'Helpdesk') ||
+                         CASE
+                             WHEN p_reason IS NOT NULL THEN
+                                 '. Remark: ' || p_reason
+                             ELSE ''
+                         END;
+            v_type := 'info';
+    END CASE;
+
+    -- 8️⃣ Insert notification
+    INSERT INTO notifications (
+        username,
+        appointment_id,
+        title,
+        message,
+        type
+    )
+    VALUES (
+        visitor_username,
+        p_appointment_id,
+        v_title,
+        v_message,
+        v_type
+    );
+
+    -- 9️⃣ Return success JSON
+    RETURN json_build_object(
+        'success', TRUE,
+        'message', 'Appointment ' || LOWER(p_status) || ' successfully',
+        'data', row_to_json(v_updated_row)
+    );
+
+EXCEPTION
+    WHEN OTHERS THEN
+        RETURN json_build_object(
+            'success', FALSE,
+            'message', 'Error updating appointment: ' || SQLERRM
+        );
+END;
+$$;
+-- 
+SELECT * FROM NOTIFICATIONS
+select * from update_appointment_status('W00019','approved','OFF005','meet')
+ALTER TABLE walkins 
+	ADD column update_by VARCHAR DEFAULT NULL;
+-- update for both:walkins + app
+CREATE OR REPLACE FUNCTION update_appointment_status(
+    p_appointment_id VARCHAR,
+    p_status VARCHAR,
+    p_officer_id VARCHAR,
+    p_reason TEXT DEFAULT NULL
+)
+RETURNS JSON
+LANGUAGE plpgsql
+AS $$
+DECLARE
+    v_updated_appointment appointments%ROWTYPE;
+    v_updated_walkin      walkins%ROWTYPE;
+
+    visitor_username VARCHAR;
+    officer_name TEXT;
+    v_message TEXT;
+    v_title TEXT;
+    v_type TEXT;
+
+    v_is_appointment BOOLEAN := FALSE;
+    v_is_walkin      BOOLEAN := FALSE;
+BEGIN
+    /* 1️⃣ Validate required inputs */
+    IF p_appointment_id IS NULL
+       OR p_status IS NULL
+       OR p_officer_id IS NULL THEN
+        RETURN json_build_object(
+            'success', FALSE,
+            'message', 'Appointment ID, status, and officer ID are required'
+        );
+    END IF;
+
+    /* 2️⃣ Validate status */
+    IF LOWER(p_status) NOT IN ('approved', 'rejected', 'completed') THEN
+        RETURN json_build_object(
+            'success', FALSE,
+            'message', 'Invalid status. Must be approved, rejected, or completed'
+        );
+    END IF;
+
+    /* 3️⃣ Check where this ID belongs (appointments / walkins) */
+    SELECT EXISTS (
+        SELECT 1
+        FROM appointments
+        WHERE appointment_id = p_appointment_id
+          AND officer_id = p_officer_id
+    )
+    INTO v_is_appointment;
+
+    SELECT EXISTS (
+        SELECT 1
+        FROM walkins
+        WHERE walkin_id = p_appointment_id
+          AND officer_id = p_officer_id
+    )
+    INTO v_is_walkin;
+
+    IF NOT v_is_appointment AND NOT v_is_walkin THEN
+        RETURN json_build_object(
+            'success', FALSE,
+            'message', 'Appointment/Walk-in not found or does not belong to this officer'
+        );
+    END IF;
+
+    /* 4️⃣ Get visitor username (from correct table) */
+    IF v_is_appointment THEN
+        SELECT visitor_id
+        INTO visitor_username
+        FROM appointments
+        WHERE appointment_id = p_appointment_id;
+    ELSE
+        SELECT visitor_id
+        INTO visitor_username
+        FROM walkins
+        WHERE walkin_id = p_appointment_id;
+    END IF;
+
+    /* 5️⃣ Fetch officer name */
+    SELECT full_name
+    INTO officer_name
+    FROM m_officers
+    WHERE officer_id = p_officer_id;
+
+    /* 6️⃣ Update Appointment / Walk-in */
+    IF v_is_appointment THEN
+
+        UPDATE appointments
+        SET
+            status = LOWER(p_status),
+            updated_date = NOW(),
+            update_by = p_officer_id,
+            reschedule_reason = p_reason
+        WHERE appointment_id = p_appointment_id
+        RETURNING * INTO v_updated_appointment;
+
+    ELSE
+
+        UPDATE walkins
+        SET
+            status = LOWER(p_status),
+            updated_date = NOW(),
+            update_by = p_officer_id,
+            reschedule_reason = p_reason
+        WHERE walkin_id = p_appointment_id
+        RETURNING * INTO v_updated_walkin;
+
+    END IF;
+
+    /* 7️⃣ Build notification */
+    CASE LOWER(p_status)
+        WHEN 'approved' THEN
+            v_title   := 'Appointment Approved';
+            v_message := 'Your appointment ' || p_appointment_id ||
+                         ' has been approved by ' ||
+                         COALESCE(officer_name, 'Helpdesk');
+            v_type := 'success';
+
+        WHEN 'rejected' THEN
+            v_title   := 'Appointment Rejected';
+            v_message := 'Your appointment ' || p_appointment_id ||
+                         ' has been rejected by ' ||
+                         COALESCE(officer_name, 'Helpdesk') ||
+                         CASE
+                             WHEN p_reason IS NOT NULL THEN
+                                 '. Reason: ' || p_reason
+                             ELSE ''
+                         END;
+            v_type := 'error';
+
+        WHEN 'completed' THEN
+            v_title   := 'Appointment Completed';
+            v_message := 'Your appointment ' || p_appointment_id ||
+                         ' has been completed by ' ||
+                         COALESCE(officer_name, 'Helpdesk') ||
+                         CASE
+                             WHEN p_reason IS NOT NULL THEN
+                                 '. Remark: ' || p_reason
+                             ELSE ''
+                         END;
+            v_type := 'info';
+    END CASE;
+
+    /* 8️⃣ Insert notification */
+    INSERT INTO notifications (
+        username,
+        appointment_id,
+        title,
+        message,
+        type
+    )
+    VALUES (
+        visitor_username,
+        p_appointment_id,
+        v_title,
+        v_message,
+        v_type
+    );
+
+    /* 9️⃣ Return success JSON (with correct updated data) */
+    IF v_is_appointment THEN
+        RETURN json_build_object(
+            'success', TRUE,
+            'message', 'Appointment ' || LOWER(p_status) || ' successfully',
+            'data', row_to_json(v_updated_appointment),
+            'source', 'appointments'
+        );
+    ELSE
+        RETURN json_build_object(
+            'success', TRUE,
+            'message', 'Walk-in ' || LOWER(p_status) || ' successfully',
+            'data', row_to_json(v_updated_walkin),
+            'source', 'walkins'
+        );
+    END IF;
+
+EXCEPTION
+    WHEN OTHERS THEN
+        RETURN json_build_object(
+            'success', FALSE,
+            'message', 'Error updating appointment/walk-in: ' || SQLERRM
+        );
+END;
+$$;
+
+-- 
+
+
+-- forget pass:
+CREATE TABLE password_reset_otp (
+    id SERIAL PRIMARY KEY,
+    user_id VARCHAR(30) NOT NULL REFERENCES m_users(user_id),
+    otp_code VARCHAR(6) NOT NULL,
+    expires_at TIMESTAMP NOT NULL,
+    is_used BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_password_reset_otp_user ON password_reset_otp(user_id);
+
+CREATE OR REPLACE FUNCTION find_user_for_password_reset(
+    p_identifier TEXT
+)
+RETURNS TABLE (
+    user_id VARCHAR,
+    email_id VARCHAR
+)
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    RETURN QUERY
+    SELECT u.user_id, v.email_id
+    FROM m_users u
+    JOIN m_visitors_signup v ON v.user_id = u.user_id
+    WHERE u.username = p_identifier
+       OR v.email_id = p_identifier
+       OR v.mobile_no = p_identifier
+
+    UNION
+
+    SELECT u.user_id, o.email_id
+    FROM m_users u
+    JOIN m_officers o ON o.user_id = u.user_id
+    WHERE u.username = p_identifier
+       OR o.email_id = p_identifier
+       OR o.mobile_no = p_identifier
+
+    UNION
+
+    SELECT u.user_id, h.email_id
+    FROM m_users u
+    JOIN m_helpdesk h ON h.user_id = u.user_id
+    WHERE u.username = p_identifier
+       OR h.email_id = p_identifier
+       OR h.mobile_no = p_identifier
+
+    UNION
+
+    SELECT u.user_id, a.email_id
+    FROM m_users u
+    JOIN m_admins a ON a.user_id = u.user_id
+    WHERE u.username = p_identifier
+       OR a.email_id = p_identifier
+       OR a.mobile_no = p_identifier;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION generate_password_reset_otp(
+    p_identifier TEXT
+)
+RETURNS JSON
+LANGUAGE plpgsql
+AS $$
+DECLARE
+    v_user_id VARCHAR;
+    v_email VARCHAR;
+    v_otp VARCHAR := LPAD(FLOOR(random() * 1000000)::TEXT, 6, '0');
+BEGIN
+    SELECT user_id, email_id
+    INTO v_user_id, v_email
+    FROM find_user_for_password_reset(p_identifier)
+    LIMIT 1;
+
+    IF v_user_id IS NULL THEN
+        RETURN json_build_object(
+            'success', FALSE,
+            'message', 'User not found'
+        );
+    END IF;
+
+    -- Invalidate previous OTPs
+    UPDATE password_reset_otp
+    SET is_used = TRUE
+    WHERE user_id = v_user_id;
+
+    -- Insert new OTP
+    INSERT INTO password_reset_otp (
+        user_id,
+        otp_code,
+        expires_at
+    )
+    VALUES (
+        v_user_id,
+        v_otp,
+        NOW() + INTERVAL '5 minutes'
+    );
+
+    -- Email sending handled by backend (Node)
+    RETURN json_build_object(
+        'success', TRUE,
+        'message', 'OTP sent successfully',
+        'email', v_email,
+        'otp', v_otp -- ⚠ REMOVE in production, keep for testing only
+    );
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION reset_password_with_otp(
+    p_identifier TEXT,
+    p_otp VARCHAR,
+    p_new_password_hash TEXT,
+    p_ip VARCHAR DEFAULT 'NA'
+)
+RETURNS JSON
+LANGUAGE plpgsql
+AS $$
+DECLARE
+    v_user_id VARCHAR;
+BEGIN
+    SELECT user_id
+    INTO v_user_id
+    FROM find_user_for_password_reset(p_identifier)
+    LIMIT 1;
+
+    IF v_user_id IS NULL THEN
+        RETURN json_build_object(
+            'success', FALSE,
+            'message', 'Invalid user'
+        );
+    END IF;
+
+    IF NOT EXISTS (
+        SELECT 1
+        FROM password_reset_otp
+        WHERE user_id = v_user_id
+          AND otp_code = p_otp
+          AND is_used = FALSE
+          AND expires_at > NOW()
+    ) THEN
+        RETURN json_build_object(
+            'success', FALSE,
+            'message', 'Invalid or expired OTP'
+        );
+    END IF;
+
+    -- Update password
+    UPDATE m_users
+    SET
+        password_hash = p_new_password_hash,
+        updated_date = NOW(),
+        update_ip = p_ip,
+        update_by = 'password_reset'
+    WHERE user_id = v_user_id;
+
+    -- Mark OTP used
+    UPDATE password_reset_otp
+    SET is_used = TRUE
+    WHERE user_id = v_user_id;
+
+    RETURN json_build_object(
+        'success', TRUE,
+        'message', 'Password reset successfully'
+    );
+END;
+$$;
+
+select * from m_role;
+
+select * from get_user_entity_by_id('OFF005');
+
+select * from m_officers;
+
+-- 
+CREATE OR REPLACE FUNCTION get_user_entity_by_id(p_entity_id VARCHAR)
+RETURNS JSON
+LANGUAGE plpgsql
+AS $$
+DECLARE
+    result JSON;
+BEGIN
+    /* -------- OFFICER -------- */
+    SELECT row_to_json(o) INTO result
+    FROM m_officers o
+    WHERE o.officer_id = p_entity_id;
+
+    IF result IS NOT NULL THEN
+        RETURN json_build_object(
+            'role_code', 'OF',
+            'data', result
+        );
+    END IF;
+
+    /* -------- HELPDESK -------- */
+    SELECT row_to_json(h) INTO result
+    FROM m_helpdesk h
+    WHERE h.helpdesk_id = p_entity_id;
+
+    IF result IS NOT NULL THEN
+        RETURN json_build_object(
+            'role_code', 'HD',
+            'data', result
+        );
+    END IF;
+
+    /* -------- ADMIN -------- */
+    SELECT row_to_json(a) INTO result
+    FROM m_admins a
+    WHERE a.admin_id = p_entity_id;
+
+    IF result IS NOT NULL THEN
+        RETURN json_build_object(
+            'role_code', 'AD',
+            'data', result
+        );
+    END IF;
+
+    RETURN json_build_object(
+        'success', false,
+        'message', 'Entity not found'
+    );
+END;
+$$;
+
+select * from get_user_entity_by_id('OFF005');
+
+
+-- get officers by id:OFF,AD,HLP:
+CREATE OR REPLACE FUNCTION get_user_by_role_and_id(
+    p_entity_id VARCHAR,
+    p_role_code VARCHAR
+)
+RETURNS JSON
+LANGUAGE plpgsql
+AS $$
+DECLARE
+    result JSON;
+BEGIN
+    IF p_role_code = 'OF' THEN
+        SELECT row_to_json(t) INTO result
+        FROM (
+            SELECT
+                o.officer_id      AS entity_id,
+                o.user_id,
+                o.full_name,
+                o.gender,
+                o.mobile_no,
+                o.email_id,
+                o.designation_code,
+                o.department_id,
+                o.organization_id,
+
+                o.state_code,
+                o.division_code,
+                o.district_code,
+                o.taluka_code,
+                o.address,
+                o.pincode,
+
+                o.officer_address,
+                o.officer_state_code,
+                o.officer_district_code,
+                o.officer_division_code,
+                o.officer_taluka_code,
+                o.officer_pincode,
+
+                o.photo
+            FROM m_officers o
+            WHERE o.officer_id = p_entity_id
+              AND o.is_active = TRUE
+        ) t;
+
+    ELSIF p_role_code = 'HD' THEN
+        SELECT row_to_json(t) INTO result
+        FROM (
+            SELECT
+                h.helpdesk_id     AS entity_id,
+                h.user_id,
+                h.full_name,
+                h.gender,
+                h.mobile_no,
+                h.email_id,
+                h.designation_code,
+                h.department_id,
+                h.organization_id,
+
+                h.state_code,
+                h.division_code,
+                h.district_code,
+                h.taluka_code,
+                h.address,
+                h.pincode,
+
+                h.officer_address,
+                h.officer_state_code,
+                h.officer_district_code,
+                h.officer_division_code,
+                h.officer_taluka_code,
+                h.officer_pincode,
+
+                h.photo
+            FROM m_helpdesk h
+            WHERE h.helpdesk_id = p_entity_id
+              AND h.is_active = TRUE
+        ) t;
+
+    ELSIF p_role_code = 'AD' THEN
+        SELECT row_to_json(t) INTO result
+        FROM (
+            SELECT
+                a.admin_id        AS entity_id,
+                a.user_id,
+                a.full_name,
+                a.gender,
+                a.mobile_no,
+                a.email_id,
+                a.designation_code,
+                a.department_id,
+                a.organization_id,
+
+                a.state_code,
+                a.division_code,
+                a.district_code,
+                a.taluka_code,
+                a.address,
+                a.pincode,
+
+                a.officer_address,
+                a.officer_state_code,
+                a.officer_district_code,
+                a.officer_division_code,
+                a.officer_taluka_code,
+                a.officer_pincode,
+
+                a.photo
+            FROM m_admins a
+            WHERE a.admin_id = p_entity_id
+              AND a.is_active = TRUE
+        ) t;
+    END IF;
+
+    IF result IS NULL THEN
+        RETURN json_build_object(
+            'success', false,
+            'message', 'User not found'
+        );
+    END IF;
+
+    RETURN json_build_object(
+        'success', true,
+        'data', result
+    );
+END;
+$$;
+
+
+
+
+-- update officers:OFF,AD,HLP
+CREATE OR REPLACE FUNCTION update_user_by_role(
+    p_entity_id VARCHAR,
+    p_full_name VARCHAR,
+    p_mobile_no VARCHAR,
+    p_email_id VARCHAR,
+    p_gender VARCHAR,
+    p_designation_code VARCHAR,
+    p_department_id VARCHAR,
+    p_organization_id VARCHAR,
+    p_officer_address VARCHAR,
+    p_officer_state_code VARCHAR,
+    p_officer_district_code VARCHAR,
+    p_officer_division_code VARCHAR,
+    p_officer_taluka_code VARCHAR,
+    p_officer_pincode VARCHAR,
+    p_photo VARCHAR,
+    p_role_code VARCHAR
+)
+RETURNS TABLE(
+    out_entity_id VARCHAR,
+    full_name VARCHAR,
+    out_email_id VARCHAR,
+    message VARCHAR
+)
+LANGUAGE plpgsql
+AS $$
+DECLARE
+    v_org_state    VARCHAR(2);
+    v_org_division VARCHAR(3);
+    v_org_district VARCHAR(3);
+    v_org_taluka   VARCHAR(4);
+    v_org_address  VARCHAR(255);
+    v_org_pincode  VARCHAR(10);
+BEGIN
+    /* ---------------- ROLE VALIDATION ---------------- */
+    IF NOT EXISTS (
+        SELECT 1
+        FROM m_role
+        WHERE role_code = p_role_code
+          AND is_active = TRUE
+    ) THEN
+        RETURN QUERY
+        SELECT
+            NULL::VARCHAR,
+            NULL::VARCHAR,
+            NULL::VARCHAR,
+            'Invalid or inactive role code'::VARCHAR;
+        RETURN;
+    END IF;
+
+    /* ---------------- ORGANIZATION LOCATION ---------------- */
+    IF p_organization_id IS NOT NULL THEN
+        SELECT
+            state_code,
+            division_code,
+            district_code,
+            taluka_code,
+            address,
+            pincode
+        INTO
+            v_org_state,
+            v_org_division,
+            v_org_district,
+            v_org_taluka,
+            v_org_address,
+            v_org_pincode
+        FROM m_organization
+        WHERE organization_id = p_organization_id;
+    END IF;
+
+    /* ---------------- ROLE-BASED UPDATE ---------------- */
+    IF p_role_code = 'OF' THEN
+        UPDATE m_officers
+        SET
+            full_name              = p_full_name,
+            gender                 = p_gender,
+            email_id               = p_email_id,
+            mobile_no              = p_mobile_no,
+            designation_code       = p_designation_code,
+            department_id          = p_department_id,
+            organization_id        = p_organization_id,
+            state_code             = v_org_state,
+            division_code          = v_org_division,
+            district_code          = v_org_district,
+            taluka_code            = v_org_taluka,
+            address                = v_org_address,
+            pincode                = v_org_pincode,
+            officer_address        = p_officer_address,
+            officer_state_code     = p_officer_state_code,
+            officer_district_code  = p_officer_district_code,
+            officer_division_code  = p_officer_division_code,
+            officer_taluka_code    = p_officer_taluka_code,
+            officer_pincode        = p_officer_pincode,
+            photo                  = COALESCE(p_photo, photo),
+            updated_date           = NOW()
+        WHERE officer_id = p_entity_id;
+
+    ELSIF p_role_code = 'HD' THEN
+        UPDATE m_helpdesk
+        SET
+            full_name              = p_full_name,
+            gender                 = p_gender,
+            email_id               = p_email_id,
+            mobile_no              = p_mobile_no,
+            designation_code       = p_designation_code,
+            department_id          = p_department_id,
+            organization_id        = p_organization_id,
+            state_code             = v_org_state,
+            division_code          = v_org_division,
+            district_code          = v_org_district,
+            taluka_code            = v_org_taluka,
+            address                = v_org_address,
+            pincode                = v_org_pincode,
+            officer_address        = p_officer_address,
+            officer_state_code     = p_officer_state_code,
+            officer_district_code  = p_officer_district_code,
+            officer_division_code  = p_officer_division_code,
+            officer_taluka_code    = p_officer_taluka_code,
+            officer_pincode        = p_officer_pincode,
+            photo                  = COALESCE(p_photo, photo),
+            updated_date           = NOW()
+        WHERE helpdesk_id = p_entity_id;
+
+    ELSIF p_role_code = 'AD' THEN
+        UPDATE m_admins
+        SET
+            full_name              = p_full_name,
+            gender                 = p_gender,
+            email_id               = p_email_id,
+            mobile_no              = p_mobile_no,
+            designation_code       = p_designation_code,
+            department_id          = p_department_id,
+            organization_id        = p_organization_id,
+            state_code             = v_org_state,
+            division_code          = v_org_division,
+            district_code          = v_org_district,
+            taluka_code            = v_org_taluka,
+            address                = v_org_address,
+            pincode                = v_org_pincode,
+            officer_address        = p_officer_address,
+            officer_state_code     = p_officer_state_code,
+            officer_district_code  = p_officer_district_code,
+            officer_division_code  = p_officer_division_code,
+            officer_taluka_code    = p_officer_taluka_code,
+            officer_pincode        = p_officer_pincode,
+            photo                  = COALESCE(p_photo, photo),
+            updated_date           = NOW()
+        WHERE admin_id = p_entity_id;
+    END IF;
+
+    /* ---------------- UPDATE CHECK ---------------- */
+    IF NOT FOUND THEN
+        RETURN QUERY
+        SELECT
+            NULL::VARCHAR,
+            NULL::VARCHAR,
+            NULL::VARCHAR,
+            'No record found to update'::VARCHAR;
+        RETURN;
+    END IF;
+
+    /* ---------------- SUCCESS RESPONSE ---------------- */
+    RETURN QUERY
+    SELECT
+        p_entity_id::VARCHAR,
+        p_full_name::VARCHAR,
+        p_email_id::VARCHAR,
+        'User updated successfully'::VARCHAR;
+
+EXCEPTION
+    WHEN OTHERS THEN
+        RETURN QUERY
+        SELECT
+            NULL::VARCHAR,
+            NULL::VARCHAR,
+            NULL::VARCHAR,
+            ('Update failed: ' || SQLERRM)::VARCHAR;
+END;
+$$;
+
+
+CREATE OR REPLACE FUNCTION auto_reject_expired_appointments()
+RETURNS void
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    UPDATE appointments
+    SET
+        status = 'rejected',
+        reschedule_reason =
+            'Please create another appointment since it was not approved for the selected date and time',
+        updated_date = NOW(),
+        update_by = 'system',
+        update_ip = 'scheduler'
+    WHERE
+        status = 'pending'
+        AND (appointment_date::timestamp + slot_time) < NOW();
+END;
+$$;
+
+select * from m_users
+	
+ALTER TABLE m_users 
+ADD COLUMN is_first_login BOOLEAN DEFAULT false
+	
+ALTER COLUMN is_first_login
+TYPE VARCHAR
+USING CASE
+  WHEN is_first_login = TRUE THEN 'true'
+  ELSE 'false'
+END;
+
+ALTER TABLE m_users
+DROP COLUMN is_first_login;
+
+CREATE OR REPLACE FUNCTION get_visitor_dashboard_by_username(p_username VARCHAR)
+RETURNS JSON
+LANGUAGE plpgsql
+AS $$
+DECLARE
+    appointment_data JSON;
+    walkin_data JSON;
+    notification_data JSON;
+    visitor_name VARCHAR;
+BEGIN
+    -- 1️⃣ Get visitor full name
+    SELECT vs.full_name
+    INTO visitor_name
+    FROM m_visitors_signup vs
+    JOIN m_users u ON u.user_id = vs.user_id
+    WHERE u.username = p_username
+    LIMIT 1;
+
+    -- 2️⃣ Fetch NORMAL appointments
+    SELECT json_agg(
+        json_build_object(
+            'appointment_id', a.appointment_id,
+            'organization_name', o.organization_name,
+            'department_name', d.department_name,
+
+            'officer_name',
+            (
+                SELECT x.full_name
+                FROM (
+                    SELECT o2.officer_id AS staff_id, o2.full_name
+                    FROM m_officers o2
+                    UNION ALL
+                    SELECT h.helpdesk_id AS staff_id, h.full_name
+                    FROM m_helpdesk h
+                ) x
+                WHERE x.staff_id = a.officer_id
+                LIMIT 1
+            ),
+
+            'service_name', s.service_name,
+            'appointment_date', TO_CHAR(a.appointment_date, 'DD-MM-YYYY'),
+            'slot_time', TO_CHAR(a.slot_time, 'HH12:MI AM'),
+            'status', a.status,
+            'purpose', a.purpose
+        )
+        ORDER BY a.insert_date DESC
+    )
+    INTO appointment_data
+    FROM appointments a
+    LEFT JOIN m_organization o ON o.organization_id = a.organization_id
+    LEFT JOIN m_department d ON d.department_id = a.department_id
+    LEFT JOIN m_services s ON s.service_id = a.service_id
+    JOIN m_visitors_signup vs ON vs.visitor_id = a.visitor_id
+    JOIN m_users u ON u.user_id = vs.user_id
+    WHERE u.username = p_username;
+
+    -- ✅ 3️⃣ Fetch WALK-IN appointments from walkins table
+    SELECT json_agg(
+        json_build_object(
+            'walkin_id', w.walkin_id,
+            'organization_name', o.organization_name,
+            'department_name', d.department_name,
+
+            'officer_name',
+            (
+                SELECT x.full_name
+                FROM (
+                    SELECT o2.officer_id AS staff_id, o2.full_name
+                    FROM m_officers o2
+                    UNION ALL
+                    SELECT h.helpdesk_id AS staff_id, h.full_name
+                    FROM m_helpdesk h
+                ) x
+                WHERE x.staff_id = w.officer_id
+                LIMIT 1
+            ),
+
+            'service_name', s.service_name,
+            'walkin_date', TO_CHAR(w.walkin_date, 'DD-MM-YYYY'),
+            'slot_time', TO_CHAR(w.slot_time, 'HH12:MI AM'),
+            'status', w.status,
+            'purpose', w.purpose
+        )
+        ORDER BY w.insert_date DESC
+    )
+    INTO walkin_data
+    FROM walkins w
+    LEFT JOIN m_organization o ON o.organization_id = w.organization_id
+    LEFT JOIN m_department d ON d.department_id = w.department_id
+    LEFT JOIN m_services s ON s.service_id = w.service_id
+    JOIN m_visitors_signup vs ON vs.visitor_id = w.visitor_id
+    JOIN m_users u ON u.user_id = vs.user_id
+    WHERE u.username = p_username;
+
+    -- 4️⃣ Fetch notifications
+    SELECT json_agg(
+        json_build_object(
+            'message', n.message,
+            'type', n.type,
+            'appointment_id', n.appointment_id,
+            'created_at', n.created_at
+        )
+        ORDER BY n.created_at DESC
+    )
+    INTO notification_data
+    FROM notifications n
+    WHERE n.username = p_username;
+
+    -- ✅ 5️⃣ Return dashboard JSON
+    RETURN json_build_object(
+        'full_name', COALESCE(visitor_name, ''),
+        'appointments', COALESCE(appointment_data, '[]'::json),
+        'walkins', COALESCE(walkin_data, '[]'::json),
+        'notifications', COALESCE(notification_data, '[]'::json)
+    );
+END;
+$$;
+select * from appointments
+
+ALTER TABLE walkins
+ADD COLUMN reschedule_reason TEXT DEFAULT NULL;
+
+
+
+
+
+-- new function:
+CREATE OR REPLACE FUNCTION get_admin_details_by_id(
+    p_admin_id VARCHAR
+)
+RETURNS TABLE (
+    admin_id        VARCHAR,
+    user_id         VARCHAR,
+    full_name       VARCHAR,
+    mobile_no       VARCHAR,
+    email_id        VARCHAR,
+
+    state_name      VARCHAR,
+    division_name   VARCHAR,
+    district_name   VARCHAR,
+    taluka_name     VARCHAR,
+    address         VARCHAR,
+    pincode         VARCHAR,
+
+    role_name       VARCHAR,
+    designation     VARCHAR,
+    department_name VARCHAR,
+    organization_name VARCHAR,
+
+    photo           VARCHAR,
+    is_active       BOOLEAN,
+    updated_date    TIMESTAMP
+)
+AS $$
+BEGIN
+    RETURN QUERY
+    SELECT
+        a.admin_id,
+        a.user_id,
+        a.full_name,
+        a.mobile_no,
+        a.email_id,
+
+        st.state_name,
+        dv.division_name,
+        dt.district_name,
+        tl.taluka_name,
+        a.address,
+        a.pincode,
+
+        r.role_name,
+        des.designation_name,
+        dp.department_name,
+        org.organization_name,
+
+        a.photo,
+        a.is_active,
+        a.updated_date
+
+    FROM m_admins a
+
+    LEFT JOIN m_state st
+      ON st.state_code = a.state_code
+
+    LEFT JOIN m_division dv
+      ON dv.division_code = a.division_code
+
+    LEFT JOIN m_district dt
+      ON dt.district_code = a.district_code
+
+    LEFT JOIN m_taluka tl
+      ON tl.taluka_code = a.taluka_code
+
+    LEFT JOIN m_role r
+      ON r.role_code = 'AD'
+
+    LEFT JOIN m_designation des  
+      ON des.designation_code = a.designation_code
+
+    LEFT JOIN m_department dp
+      ON dp.department_id = a.department_id
+
+    LEFT JOIN m_organization org
+      ON org.organization_id = a.organization_id
+
+    WHERE a.admin_id = p_admin_id;
+END;
+$$ LANGUAGE plpgsql;
+
+
+CREATE OR REPLACE FUNCTION get_appointments_by_date(
+    p_officer_id VARCHAR,
+    p_date DATE
+)
+RETURNS JSON
+LANGUAGE plpgsql
+AS $$
+DECLARE
+    v_appointments JSON;
+    v_stats JSON;
+BEGIN
+    -- 1️⃣ Validation
+    IF p_officer_id IS NULL THEN
+        RETURN json_build_object(
+            'success', FALSE,
+            'message', 'Officer ID is required'
+        );
+    END IF;
+
+    IF p_date IS NULL THEN
+        RETURN json_build_object(
+            'success', FALSE,
+            'message', 'Date is required'
+        );
+    END IF;
+
+    -- 2️⃣ ONLINE + WALK-IN merged timeline
+    SELECT COALESCE(
+        json_agg(t ORDER BY slot_time),   -- ✅ FIXED
+        '[]'::json
+    )
+    INTO v_appointments
+    FROM (
+        /* 🔵 ONLINE APPOINTMENTS */
+        SELECT
+            json_build_object(
+                'appointment_id', a.appointment_id,
+                'walkin_id', NULL,
+                'appointment_type', 'ONLINE',
+                'appointment_date', a.appointment_date,
+                'slot_time', a.slot_time,
+                'status', a.status,
+                'purpose', a.purpose,
+                'reschedule_reason', a.reschedule_reason,
+                'visitor_name', v.full_name,
+                'visitor_mobile', v.mobile_no,
+                'visitor_email', v.email_id,
+                'department_id', a.department_id,
+                'service_id', a.service_id
+            ) AS t,
+            a.slot_time AS slot_time
+        FROM appointments a
+        LEFT JOIN m_visitors_signup v 
+            ON v.visitor_id = a.visitor_id
+        WHERE a.officer_id = p_officer_id
+          AND DATE(a.appointment_date) = p_date
+
+        UNION ALL
+
+        /* 🟢 WALK-IN APPOINTMENTS */
+        SELECT
+            json_build_object(
+                'appointment_id', NULL,
+                'walkin_id', w.walkin_id,
+                'appointment_type', 'WALKIN',
+                'appointment_date', w.walkin_date,
+                'slot_time', w.slot_time,
+                'status', w.status,
+                'purpose', w.purpose,
+                'reschedule_reason', w.reschedule_reason,
+                'visitor_name', w.full_name,
+                'visitor_mobile', w.mobile_no,
+                'visitor_email', w.email_id,
+                'department_id', w.department_id,
+                'service_id', w.service_id
+            ) AS t,
+            w.slot_time AS slot_time
+        FROM walkins w
+        WHERE w.officer_id = p_officer_id
+          AND w.is_active = TRUE
+          AND DATE(w.walkin_date) = p_date
+    ) x;
+
+    -- 3️⃣ Stats
+    SELECT json_build_object(
+        'total',
+            (SELECT COUNT(*) FROM appointments
+             WHERE officer_id = p_officer_id
+               AND DATE(appointment_date) = p_date)
+          +
+            (SELECT COUNT(*) FROM walkins
+             WHERE officer_id = p_officer_id
+               AND is_active = TRUE
+               AND DATE(walkin_date) = p_date),
+
+        'online',
+            (SELECT COUNT(*) FROM appointments
+             WHERE officer_id = p_officer_id
+               AND DATE(appointment_date) = p_date),
+
+        'walkin',
+            (SELECT COUNT(*) FROM walkins
+             WHERE officer_id = p_officer_id
+               AND is_active = TRUE
+               AND DATE(walkin_date) = p_date)
+    )
+    INTO v_stats;
+
+    -- 4️⃣ Final response
+    RETURN json_build_object(
+        'success', TRUE,
+        'data', json_build_object(
+            'date', p_date,
+            'appointments', v_appointments,
+            'stats', v_stats
+        )
+    );
+
+EXCEPTION
+    WHEN OTHERS THEN
+        RETURN json_build_object(
+            'success', FALSE,
+            'message', 'Server error while fetching appointments: ' || SQLERRM
+        );
+END;
+$$;
+SELECT
+    column_name,
+    data_type,
+    is_nullable,
+    column_default
+FROM information_schema.columns
+WHERE table_name = 'appointments'
+ORDER BY ordinal_position;
+
+
+select * from walkins
+
+
+ALTER TABLE walkins
+ADD COLUMN update_ip VARCHAR DEFAULT NULL

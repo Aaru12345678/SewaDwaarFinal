@@ -1,7 +1,7 @@
 /* ================= KPI CARDS ================= */
 .kpi-container {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(6, 1fr);
   gap: 16px;
   margin-bottom: 20px;
 }
@@ -32,6 +32,8 @@
 .kpi-green::before { background: #2e7d32; }
 .kpi-orange::before { background: #ef6c00; }
 .kpi-red::before { background: #c62828; }
+.kpi-purple::before { background: #7c3aed; }
+
 
 .kpi-value {
   font-size: 26px;
@@ -183,26 +185,35 @@
 
 .wa-title {
   margin-bottom: 12px;
+  font-size: 18px;
+  font-weight: 600;
 }
 
-/* ================= KPIs ================= */
+/* ================= WALK-IN KPI CARDS ================= */
 .wa-kpis {
-  display: grid;
-  grid-template-columns: repeat(6, 1fr);
-  gap: 16px;
+  display: flex;                  /* flex row */
+  flex-wrap: nowrap;              /* no wrap */
+  justify-content: space-between; /* spread cards evenly */
+  gap: 16px;                      /* spacing between cards */
+  overflow-x: auto;               /* horizontal scroll if needed */
+  padding: 10px 0;
 }
 
 .wa-kpi {
+  flex: 1 1 0;                    /* grow to fill space equally */
+  min-width: 140px;               /* ensures each card has enough width */
   background: #fff;
   border-radius: 6px;
   padding: 14px;
   text-align: center;
   border-left: 6px solid transparent;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.08);
 }
 
 .wa-kpi-value {
   font-size: 22px;
   font-weight: 700;
+  color: #111;
 }
 
 .wa-kpi-label {
@@ -212,13 +223,24 @@
 }
 
 /* KPI COLORS */
-.wa-blue   { border-left-color: #2563eb; }
-.wa-indigo{ border-left-color: #4f46e5; }
-.wa-green { border-left-color: #16a34a; }
-.wa-orange{ border-left-color: #ea580c; }
-.wa-red   { border-left-color: #dc2626; }
+.wa-blue      { border-left-color: #2563eb; }
+.wa-indigo    { border-left-color: #4f46e5; }
+.wa-green     { border-left-color: #16a34a; }
+.wa-orange    { border-left-color: #ea580c; }
+.wa-red       { border-left-color: #dc2626; }
+.wa-purple    { border-left-color: #7c3aed; }
 
-/* ================= CARDS ================= */
+/* Optional: hide scrollbar for cleaner look */
+.wa-kpis::-webkit-scrollbar {
+  height: 6px;
+}
+.wa-kpis::-webkit-scrollbar-thumb {
+  background: rgba(0,0,0,0.2);
+  border-radius: 3px;
+}
+
+
+/* ================= CHART CARDS ================= */
 .wa-card {
   background: #fff;
   border: 1px solid #e5e7eb;
@@ -230,6 +252,7 @@
 .wa-card h3 {
   margin-bottom: 10px;
   font-size: 16px;
+  font-weight: 500;
 }
 
 .wa-card-header {
@@ -270,19 +293,107 @@
   width: 100%;
 }
 
+/* ================= HEADER ================= */
+.analytics-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.print-btn {
+  background: #1f4ed8;
+  color: #fff;
+  border: none;
+  padding: 8px 14px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
 /* ================= RESPONSIVE ================= */
 @media (max-width: 1200px) {
   .wa-kpis {
-    grid-template-columns: repeat(3, 1fr);
+    justify-content: flex-start;  /* keep scrollable row on smaller screens */
   }
 }
 
 @media (max-width: 768px) {
   .wa-kpis {
-    grid-template-columns: repeat(2, 1fr);
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 1200px) {
+  .wa-grid-2 {
+    grid-template-columns: 1fr;
+  }
+}
+
+
+@media (max-width: 768px) {
+  .wa-kpis {
+    gap: 10px;
+    padding: 8px 0;
+  }
+
+  .wa-kpi {
+    min-width: 120px;
+    padding: 12px;
   }
 
   .wa-grid-2 {
     grid-template-columns: 1fr;
+  }
+}
+
+/* ================= PRINT STYLES ================= */
+@media print {
+
+  @page {
+    size: A4;
+    margin: 10mm;
+  }
+
+  /* Force exact colors */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Hide unwanted UI */
+  .sidebar,
+  .topbar,
+  .navbar,
+  .filters-bar,
+  .analytics-header,
+  .print-btn {
+    display: none !important;
+  }
+
+  /* Print area only */
+  .print-area {
+    width: 100%;
+    overflow: visible !important;
+  }
+
+  /* Prevent page breaks inside cards */
+  .wa-kpi,
+  .wa-card {
+    box-shadow: none !important;
+    border: 1px solid #ccc !important;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  html, body {
+    height: auto !important;
+    min-height: auto !important;
+    overflow: visible !important;
+    background: #fff !important;
+    font-size: 12px;
+  }
+
+  h2, h3 {
+    color: #000 !important;
   }
 }

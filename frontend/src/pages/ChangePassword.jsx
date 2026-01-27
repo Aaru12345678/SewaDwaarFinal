@@ -2,12 +2,17 @@ import React, { useState } from 'react';
 import { toast } from 'react-toastify';
 import { useNavigate } from 'react-router-dom';
 import { changePassword } from '../services/api';
-import SHA256 from 'crypto-js/sha256';
-
+import { AiOutlineEye, AiOutlineEyeInvisible } from "react-icons/ai";
+import "../css/ChangePass.css"
 export default function ChangePassword() {
   const [oldPassword, setOldPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+
+  const [showOld, setShowOld] = useState(false);
+  const [showNew, setShowNew] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
+
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
@@ -26,70 +31,93 @@ export default function ChangePassword() {
       return;
     }
 
-    // const token = localStorage.getItem("token");
     const user_id = localStorage.getItem("user_id");
-
-    if ( !user_id) {
-      toast.error("User session expired. Please login again.");
+    if (!user_id) {
+      toast.error("Session expired. Please login again.");
       localStorage.clear();
       navigate("/login");
       return;
     }
 
-    // Hash passwords
-    const hashedOldPassword = SHA256(oldPassword.trim()).toString();
-    const hashedNewPassword = SHA256(newPassword.trim()).toString();
+    try {
+      const { data } = await changePassword({
+        user_id,
+        old_password: oldPassword.trim(),
+        new_password: newPassword.trim(),
+      });
 
-    const payload = {
-      user_id,
-      old_password: hashedOldPassword,
-      new_password: hashedNewPassword
-    };
+      if (!data.success) {
+        toast.error(data.message || "Password change failed");
+        return;
+      }
 
-    const { data, error } = await changePassword(payload);
-
-    if (error) {
-      toast.error(error.message || "Password change failed");
-    } else {
       toast.success("Password changed successfully");
-      localStorage.clear();
+      localStorage.setItem("is_first_login", "false");
       navigate("/login");
+
+    } catch (err) {
+      console.error(err);
+      toast.error("Something went wrong");
     }
   };
-console.log(oldPassword,"olddd")
-console.log(newPassword,"newpassword")
+
+  const EyeButton = ({ show, toggle }) => (
+    <button
+      type="button"
+      onClick={toggle}
+      className="eye-btn"
+    >
+      {show ? <AiOutlineEye /> : <AiOutlineEyeInvisible />}
+    </button>
+  );
+
   return (
     <div className="container">
       <div className="login-box">
         <h2>Change Password</h2>
+
         <form className="form" onSubmit={handleSubmit}>
+
+          {/* Old Password */}
           <label>Old Password</label>
-          <input
-            type="password"
-            value={oldPassword}
-            onChange={(e) => setOldPassword(e.target.value)}
-            required
-          />
+          <div className="password-wrapper">
+            <input
+              type={showOld ? "text" : "password"}
+              value={oldPassword}
+              onChange={(e) => setOldPassword(e.target.value)}
+              required
+            />
+            <EyeButton show={showOld} toggle={() => setShowOld(!showOld)} />
+          </div>
 
+          {/* New Password */}
           <label>New Password</label>
-          <input
-            type="password"
-            value={newPassword}
-            onChange={(e) => setNewPassword(e.target.value)}
-            required
-          />
+          <div className="password-wrapper">
+            <input
+              type={showNew ? "text" : "password"}
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              required
+            />
+            <EyeButton show={showNew} toggle={() => setShowNew(!showNew)} />
+          </div>
 
+          {/* Confirm Password */}
           <label>Confirm New Password</label>
-          <input
-            type="password"
-            value={confirmPassword}
-            onChange={(e) => setConfirmPassword(e.target.value)}
-            required
-          />
+          <div className="password-wrapper">
+            <input
+              type={showConfirm ? "text" : "password"}
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              required
+            />
+            <EyeButton show={showConfirm} toggle={() => setShowConfirm(!showConfirm)} />
+          </div>
 
           <button type="submit" className="submit-btn">
             Change Password
           </button>
+
         </form>
       </div>
     </div>

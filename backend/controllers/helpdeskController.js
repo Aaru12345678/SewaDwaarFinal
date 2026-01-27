@@ -48,7 +48,7 @@ const loginHelpdesk = async (req, res) => {
 
   try {
     // ✅ Explicit schema + correct function name
-    const result = await pool.query("SELECT * FROM public.get_user_by_username2($1);", [username]);
+    const result = await pool.query("SELECT * FROM public.get_user_by_usernameHelpdesk($1);", [username]);
     console.log("🟢 Query result:", result.rows);
 
     const officer = result.rows[0];
@@ -76,10 +76,11 @@ const loginHelpdesk = async (req, res) => {
       officer_id: officer.out_officer_id,
       username: officer.out_username,
       role: officer.out_role_code,
+      organization: officer.out_organization_id,
       state:officer.out_state_code,
       division:officer.out_division_code,
       district:officer.out_district_code,
-      taluka:officer.out_taluka_code
+      taluka:officer.out_taluka_code,
     });
   } catch (error) {
     console.error("❌ Officer login error:", error);

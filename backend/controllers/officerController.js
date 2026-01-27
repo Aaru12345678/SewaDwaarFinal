@@ -411,6 +411,14 @@ exports.getOfficersByLocation = async (req, res) => {
       department_id
     } = req.body;
 
+    // Trim all strings and convert empty to null
+    state_code = state_code?.trim() || null;
+    division_code = division_code?.trim() || null;
+    organization_id = organization_id?.trim() || null;
+    district_code = district_code?.trim() || null;
+    taluka_code = taluka_code?.trim() || null;
+    department_id = department_id?.trim() || null;
+
     // 🚨 Mandatory validation
     if (!state_code || !division_code || !organization_id) {
       return res.status(400).json({
@@ -418,17 +426,6 @@ exports.getOfficersByLocation = async (req, res) => {
         message: "state_code, division_code and organization_id are required"
       });
     }
-
-    // ✅ Convert empty strings to NULL
-    district_code = district_code || null;
-    taluka_code = taluka_code || null;
-    department_id = department_id || null;
-    
-
-    // 🚨 Mandatory validation
-    
-    // ✅ Convert empty strings to NULL
-    
 
     const query = `
       SELECT * FROM get_officers_same_location($1, $2, $3, $4, $5, $6);
@@ -443,12 +440,10 @@ exports.getOfficersByLocation = async (req, res) => {
       department_id
     ];
 
-    
     console.log("📤 SQL Params:", values);
 
     const result = await pool.query(query, values);
 
-    // ✅ Custom popup message when no officers found
     if (result.rows.length === 0) {
       return res.status(200).json({
         success: false,
@@ -461,9 +456,7 @@ exports.getOfficersByLocation = async (req, res) => {
       success: true,
       message: "Officers fetched successfully",
       data: result.rows
-      
     });
-
 
   } catch (error) {
     console.error("❌ Error fetching officers by location:", error);

@@ -29,6 +29,7 @@ const Analytics1 = ({ filters }) => {
     completed_appointments: 0,
     rejected_appointments: 0,
     pending_appointments: 0,
+    rescheduled_appointments:0
   });
 
   /* ================= TREND ================= */
@@ -45,13 +46,24 @@ const Analytics1 = ({ filters }) => {
   const [loadingService, setLoadingService] = useState(false);
 
   const [loadingKpis, setLoadingKpis] = useState(false);
+  const isEmptyFilter = !filters || Object.keys(filters).length === 0;
+  const getTodayPayload = () => {
+  const today = new Date().toISOString().split("T")[0];
+  return { from_date: today, to_date: today };
+};
 
   /* ================= FETCH KPIs ================= */
   useEffect(() => {
   const loadKpis = async () => {
     setLoadingKpis(true);
     try {
-      const res = await fetchApplicationAppointmentKpis(filters || {});
+      const today = new Date().toISOString().split("T")[0];
+
+      const payload = isEmptyFilter
+        ? { from_date: today, to_date: today }
+        : filters;
+
+      const res = await fetchApplicationAppointmentKpis(payload);
       setKpis(res || {});
     } catch (err) {
       console.error("Failed to load KPIs", err);
@@ -64,15 +76,21 @@ const Analytics1 = ({ filters }) => {
 }, [filters]);
 
 
+
   /* ================= FETCH TREND ================= */
   useEffect(() => {
   const loadTrend = async () => {
     setLoadingTrend(true);
     try {
+      const basePayload = isEmptyFilter
+        ? getTodayPayload()
+        : { ...filters };
+
       const res = await fetchApplicationAppointmentsTrend({
-        ...(filters || {}),
+        ...basePayload,
         dateType: trendType,
       });
+
       setTrendData(res || []);
     } catch (err) {
       console.error("Failed to load trend", err);
@@ -84,15 +102,19 @@ const Analytics1 = ({ filters }) => {
   loadTrend();
 }, [filters, trendType]);
 
+
   /* ================= FETCH DEPARTMENT ================= */
   useEffect(() => {
   const loadDept = async () => {
     setLoadingDept(true);
     try {
-      const deptFilters = { ...(filters || {}) };
-      delete deptFilters.service_id; // correct logic
+      const basePayload = isEmptyFilter
+        ? getTodayPayload()
+        : { ...filters };
 
-      const res = await fetchAppointmentsByDepartment(deptFilters);
+      delete basePayload.service_id; // correct logic
+
+      const res = await fetchAppointmentsByDepartment(basePayload);
       setDeptData(res || []);
     } catch (err) {
       console.error("Failed to load department data", err);
@@ -105,12 +127,17 @@ const Analytics1 = ({ filters }) => {
 }, [filters]);
 
 
+
   /* ================= FETCH SERVICE ================= */
   useEffect(() => {
   const loadService = async () => {
     setLoadingService(true);
     try {
-      const res = await fetchAppointmentsByService(filters || {});
+      const payload = isEmptyFilter
+        ? getTodayPayload()
+        : { ...filters };
+
+      const res = await fetchAppointmentsByService(payload);
       setServiceData(res || []);
     } catch (err) {
       console.error("Failed to load service data", err);
@@ -123,12 +150,14 @@ const Analytics1 = ({ filters }) => {
 }, [filters]);
 
 
+
   /* ================= KPI CARDS ================= */
   const cards = [
     { label: "Total Appointments", value: kpis.total_appointments, className: "kpi-blue" },
     { label: "Upcoming (Approved)", value: kpis.upcoming_appointments, className: "kpi-indigo" },
     { label: "Completed", value: kpis.completed_appointments, className: "kpi-green" },
     { label: "Pending Approval", value: kpis.pending_appointments, className: "kpi-orange" },
+    { label: "Rescheduled", value: kpis.rescheduled_appointments, className: "kpi-purple" },
     { label: "Rejected / Cancelled / No-Show", value: kpis.rejected_appointments, className: "kpi-red" },
   ];
 

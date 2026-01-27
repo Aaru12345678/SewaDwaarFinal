@@ -50,6 +50,9 @@ export const getServices2 = (organization_id) =>
 
 // ================= AUTH & SIGNUP =================
 export const submitSignup = (payload) => safeRequest(api.post("/signup", payload));
+// walkin registration for new user:
+export const submitWalkinSignup = (payload) => safeRequest(api.post("/walkinsignup", payload));
+
 export const login = (payload) => safeRequest(api.post("/login", payload));
 export const registerUserByRole = (payload) => safeRequest(api.post("/users_signup", payload)); // ✅ Main officer registration
 export const userLogin = (payload) => safeRequest(api.post("/users_login", payload));
@@ -328,3 +331,19 @@ export const getUserByEntityId =(entity_id)=>safeRequest(
 export const updateOfficerByRole =(payload)=>safeRequest(
     api.put("/update-officer",payload)
   );
+
+  // Get all holidays
+export const getSlotHolidays = () => safeRequest(api.get("/slot-holidays"));
+
+// Create new holiday
+export const createSlotHoliday = (payload) => safeRequest(api.post("/slot-holidays", payload));
+
+// Deactivate holiday
+export const deactivateSlotHoliday = (holiday_id) =>
+  safeRequest(api.delete(`/slot-holidays/${holiday_id}`));
+
+export const updateSlotHoliday = (holiday_id, payload) =>
+  safeRequest(api.put(`/slot-holidays/${holiday_id}`, payload));
+
+export const getSlotHolidayById = (holiday_id) =>
+  safeRequest(api.get(`/slot-holidays/${holiday_id}`));

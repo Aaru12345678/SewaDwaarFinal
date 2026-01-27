@@ -1,4 +1,4 @@
-import React, { useEffect,useState } from "react";
+import React, { useEffect,useState,useRef } from "react";
 import { Routes, Route, Link, useNavigate } from "react-router-dom";
 import "../css/admin.css";
 import ViewAppointment from "./ViewAppointment";
@@ -12,7 +12,8 @@ import Appointments from "../pages/Appointments";
 import Analytics1 from "../pages/Analytics1";
 import UserRoles from "../pages/UserRoles";
 import { toast } from "react-toastify";
-
+import { FaUserCircle, FaChevronDown } from "react-icons/fa";
+// import Navbar from "./Navbar";
 import {
   ResponsiveContainer,
   LineChart,
@@ -57,6 +58,19 @@ const COLORS = ["#4e73df", "#1cc88a", "#36b9cc"];
 const Admin = () => {
   const navigate = useNavigate();
      const username = localStorage.getItem("username"); 
+     const [openProfile, setOpenProfile] = useState(false);
+const profileRef = useRef(null);
+
+/* close dropdown on outside click */
+useEffect(() => {
+  const handler = (e) => {
+    if (profileRef.current && !profileRef.current.contains(e.target)) {
+      setOpenProfile(false);
+    }
+  };
+  document.addEventListener("mousedown", handler);
+  return () => document.removeEventListener("mousedown", handler);
+}, []);
 
   // ✅ Logout function
   const handleLogout = () => {
@@ -122,16 +136,57 @@ const Admin = () => {
       {/* Main Content */}
       <div className="main">
         {/* Top Header */}
-        <header className="topbar">
+        {/* <header className="topbar">
           <div></div>
-          <div className="top-actions">
-            <span>👤 Admin Profile</span>
+          <div className="top-actions"> */}
+            {/* <span>👤 Admin Profile</span> */}
             {/* ✅ Clickable Logout Button */}
-            <button className="logout-btn" onClick={handleLogout}>
+            {/* <button className="logout-btn" onClick={handleLogout}>
               Logout
             </button>
           </div>
-        </header>
+        </header> */}
+        {/* <Navbar/> */}
+        {/* Top Header */}
+        <header className="topbar">
+  <div></div>
+
+  <div className="top-actions" ref={profileRef}>
+    <div
+      className="profile-wrapper"
+      onClick={() => setOpenProfile(!openProfile)}
+    >
+      <FaUserCircle size={26} className="topbar-avatar" />
+      <span className="profile-name">{username}</span>
+      <FaChevronDown size={12} />
+    </div>
+
+    {openProfile && (
+      <div className="profile-dropdown">
+        <div className="profile-header">
+          <FaUserCircle size={36} />
+          <div>
+            <strong>{username}</strong>
+            <p>Super Admin</p>
+          </div>
+        </div>
+
+        <ul>
+          <li onClick={() => navigate("/admin/profile")}>
+            View Profile
+          </li>
+          <li onClick={() => navigate("/change-password")}>
+            Change Password
+          </li>
+        </ul>
+
+        <button className="dropdown-logout" onClick={handleLogout}>
+          Logout
+        </button>
+      </div>
+    )}
+  </div>
+</header>
 
         {/* Page Content */}
         <main className="dashboard">

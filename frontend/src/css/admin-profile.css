@@ -1,0 +1,221 @@
+/* ===============================
+   SUPER ADMIN PROFILE – FINAL GOV STYLE
+=============================== */
+
+/* PAGE */
+.admin-profile-page {
+  display: grid;
+  grid-template-columns: 320px 1fr;   /* left fixed, right flexible */
+  gap: 30px;
+  padding: 30px;
+  min-height: 100vh;
+
+  background-image: url("../assets/dashboard-bg.jpg");
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+
+  align-items: start;
+}
+
+/* ===============================
+   LEFT PROFILE CARD
+=============================== */
+
+/* Make both sides same height till last card */
+.admin-profile-page {
+  display: grid;
+  grid-template-columns: 300px 1fr;
+  gap: 32px;
+  padding: 28px;
+  min-height: 100vh;
+  align-items: stretch;   /* 🔥 THIS STRETCHES LEFT WITH RIGHT */
+}
+
+/* Blue Header Strip */
+.profile-left::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 120px;
+  width: 100%;
+  background: linear-gradient(135deg, #1e4fa3, #2563eb);
+  border-top-left-radius: 16px;
+  border-top-right-radius: 16px;
+}
+
+
+/* LEFT PROFILE CARD */
+.profile-left {
+  width: 350px;
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 0 40px 30px;
+  text-align: center;
+  box-shadow: 0 12px 25px rgba(0, 0, 0, 0.12);
+  position: relative;
+  overflow: hidden;
+  /* 🔥 IMPORTANT FIX */
+  height: auto;        /* remove any fixed height / 100vh */
+  align-self: stretch; 
+  /* 🔥 Move it DOWN to align with Basic Information */
+  margin-top: 30px;
+}
+
+/* BIG BLUE STRIP ON TOP */
+.profile-left::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 140px;              /* 🔥 STRIP HEIGHT (BIG) */
+  background: linear-gradient(135deg, #1f4fd8, #2563eb);
+  border-top-left-radius: 16px;
+  border-top-right-radius: 16px;
+}
+
+/* Avatar Wrapper */
+.avatar-wrapper {
+  width: 140px;
+  height: 140px;
+  margin: 70px auto 16px;     /* 🔥 Push down so it overlaps strip */
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Profile Photo */
+.profile-photo {
+  width: 130px;
+  height: 130px;
+  object-fit: cover;
+  border-radius: 50%;
+  border: 6px solid #ffffff;   /* White ring */
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25);
+  background: #fff;
+}
+
+/* Profile Icon (fallback) */
+.profile-avatar {
+  font-size: 110px;
+  color: #ffffff;
+  background: #1f4fd8;
+  border-radius: 50%;
+  padding: 10px;
+}
+
+/* NAME */
+.profile-left h3 {
+  margin-top: 10px;
+  font-size: 22px;
+  font-weight: 700;
+  color: #1f3a60;
+}
+
+/* DESIGNATION */
+.profile-left .role {
+  font-size: 14px;
+  color: #6b7280;
+  margin-bottom: 20px;
+}
+
+/* INFO TEXT */
+.profile-info p {
+  font-size: 14px;
+  margin: 6px 0;
+  color: #374151;
+}
+
+/* STATUS BADGE */
+.profile-info .status {
+  margin-top: 14px;
+  display: inline-block;
+  padding: 6px 16px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 600;
+  background: #d1fae5;
+  color: #065f46;
+}
+/* ===============================
+   RIGHT SIDE CONTENT
+=============================== */
+
+.profile-right {
+  display: flex;
+  flex-direction: column;
+  gap: 25px;
+}
+
+/* ===============================
+   INFO CARDS (LIKE VISITOR PAGE)
+=============================== */
+
+.info-card {
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 24px 28px 26px;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.10);
+  border-left: 6px solid #1f4fa3;
+}
+
+/* Card Title */
+.info-card h4 {
+  margin-bottom: 20px;
+  font-size: 17px;
+  font-weight: 700;
+  color: #1f3a60;
+  border-bottom: 1px solid #e5e7eb;
+  padding-bottom: 10px;
+}
+
+/* GRID EXACT LIKE VISITOR PROFILE */
+.info-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 18px 40px;
+}
+
+/* Each field */
+.info-grid p {
+  margin: 0;
+  font-size: 14px;
+  color: #111827;
+  background: #f9fafb;
+  padding: 12px 14px;
+  border-radius: 10px;
+  border: 1px solid #e5e7eb;
+}
+
+/* Label */
+.info-grid span {
+  display: block;
+  font-size: 12px;
+  color: #6b7280;
+  margin-bottom: 6px;
+  font-weight: 600;
+}
+
+/* ===============================
+   RESPONSIVE
+=============================== */
+
+@media (max-width: 1000px) {
+  .admin-profile-page {
+    grid-template-columns: 1fr;
+    
+  }
+
+  .profile-left {
+    position: relative;
+    top: 0;
+  }
+
+  .info-grid {
+    grid-template-columns: 1fr;
+  }
+}

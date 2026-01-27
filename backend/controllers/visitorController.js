@@ -161,31 +161,62 @@ exports.updateVisitorProfile = async (req, res) => {
 };
 
 exports.changePassword = async (req, res) => {
-  try {
-    const { username, oldPassword, newPassword } = req.body;
+  const { user_id, old_password, new_password } = req.body;
 
-    const user = await pool.query(
-      "SELECT * FROM get_user_by_username2($1)",
-      [username]
+  try {
+    // 1️⃣ Fetch the user
+    const userRes = await pool.query(
+      "SELECT password_hash FROM m_users WHERE user_id = $1",
+      [user_id]
     );
 
-    if (user.rows.length === 0)
-      return res.status(404).json({ success: false, message: "User not found" });
+    if (!userRes.rows.length) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
 
-    const isMatch = await bcrypt.compare(oldPassword, user.rows[0].out_password_hash);
-    if (!isMatch)
-      return res.status(400).json({ success: false, message: "Old password incorrect" });
+    // 2️⃣ Compare old password
+    const isMatch = await bcrypt.compare(
+      old_password,
+      userRes.rows[0].password_hash
+    );
 
-    const newHash = await bcrypt.hash(newPassword, 10);
+    if (!isMatch) {
+      return res.status(401).json({
+        success: false,
+        message: "Old password is incorrect",
+      });
+    }
 
-    await pool.query("SELECT update_user_password($1, $2)", [
-      user.rows[0].out_user_id,
-      newHash
-    ]);
+    // 3️⃣ Hash new password
+    const hashedNewPassword = await bcrypt.hash(new_password, 10);
 
-    return res.json({ success: true, message: "Password updated" });
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    // 4️⃣ Call PostgreSQL function that now returns is_first_login
+    const result = await pool.query(
+      "SELECT * FROM change_user_password($1, $2)",
+      [user_id, hashedNewPassword]
+    );
+
+    if (result.rows.length) {
+      // 5️⃣ Return success, message, and updated is_first_login
+      return res.json(result.rows[0]);
+    } else {
+      return res.status(500).json({
+        success: false,
+        message: "Password update failed",
+        is_first_login: null
+      });
+    }
+
+  } catch (err) {
+    console.error("Change password error:", err);
+    return res.status(500).json({
+      success: false,
+      message: "Server error",
+      is_first_login: null
+    });
   }
 };
 

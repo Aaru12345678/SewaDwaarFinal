@@ -8,11 +8,10 @@ import NavbarMain from '../Components/NavbarMain';
 import NavbarTop from '../Components/NavbarTop';
 import VisitorNavbar from "./VisitorNavbar";
 
-
 import {
-  FaCalendarDay, 
-  FaClock, 
-  FaCheckCircle, 
+  FaCalendarDay,
+  FaClock,
+  FaCheckCircle,
   FaWalking,
   FaArrowRight,
   FaUser,
@@ -36,6 +35,7 @@ import {
 import "../css/Dashboard.css";
 import OfficerNavbar from "./OfficerNavbar";
 import "../pages/MainPage.css"
+
 function OfficerDashboard() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
@@ -62,7 +62,14 @@ function OfficerDashboard() {
     reason: "",
   });
   const [actionLoading, setActionLoading] = useState(false);
-  
+
+  // Visit confirmation modal
+  const [showVisitModal, setShowVisitModal] = useState(false);
+  const [visitData, setVisitData] = useState({
+    appointment_id: "",
+    visited: "yes", // 'yes' or 'no'
+  });
+
   // Date picker states for reports
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [dateAppointments, setDateAppointments] = useState([]);
@@ -80,10 +87,8 @@ function OfficerDashboard() {
     reason: "",
   });
 
-  const officer=localStorage.getItem("username")
-  console.log(officer,"officerID")
-
-  // const officerId = localStorage.getItem("officer_id");
+  const officer = localStorage.getItem("username");
+  console.log(officer, "officerID");
 
   useEffect(() => {
     if (!officer) {
@@ -94,22 +99,45 @@ function OfficerDashboard() {
     const fetchDashboardData = async () => {
       setLoading(true);
       try {
-        const { data, error } = await getOfficerDashboard(officer);
-        console.log(data.pending_appointments,"dataaaa")
+        // Try to use your service; handle multiple possible response shapes
+        const resp = await getOfficerDashboard(officer);
+        // resp might be axios-like { data: { success: true, data: {...} } } OR custom
+        const payload = resp?.data?.data ? resp.data.data : (resp?.data ? resp.data : resp);
 
-        
-        // console.log(purpose,"purpose");
-        if (error) {
-          console.error("Failed to fetch dashboard:", error);
-        } else if (data && data.success) {
-          setFullName(data.data.full_name || "Officer");
-          setStats(data.data.stats || { today: 0, pending: 0, completed: 0, rescheduled: 0, walkins: 0 });
-          setTodayAppointments(data.data.today_appointments || []);
-          setPendingAppointments(data.data.pending_appointments || []);
-          setRescheduledAppointments(data.data.rescheduled_appointments || []);
-          setCompletedAppointments(data.data.completed_appointments || []);
-          setWalkinAppointments(data.data.walkin_appointments || []);
-          setRecentActivity(data.data.recent_activity || []);
+        console.log("dashboard payload:", payload);
+
+        if (payload && payload.success === false) {
+          console.error("Failed to fetch dashboard:", payload.message || payload);
+        } else {
+          // payload may contain full structure directly or be the inner data
+          const inner = payload && payload.success ? payload.data || {} : payload || {};
+
+          setFullName(inner.full_name || inner.officer_name || "Officer");
+
+          // arrays fallback
+          const todayArr = inner.today_appointments || inner.todayAppointments || [];
+          const pendingArr = inner.pending_appointments || inner.pendingAppointments || [];
+          const rescheduledArr = inner.rescheduled_appointments || inner.rescheduledAppointments || [];
+          const completedArr = inner.completed_appointments || inner.completedAppointments || [];
+          const walkinArr = inner.walkin_appointments || inner.walkinAppointments || [];
+          const recentArr = inner.recent_activity || inner.recentActivity || [];
+
+          setTodayAppointments(todayArr);
+          setPendingAppointments(pendingArr);
+          setRescheduledAppointments(rescheduledArr);
+          setCompletedAppointments(completedArr);
+          setWalkinAppointments(walkinArr);
+          setRecentActivity(recentArr);
+
+          // Stats: prefer the stats object from API but fallback to lengths of arrays
+          const apiStats = inner.stats || inner.counts || {};
+          setStats({
+            today: apiStats.today ?? todayArr.length,
+            pending: apiStats.pending ?? pendingArr.length,
+            completed: apiStats.completed ?? completedArr.length,
+            rescheduled: apiStats.rescheduled ?? rescheduledArr.length,
+            walkins: apiStats.walkins ?? walkinArr.length,
+          });
         }
       } catch (err) {
         console.error("Dashboard fetch error:", err);
@@ -154,36 +182,51 @@ function OfficerDashboard() {
   // Refresh dashboard data
   const refreshDashboard = async () => {
     try {
-      const { data } = await getOfficerDashboard(officer);
-      if (data && data.success) {
-        setStats(data.data.stats || { today: 0, pending: 0, completed: 0, rescheduled: 0, walkins: 0 });
-        setTodayAppointments(data.data.today_appointments || []);
-        setPendingAppointments(data.data.pending_appointments || []);
-        setRescheduledAppointments(data.data.rescheduled_appointments || []);
-        setCompletedAppointments(data.data.completed_appointments || []);
-        setWalkinAppointments(data.data.walkin_appointments || []);
-        setRecentActivity(data.data.recent_activity || []);
-      }
+      const resp = await getOfficerDashboard(officer);
+      const payload = resp?.data?.data ? resp.data.data : (resp?.data ? resp.data : resp);
+      const inner = payload && payload.success ? payload.data || {} : payload || {};
+
+      const todayArr = inner.today_appointments || inner.todayAppointments || [];
+      const pendingArr = inner.pending_appointments || inner.pendingAppointments || [];
+      const rescheduledArr = inner.rescheduled_appointments || inner.rescheduledAppointments || [];
+      const completedArr = inner.completed_appointments || inner.completedAppointments || [];
+      const walkinArr = inner.walkin_appointments || inner.walkinAppointments || [];
+      const recentArr = inner.recent_activity || inner.recentActivity || [];
+
+      setTodayAppointments(todayArr);
+      setPendingAppointments(pendingArr);
+      setRescheduledAppointments(rescheduledArr);
+      setCompletedAppointments(completedArr);
+      setWalkinAppointments(walkinArr);
+      setRecentActivity(recentArr);
+
+      const apiStats = inner.stats || inner.counts || {};
+      setStats({
+        today: apiStats.today ?? todayArr.length,
+        pending: apiStats.pending ?? pendingArr.length,
+        completed: apiStats.completed ?? completedArr.length,
+        rescheduled: apiStats.rescheduled ?? rescheduledArr.length,
+        walkins: apiStats.walkins ?? walkinArr.length,
+      });
     } catch (err) {
       console.error("Refresh error:", err);
     }
   };
 
- 
   // Fetch appointments for selected date
   const fetchAppointmentsByDate = async () => {
     if (!selectedDate) {
       toast.error("Please select a date");
       return;
     }
-    
+
     setDateLoading(true);
     try {
       const response = await fetch(
         `http://localhost:5000/api/officer/${officer}/appointments-by-date?date=${selectedDate}`
       );
       const result = await response.json();
-      console.log(result,"response")
+      console.log(result, "response");
 
       if (result.success) {
         setDateAppointments(result.data.appointments || []);
@@ -198,18 +241,17 @@ function OfficerDashboard() {
     setDateLoading(false);
   };
 
-  // Download as PDF
+  // Download as PDF (unchanged)
   const downloadPDF = () => {
     if (dateAppointments.length === 0) {
       toast.warning("No appointments to download");
       return;
     }
 
-    // Create printable HTML content
     const formattedDate = new Date(selectedDate).toLocaleDateString("en-IN", {
       day: "numeric", month: "long", year: "numeric"
     });
-    
+
     const tableRows = dateAppointments.map((apt, index) => `
       <tr>
         <td>${index + 1}</td>
@@ -275,14 +317,13 @@ function OfficerDashboard() {
       </html>
     `;
 
-    // Open print dialog
     const printWindow = window.open("", "_blank");
     printWindow.document.write(htmlContent);
     printWindow.document.close();
     printWindow.print();
   };
 
-  // Download as Excel (CSV format)
+  // Download as Excel (CSV) unchanged
   const downloadExcel = () => {
     if (dateAppointments.length === 0) {
       toast.warning("No appointments to download");
@@ -293,7 +334,6 @@ function OfficerDashboard() {
       day: "numeric", month: "long", year: "numeric"
     });
 
-    // Create CSV content
     const headers = ["#", "Visitor Name", "Mobile", "Email", "Time", "Service", "Department", "Purpose", "Status"];
     const csvRows = [
       `SewaDwaar - Appointments Report for ${formattedDate}`,
@@ -329,17 +369,17 @@ function OfficerDashboard() {
     toast.success("Excel file downloaded successfully");
   };
 
-  // Handle appointment status update (approve, complete)
-  const handleUpdateStatus = async (appointmentId, status, reason = null) => {
+  // Generic update status that accepts extra payload
+  const handleUpdateStatus = async (appointmentId, status, reason = null, extra = {}) => {
     if (actionLoading) return;
-    
+
     const confirmMsg = {
       approved: "Are you sure you want to approve this appointment?",
       completed: "Mark this appointment as completed?",
     };
-    
+
     if (!window.confirm(confirmMsg[status] || "Update this appointment?")) return;
-    
+
     setActionLoading(true);
     try {
       const response = await fetch("http://localhost:5000/api/appointment/update-status", {
@@ -350,25 +390,23 @@ function OfficerDashboard() {
           status: status,
           officer_id: officer,
           reason: reason,
+          ...extra,
         }),
       });
-      
-      const text = await response.text();
- console.log(text,"text")
-try {
-  const result = JSON.parse(text);
-  console.log(result,"result");
-  if (result.success) {
-    toast.success(result.message);
-    await refreshDashboard();
-  } else {
-    toast.error(result.message || "Failed to update");
-  }
-} catch (e) {
-  console.error("Server returned non-JSON:", text);
-  toast.error("Server error. Please try again.");
-}
 
+      const text = await response.text();
+      try {
+        const result = JSON.parse(text);
+        if (result.success) {
+          toast.success(result.message);
+          await refreshDashboard();
+        } else {
+          toast.error(result.message || "Failed to update");
+        }
+      } catch (e) {
+        console.error("Server returned non-JSON:", text);
+        toast.error("Server error. Please try again.");
+      }
     } catch (err) {
       console.error("Error updating status:", err);
       toast.error("Failed to update appointment");
@@ -391,7 +429,7 @@ try {
       toast.error("Please provide a reason for rejection");
       return;
     }
-    
+
     setActionLoading(true);
     try {
       const response = await fetch("http://localhost:5000/api/appointment/update-status", {
@@ -404,7 +442,7 @@ try {
           reason: rejectData.reason,
         }),
       });
-      
+
       const result = await response.json();
       if (result.success) {
         toast.success("Appointment rejected successfully");
@@ -444,7 +482,7 @@ try {
       toast.error("Please select new date and time");
       return;
     }
-    
+
     setActionLoading(true);
     try {
       const response = await fetch("http://localhost:5000/api/appointment/reschedule", {
@@ -455,10 +493,10 @@ try {
           officer_id: officer,
           new_date: rescheduleData.new_date,
           new_time: rescheduleData.new_time,
-          reason: rescheduleData.purpose,
+          reason: rescheduleData.reason,
         }),
       });
-      
+
       const result = await response.json();
       if (result.success) {
         toast.success("Appointment rescheduled successfully");
@@ -517,7 +555,13 @@ try {
   // Render action buttons based on status
   const renderActionButtons = (apt, showViewBtn = true) => {
     const status = apt.status?.toLowerCase();
-    
+
+    // open visit modal helper
+    const openVisitConfirm = (appointmentId) => {
+      setVisitData({ appointment_id: appointmentId, visited: "yes" });
+      setShowVisitModal(true);
+    };
+
     return (
       <div className="action-buttons">
         {/* View button always visible */}
@@ -530,15 +574,15 @@ try {
             <FaEye />
           </button>
         )}
-        
+
         {status === "completed" && (
           <span className="completed-text">✓ Completed</span>
         )}
-        
+
         {status === "rejected" && (
           <span className="rejected-text">✗ Rejected</span>
         )}
-        
+
         {(status === "pending" || status === "rescheduled") && (
           <>
             <button
@@ -570,7 +614,7 @@ try {
         {status === "approved" && (
           <button
             className="action-btn complete-btn"
-            onClick={() => handleUpdateStatus(apt.appointment_id, "completed")}
+            onClick={() => openVisitConfirm(apt.appointment_id)}
             disabled={actionLoading}
             title="Mark Complete"
           >
@@ -581,11 +625,25 @@ try {
     );
   };
 
+  // Helper to interpret visit status fields in different payloads
+  const getVisitStatus = (apt) => {
+    if (!apt) return "-";
+    const v = apt.is_visited ?? apt.visited ?? apt.visit_status ?? apt.visit ?? null;
+    if (typeof v === "boolean") return v ? "Visited" : "Not Visited";
+    if (typeof v === "string") {
+      const normalized = v.toLowerCase();
+      if (["yes", "true", "visited"].includes(normalized)) return "Visited";
+      if (["no", "false", "not visited", "not_visited", "no-show"].includes(normalized)) return "Not Visited";
+      return apt.visit_status || v;
+    }
+    return apt.visit_status || "-";
+  };
+
   // Render the appointments table
   const renderAppointmentsTable = () => {
     const appointments = getCurrentAppointments();
-    
-    if (appointments.length === 0) {
+
+    if (!appointments || appointments.length === 0) {
       return (
         <div className="empty-state">
           <FaCalendarCheck className="empty-icon" />
@@ -612,6 +670,7 @@ try {
               <th>Service</th>
               <th>Purpose</th>
               <th>Status</th>
+              {activeTab === "completed" && <th>Visit Status</th>}
               <th>Actions</th>
             </tr>
           </thead>
@@ -635,6 +694,11 @@ try {
                     {apt.status}
                   </span>
                 </td>
+                {activeTab === "completed" && (
+                  <td>
+                    <span style={{ fontWeight: 600 }}>{getVisitStatus(apt)}</span>
+                  </td>
+                )}
                 <td>
                   {renderActionButtons(apt)}
                 </td>
@@ -646,6 +710,50 @@ try {
     );
   };
 
+  // Handle confirmation from visit modal
+  const handleConfirmVisit = async () => {
+    if (!visitData.appointment_id) {
+      toast.error("Invalid appointment");
+      return;
+    }
+    // No confirm popup here because modal already used; set loading and call update
+    setActionLoading(true);
+    try {
+      // map 'yes'/'no' to boolean
+      const visitedBool = visitData.visited === "yes";
+      const response = await fetch("http://localhost:5000/api/appointment/update-status", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          appointment_id: visitData.appointment_id,
+          status: "completed",
+          officer_id: officer,
+          visited: visitedBool,
+          notify_visitor: true // helpful flag if backend supports it
+        }),
+      });
+
+      const text = await response.text();
+      try {
+        const result = JSON.parse(text);
+        if (result.success) {
+          toast.success(result.message || "Appointment marked completed");
+          setShowVisitModal(false);
+          await refreshDashboard();
+        } else {
+          toast.error(result.message || "Failed to update");
+        }
+      } catch (e) {
+        console.error("Server returned non-JSON:", text);
+        toast.error("Server error. Please try again.");
+      }
+    } catch (err) {
+      console.error("Error updating completion:", err);
+      toast.error("Failed to update appointment");
+    }
+    setActionLoading(false);
+  };
+
   if (loading) {
     return (
       <div className="dashboard-loading">
@@ -655,502 +763,537 @@ try {
     );
   }
 
+  const displayedStats = activeTab === "bydate"
+  ? {
+      today: dateStats.total || 0,
+      pending: dateStats.pending || 0,
+      completed: dateStats.completed || 0,
+      rescheduled: dateStats.rescheduled || 0,
+      walkins: dateStats.walkins || 0,
+    }
+  : stats;
+
+
   return (
     <div>
       <div className="fixed-header">
-        <NavbarTop/>
+        <NavbarTop />
         <Header />
-      <OfficerNavbar fullName={fullName} />
-        
+        <OfficerNavbar fullName={fullName} />
       </div>
       <div className="main-layout">
-  <div className="content-below">
-      <div className="dashboard-container">
-      {/* Top Navigation Bar */}
-      {/* <nav className="dashboard-nav">
-        <div className="nav-brand">
-          <span className="brand-icon">🏛️</span>
-          <span className="brand-text">SewaDwaar</span>
-        </div>
-        <div className="nav-actions">
-          <Link to="/officer/reports" className="nav-icon-btn" title="Reports">
-            <FaChartBar />
-          </Link>
-          <Link to="/officer/notifications2" className="nav-icon-btn" title="Notifications">
-            <FaBell />
-            {stats.pending > 0 && <span className="badge">{stats.pending}</span>}
-          </Link>
-          <div className="nav-user">
-            <FaUser />
-            <span>{fullName}</span>
-          </div>
-          <button className="nav-icon-btn logout-btn" onClick={handleLogout} title="Logout">
-            <FaSignOutAlt />
-          </button>
-        </div>
-      </nav> */}
+        <div className="content-below">
+          <div className="dashboard-container">
+            <div className="dashboard-content">
+              {/* Welcome Header */}
+              <header className="dashboard-header">
+                <div className="header-text">
+                  <h1>Welcome back, {fullName.split(" ")[0]}!</h1>
+                  <p>Here's what's happening with your appointments today.</p>
+                </div>
+                <div className="header-date">
+                  <span className="date-day">{new Date().toLocaleDateString("en-IN", { weekday: "long" })}</span>
+                  <span className="date-full">{new Date().toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" })}</span>
+                </div>
+              </header>
 
-      <div className="dashboard-content">
-        {/* Welcome Header */}
-        <header className="dashboard-header">
-          <div className="header-text">
-            <h1>Welcome back, {fullName.split(" ")[0]}!</h1>
-            <p>Here's what's happening with your appointments today.</p>
-          </div>
-          <div className="header-date">
-            <span className="date-day">{new Date().toLocaleDateString("en-IN", { weekday: "long" })}</span>
-            <span className="date-full">{new Date().toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" })}</span>
-          </div>
-        </header>
-
-        {/* Stats Cards */}
-        <section className="stats-grid">
-          <div onClick={() => setActiveTab("today")} className={`stat-card today ${activeTab === "today" ? "active" : ""}`}>
-            <div className="stat-icon">
-              <FaCalendarDay />
-            </div>
-            <div className="stat-info">
-              <span className="stat-number">{stats.today}</span>
-              <span className="stat-label">Today's Appointments</span>
-            </div>
-            <FaArrowRight className="stat-arrow" />
-          </div>
-
-          <div onClick={() => setActiveTab("pending")} className={`stat-card pending ${activeTab === "pending" ? "active" : ""}`}>
-            <div className="stat-icon">
-              <FaClock />
-            </div>
-            <div className="stat-info">
-              <span className="stat-number">{stats.pending}</span>
-              <span className="stat-label">Pending Requests</span>
-            </div>
-            <FaArrowRight className="stat-arrow" />
-          </div>
-
-          <div onClick={() => setActiveTab("rescheduled")} className={`stat-card rescheduled ${activeTab === "rescheduled" ? "active" : ""}`}>
-            <div className="stat-icon">
-              <FaRedo />
-            </div>
-            <div className="stat-info">
-              <span className="stat-number">{stats.rescheduled}</span>
-              <span className="stat-label">Rescheduled</span>
-            </div>
-            <FaArrowRight className="stat-arrow" />
-          </div>
-
-          <div onClick={() => setActiveTab("walkins")} className={`stat-card walkins ${activeTab === "walkins" ? "active" : ""}`}>
-            <div className="stat-icon">
-              <FaWalking />
-            </div>
-            <div className="stat-info">
-              <span className="stat-number">{stats.walkins}</span>
-              <span className="stat-label">Walk-ins</span>
-            </div>
-            <FaArrowRight className="stat-arrow" />
-          </div>
-
-          <div onClick={() => setActiveTab("completed")} className={`stat-card completed ${activeTab === "completed" ? "active" : ""}`}>
-            <div className="stat-icon">
-              <FaCheckCircle />
-            </div>
-            <div className="stat-info">
-              <span className="stat-number">{stats.completed}</span>
-              <span className="stat-label">Completed</span>
-            </div>
-            <FaArrowRight className="stat-arrow" />
-          </div>
-        </section>
-
-        {/* Main Content Grid */}
-        <div className="dashboard-grid">
-          {/* Appointments Section with Tabs */}
-          <section className="upcoming-section">
-            <div className="section-header">
-              <h2>
-                {activeTab === "today" && "📅 Today's Appointments"}
-                {activeTab === "pending" && "⏳ Pending Appointments"}
-                {activeTab === "rescheduled" && "🔄 Rescheduled Appointments"}
-                {activeTab === "completed" && "✅ Completed Appointments"}
-                {activeTab === "walkins" && "🚶 Walk-in Appointments"}
-                {activeTab === "bydate" && "📊 Appointments by Date"}
-              </h2>
-              <div className="tab-pills">
-                <button 
-                  className={`tab-pill ${activeTab === "today" ? "active" : ""}`}
-                  onClick={() => setActiveTab("today")}
-                >
-                  Today ({stats.today})
-                </button>
-                <button 
-                  className={`tab-pill ${activeTab === "pending" ? "active" : ""}`}
-                  onClick={() => setActiveTab("pending")}
-                >
-                  Pending ({stats.pending})
-                </button>
-                <button 
-                  className={`tab-pill ${activeTab === "rescheduled" ? "active" : ""}`}
-                  onClick={() => setActiveTab("rescheduled")}
-                >
-                  Rescheduled ({stats.rescheduled})
-                </button>
-                <button 
-                  className={`tab-pill ${activeTab === "completed" ? "active" : ""}`}
-                  onClick={() => setActiveTab("completed")}
-                >
-                  Completed ({stats.completed})
-                </button>
-                <button 
-                  className={`tab-pill ${activeTab === "walkins" ? "active" : ""}`}
-                  onClick={() => setActiveTab("walkins")}
-                >
-                  Walk-ins ({stats.walkins})
-                </button>
-                <button 
-                  className={`tab-pill ${activeTab === "bydate" ? "active" : ""}`}
-                  onClick={() => setActiveTab("bydate")}
-                >
-                  <FaSearch style={{ marginRight: "4px" }} /> By Date
-                </button>
-              </div>
-            </div>
-            
-            {/* Date picker section for "By Date" tab */}
-            {activeTab === "bydate" && (
-              <div className="date-picker-section">
-                <div className="date-picker-controls">
-                  <div className="date-input-group">
-                    <label>Select Date:</label>
-                    <input
-                      type="date"
-                      value={selectedDate}
-                      onChange={(e) => setSelectedDate(e.target.value)}
-                      className="date-input"
-                    />
-                    <button 
-                      className="search-btn"
-                      onClick={fetchAppointmentsByDate}
-                      disabled={dateLoading}
-                    >
-                      {dateLoading ? "Loading..." : <><FaSearch /> Search</>}
-                    </button>
+              {/* Stats Cards */}
+              <section className="stats-grid">
+                <div onClick={() => setActiveTab("today")} className={`stat-card today ${activeTab === "today" ? "active" : ""}`}>
+                  <div className="stat-icon">
+                    <FaCalendarDay />
                   </div>
-                  
-                  {dateAppointments.length > 0 && (
-                    <div className="download-buttons">
-                      <button className="download-btn pdf-btn" onClick={downloadPDF}>
-                        <FaFilePdf /> Download PDF
+                  <div className="stat-info">
+                    <span className="stat-number">{stats.today}</span>
+                    <span className="stat-label">Today's Appointments</span>
+                  </div>
+                  <FaArrowRight className="stat-arrow" />
+                </div>
+
+                <div onClick={() => setActiveTab("pending")} className={`stat-card pending ${activeTab === "pending" ? "active" : ""}`}>
+                  <div className="stat-icon">
+                    <FaClock />
+                  </div>
+                  <div className="stat-info">
+                    <span className="stat-number">{displayedStats.pending}</span>
+                    <span className="stat-label">Pending Requests</span>
+                  </div>
+                  <FaArrowRight className="stat-arrow" />
+                </div>
+
+                <div onClick={() => setActiveTab("rescheduled")} className={`stat-card rescheduled ${activeTab === "rescheduled" ? "active" : ""}`}>
+                  <div className="stat-icon">
+                    <FaRedo />
+                  </div>
+                  <div className="stat-info">
+                    <span className="stat-number">{displayedStats.rescheduled}</span>
+                    <span className="stat-label">Today's Rescheduled</span>
+                  </div>
+                  <FaArrowRight className="stat-arrow" />
+                </div>
+
+                <div onClick={() => setActiveTab("walkins")} className={`stat-card walkins ${activeTab === "walkins" ? "active" : ""}`}>
+                  <div className="stat-icon">
+                    <FaWalking />
+                  </div>
+                  <div className="stat-info">
+                    <span className="stat-number">{displayedStats.walkins}</span>
+                    <span className="stat-label">Today's Walk-ins</span>
+                  </div>
+                  <FaArrowRight className="stat-arrow" />
+                </div>
+
+                <div onClick={() => setActiveTab("completed")} className={`stat-card completed ${activeTab === "completed" ? "active" : ""}`}>
+                  <div className="stat-icon">
+                    <FaCheckCircle />
+                  </div>
+                  <div className="stat-info">
+                    <span className="stat-number">{displayedStats.completed}</span>
+                    <span className="stat-label">Today's Completed</span>
+                  </div>
+                  <FaArrowRight className="stat-arrow" />
+                </div>
+              </section>
+
+              {/* Main Content Grid */}
+              <div className="dashboard-grid">
+                {/* Appointments Section with Tabs */}
+                <section className="upcoming-section">
+                  <div className="section-header">
+                    <h2>
+                      {activeTab === "today" && "📅 Today's Appointments"}
+                      {activeTab === "pending" && "⏳ Pending Appointments"}
+                      {activeTab === "rescheduled" && "🔄 Rescheduled Appointments"}
+                      {activeTab === "completed" && "✅ Completed Appointments"}
+                      {activeTab === "walkins" && "🚶 Walk-in Appointments"}
+                      {activeTab === "bydate" && "📊 Appointments by Date"}
+                    </h2>
+                    <div className="tab-pills">
+                      <button
+                        className={`tab-pill ${activeTab === "today" ? "active" : ""}`}
+                        onClick={() => setActiveTab("today")}
+                      >
+                        Today ({stats.today})
                       </button>
-                      <button className="download-btn excel-btn" onClick={downloadExcel}>
-                        <FaFileExcel /> Download Excel
+                      <button
+                        className={`tab-pill ${activeTab === "pending" ? "active" : ""}`}
+                        onClick={() => setActiveTab("pending")}
+                      >
+                        Pending ({stats.pending})
                       </button>
+                      <button
+                        className={`tab-pill ${activeTab === "rescheduled" ? "active" : ""}`}
+                        onClick={() => setActiveTab("rescheduled")}
+                      >
+                        Rescheduled ({stats.rescheduled})
+                      </button>
+                      <button
+                        className={`tab-pill ${activeTab === "completed" ? "active" : ""}`}
+                        onClick={() => setActiveTab("completed")}
+                      >
+                        Completed ({stats.completed})
+                      </button>
+                      <button
+                        className={`tab-pill ${activeTab === "walkins" ? "active" : ""}`}
+                        onClick={() => setActiveTab("walkins")}
+                      >
+                        Walk-ins ({stats.walkins})
+                      </button>
+                      <button
+                        className={`tab-pill ${activeTab === "bydate" ? "active" : ""}`}
+                        onClick={() => setActiveTab("bydate")}
+                      >
+                        <FaSearch style={{ marginRight: "4px" }} /> By Date
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Date picker section for "By Date" tab */}
+                  {activeTab === "bydate" && (
+                    <div className="date-picker-section">
+                      <div className="date-picker-controls">
+                        <div className="date-input-group">
+                          <label>Select Date:</label>
+                          <input
+                            type="date"
+                            value={selectedDate}
+                            onChange={(e) => setSelectedDate(e.target.value)}
+                            className="date-input"
+                          />
+                          <button
+                            className="search-btn"
+                            onClick={fetchAppointmentsByDate}
+                            disabled={dateLoading}
+                          >
+                            {dateLoading ? "Loading..." : <><FaSearch /> Search</>}
+                          </button>
+                        </div>
+
+                        {dateAppointments.length > 0 && (
+                          <div className="download-buttons">
+                            <button className="download-btn pdf-btn" onClick={downloadPDF}>
+                              <FaFilePdf /> Download PDF
+                            </button>
+                            <button className="download-btn excel-btn" onClick={downloadExcel}>
+                              <FaFileExcel /> Download Excel
+                            </button>
+                          </div>
+                        )}
+                      </div>
+
+                      {dateAppointments.length > 0 && (
+                        <div className="date-stats-bar">
+                          <span className="date-stat">Total: <strong>{dateStats.total || 0}</strong></span>
+                          <span className="date-stat pending">Pending: <strong>{dateStats.pending || 0}</strong></span>
+                          <span className="date-stat approved">Approved: <strong>{dateStats.approved || 0}</strong></span>
+                          <span className="date-stat completed">Completed: <strong>{dateStats.completed || 0}</strong></span>
+                          <span className="date-stat rejected">Rejected: <strong>{dateStats.rejected || 0}</strong></span>
+                        </div>
+                      )}
                     </div>
                   )}
-                </div>
-                
-                {dateAppointments.length > 0 && (
-                  <div className="date-stats-bar">
-                    <span className="date-stat">Total: <strong>{dateStats.total || 0}</strong></span>
-                    <span className="date-stat pending">Pending: <strong>{dateStats.pending || 0}</strong></span>
-                    <span className="date-stat approved">Approved: <strong>{dateStats.approved || 0}</strong></span>
-                    <span className="date-stat completed">Completed: <strong>{dateStats.completed || 0}</strong></span>
-                    <span className="date-stat rejected">Rejected: <strong>{dateStats.rejected || 0}</strong></span>
+
+                  {/* Render appointments based on active tab */}
+                  {renderAppointmentsTable()}
+                </section>
+
+                {/* Recent Activity Panel */}
+                <aside className="activity-section">
+                  <div className="section-header">
+                    <h2>🔔 Recent Activity</h2>
                   </div>
-                )}
+
+                  {recentActivity.length > 0 ? (
+                    <ul className="activity-list">
+                      {recentActivity.map((item, index) => (
+                        <li key={item.appointment_id || index} className={`activity-item ${getStatusClass(item.status)}`}>
+                          <div className="activity-dot"></div>
+                          <div className="activity-content">
+                            <p className="activity-message">{getActivityMessage(item)}</p>
+                            <span className="activity-time">
+                              {formatDate(item.appointment_date)} at {formatTime(item.slot_time)}
+                            </span>
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <div className="empty-state">
+                      <p>No recent activity.</p>
+                    </div>
+                  )}
+
+                  <Link to="/officer/notifications2" className="view-all-btn">
+                    View All Notifications
+                  </Link>
+                </aside>
+              </div>
+            </div>
+
+            {/* Reschedule Modal */}
+            {showRescheduleModal && (
+              <div className="modal-overlay">
+                <div className="modal-content">
+                  <div className="modal-header">
+                    <h3>📅 Reschedule Appointment</h3>
+                    <button
+                      className="modal-close"
+                      onClick={() => setShowRescheduleModal(false)}
+                    >
+                      ×
+                    </button>
+                  </div>
+                  <div className="modal-body">
+                    <div className="form-group">
+                      <label>New Date *</label>
+                      <input
+                        type="date"
+                        value={rescheduleData.new_date}
+                        min={new Date().toISOString().split('T')[0]}
+                        onChange={(e) => setRescheduleData(prev => ({ ...prev, new_date: e.target.value }))}
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label>New Time *</label>
+                      <input
+                        type="time"
+                        value={rescheduleData.new_time}
+                        onChange={(e) => setRescheduleData(prev => ({ ...prev, new_time: e.target.value }))}
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label>Reason (Optional)</label>
+                      <textarea
+                        value={rescheduleData.reason}
+                        onChange={(e) => setRescheduleData(prev => ({ ...prev, reason: e.target.value }))}
+                        placeholder="Enter reason for rescheduling..."
+                        rows={3}
+                      />
+                    </div>
+                  </div>
+                  <div className="modal-footer">
+                    <button
+                      className="btn-secondary"
+                      onClick={() => setShowRescheduleModal(false)}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      className="btn-primary"
+                      onClick={handleReschedule}
+                      disabled={actionLoading}
+                    >
+                      {actionLoading ? "Saving..." : "Reschedule"}
+                    </button>
+                  </div>
+                </div>
               </div>
             )}
-            
-            {/* Render appointments based on active tab */}
-            {renderAppointmentsTable()}
-          </section>
 
-          {/* Recent Activity Panel */}
-          <aside className="activity-section">
-            <div className="section-header">
-              <h2>🔔 Recent Activity</h2>
-            </div>
-            
-            {recentActivity.length > 0 ? (
-              <ul className="activity-list">
-                {recentActivity.map((item, index) => (
-                  <li key={item.appointment_id || index} className={`activity-item ${getStatusClass(item.status)}`}>
-                    <div className="activity-dot"></div>
-                    <div className="activity-content">
-                      <p className="activity-message">{getActivityMessage(item)}</p>
-                      <span className="activity-time">
-                        {formatDate(item.appointment_date)} at {formatTime(item.slot_time)}
+            {/* View Appointment Modal */}
+            {showViewModal && selectedAppointment && (
+              <div className="modal-overlay">
+                <div className="modal-content view-modal">
+                  <div className="modal-header">
+                    <h3>📋 Appointment Details</h3>
+                    <button
+                      className="modal-close"
+                      onClick={() => setShowViewModal(false)}
+                    >
+                      ×
+                    </button>
+                  </div>
+                  <div className="modal-body">
+                    {/* Status Badge */}
+                    <div className="view-status-section">
+                      <span className={`status-badge large ${getStatusClass(selectedAppointment.status)}`}>
+                        {selectedAppointment.status}
                       </span>
                     </div>
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <div className="empty-state">
-                <p>No recent activity.</p>
+
+                    {/* Visitor Information */}
+                    <div className="view-section">
+                      <h4><FaUser /> Visitor Information</h4>
+                      <div className="view-details-grid">
+                        <div className="view-detail">
+                          <span className="label">Name</span>
+                          <span className="value">{selectedAppointment.visitor_name || "N/A"}</span>
+                        </div>
+                        <div className="view-detail">
+                          <span className="label"><FaPhone /> Mobile</span>
+                          <span className="value">{selectedAppointment.visitor_mobile || "N/A"}</span>
+                        </div>
+                        <div className="view-detail">
+                          <span className="label"><FaEnvelope /> Email</span>
+                          <span className="value">{selectedAppointment.visitor_email || "N/A"}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Appointment Information */}
+                    <div className="view-section">
+                      <h4><FaCalendarAlt /> Appointment Information</h4>
+                      <div className="view-details-grid">
+                        <div className="view-detail">
+                          <span className="label">Appointment ID</span>
+                          <span className="value">{selectedAppointment.appointment_id}</span>
+                        </div>
+                        <div className="view-detail">
+                          <span className="label">Date</span>
+                          <span className="value">{formatDate(selectedAppointment.appointment_date)}</span>
+                        </div>
+                        <div className="view-detail">
+                          <span className="label">Time</span>
+                          <span className="value">{formatTime(selectedAppointment.slot_time)}</span>
+                        </div>
+                        <div className="view-detail">
+                          <span className="label">Department</span>
+                          <span className="value">{selectedAppointment.department_id || selectedAppointment.department_name}</span>
+                        </div>
+                        <div className="view-detail">
+                          <span className="label">Service</span>
+                          <span className="value">{selectedAppointment.service_id || selectedAppointment.service_name}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Purpose */}
+                    <div className="view-section">
+                      <h4><FaClipboardList /> Purpose of Visit</h4>
+                      <div className="view-purpose">
+                        {selectedAppointment.purpose || "No purpose specified"}
+                      </div>
+                    </div>
+
+                    {/* Reschedule Reason if any */}
+                    {selectedAppointment.reschedule_reason && (
+                      <div className="view-section">
+                        <h4>📝 Notes / Reason</h4>
+                        <div className="view-purpose">
+                          {selectedAppointment.reschedule_reason}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Action Buttons in Modal */}
+                  <div className="modal-footer view-modal-footer">
+                    <button
+                      className="btn-secondary"
+                      onClick={() => setShowViewModal(false)}
+                    >
+                      Close
+                    </button>
+
+                    {(selectedAppointment.status?.toLowerCase() === "pending" ||
+                      selectedAppointment.status?.toLowerCase() === "rescheduled") && (
+                      <>
+                        <button
+                          className="btn-success"
+                          onClick={() => handleUpdateStatus(selectedAppointment.appointment_id, "approved")}
+                          disabled={actionLoading}
+                        >
+                          <FaCheck /> Approve
+                        </button>
+                        <button
+                          className="btn-warning"
+                          onClick={() => {
+                            setShowViewModal(false);
+                            openRescheduleModal(selectedAppointment.appointment_id);
+                          }}
+                          disabled={actionLoading}
+                        >
+                          <FaCalendarAlt /> Reschedule
+                        </button>
+                        <button
+                          className="btn-danger"
+                          onClick={() => {
+                            setShowViewModal(false);
+                            openRejectModal(selectedAppointment.appointment_id);
+                          }}
+                          disabled={actionLoading}
+                        >
+                          <FaTimes /> Reject
+                        </button>
+                      </>
+                    )}
+
+                    {selectedAppointment.status?.toLowerCase() === "approved" && (
+                      <button
+                        className="btn-success"
+                        onClick={() => {
+                          setShowViewModal(false);
+                          setVisitData({ appointment_id: selectedAppointment.appointment_id, visited: "yes" });
+                          setShowVisitModal(true);
+                        }}
+                        disabled={actionLoading}
+                      >
+                        <FaCheckCircle /> Mark Complete
+                      </button>
+                    )}
+                  </div>
+                </div>
               </div>
             )}
 
-            <Link to="/officer/notifications2" className="view-all-btn">
-              View All Notifications
-            </Link>
-          </aside>
+            {/* Reject Modal with Reason */}
+            {showRejectModal && (
+              <div className="modal-overlay">
+                <div className="modal-content">
+                  <div className="modal-header reject-header">
+                    <h3>❌ Reject Appointment</h3>
+                    <button
+                      className="modal-close"
+                      onClick={() => setShowRejectModal(false)}
+                    >
+                      ×
+                    </button>
+                  </div>
+                  <div className="modal-body">
+                    <p className="reject-warning">
+                      Please provide a reason for rejecting this appointment. This will be communicated to the visitor.
+                    </p>
+                    <div className="form-group">
+                      <label>Reason for Rejection *</label>
+                      <textarea
+                        value={rejectData.reason}
+                        onChange={(e) => setRejectData(prev => ({ ...prev, reason: e.target.value }))}
+                        placeholder="Enter the reason for rejection..."
+                        rows={4}
+                        required
+                      />
+                    </div>
+                  </div>
+                  <div className="modal-footer">
+                    <button
+                      className="btn-secondary"
+                      onClick={() => setShowRejectModal(false)}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      className="btn-danger"
+                      onClick={handleReject}
+                      disabled={actionLoading || !rejectData.reason.trim()}
+                    >
+                      {actionLoading ? "Rejecting..." : "Confirm Rejection"}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Visit Confirmation Modal */}
+            {showVisitModal && (
+              <div className="modal-overlay">
+                <div className="modal-content">
+                  <div className="modal-header">
+                    <h3>Did the visitor come for this appointment?</h3>
+                    <button className="modal-close" onClick={() => setShowVisitModal(false)}>×</button>
+                  </div>
+                  <div className="modal-body">
+                    <div style={{ marginBottom: 12 }}>
+                      <label style={{ fontWeight: 600, display: "block", marginBottom: 8 }}>Visitor visited?</label>
+                      <div className="radio-group">
+                        <label className="radio-item">
+                          <input
+                            type="radio"
+                            name="visited"
+                            value="yes"
+                            checked={visitData.visited === "yes"}
+                            onChange={() => setVisitData(prev => ({ ...prev, visited: "yes" }))}
+                          /> Yes
+                        </label>
+                        <label className="radio-item">
+                          <input
+                            type="radio"
+                            name="visited"
+                            value="no"
+                            checked={visitData.visited === "no"}
+                            onChange={() => setVisitData(prev => ({ ...prev, visited: "no" }))}
+                          /> No
+                        </label>
+                      </div>
+                      <p style={{ marginTop: 12, color: "#6b7280", fontSize: 13 }}>
+                        This information will be visible to the visitor on their side.
+                      </p>
+                    </div>
+                  </div>
+                  <div className="modal-footer">
+                    <button className="btn-secondary" onClick={() => setShowVisitModal(false)}>Cancel</button>
+                    <button className="btn-primary" onClick={handleConfirmVisit} disabled={actionLoading}>
+                      {actionLoading ? "Saving..." : "Confirm"}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+          </div>
+          <Footer />
         </div>
       </div>
-
-      {/* Reschedule Modal */}
-      {showRescheduleModal && (
-        <div className="modal-overlay">
-          <div className="modal-content">
-            <div className="modal-header">
-              <h3>📅 Reschedule Appointment</h3>
-              <button 
-                className="modal-close" 
-                onClick={() => setShowRescheduleModal(false)}
-              >
-                ×
-              </button>
-            </div>
-            <div className="modal-body">
-              <div className="form-group">
-                <label>New Date *</label>
-                <input
-                  type="date"
-                  value={rescheduleData.new_date}
-                  min={new Date().toISOString().split('T')[0]}
-                  onChange={(e) => setRescheduleData(prev => ({ ...prev, new_date: e.target.value }))}
-                />
-              </div>
-              <div className="form-group">
-                <label>New Time *</label>
-                <input
-                  type="time"
-                  value={rescheduleData.new_time}
-                  onChange={(e) => setRescheduleData(prev => ({ ...prev, new_time: e.target.value }))}
-                />
-              </div>
-              <div className="form-group">
-                <label>Reason (Optional)</label>
-                <textarea
-                  value={rescheduleData.purpose}
-                  onChange={(e) => setRescheduleData(prev => ({ ...prev, reason: e.target.value }))}
-                  placeholder="Enter reason for rescheduling..."
-                  rows={3}
-                />
-              </div>
-            </div>
-            <div className="modal-footer">
-              <button 
-                className="btn-secondary" 
-                onClick={() => setShowRescheduleModal(false)}
-              >
-                Cancel
-              </button>
-              <button 
-                className="btn-primary" 
-                onClick={handleReschedule}
-                disabled={actionLoading}
-              >
-                {actionLoading ? "Saving..." : "Reschedule"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* View Appointment Modal */}
-      {showViewModal && selectedAppointment && (
-        <div className="modal-overlay">
-          <div className="modal-content view-modal">
-            <div className="modal-header">
-              <h3>📋 Appointment Details</h3>
-              <button 
-                className="modal-close" 
-                onClick={() => setShowViewModal(false)}
-              >
-                ×
-              </button>
-            </div>
-            <div className="modal-body">
-              {/* Status Badge */}
-              <div className="view-status-section">
-                <span className={`status-badge large ${getStatusClass(selectedAppointment.status)}`}>
-                  {selectedAppointment.status}
-                </span>
-              </div>
-
-              {/* Visitor Information */}
-              <div className="view-section">
-                <h4><FaUser /> Visitor Information</h4>
-                <div className="view-details-grid">
-                  <div className="view-detail">
-                    <span className="label">Name</span>
-                    <span className="value">{selectedAppointment.visitor_name || "N/A"}</span>
-                  </div>
-                  <div className="view-detail">
-                    <span className="label"><FaPhone /> Mobile</span>
-                    <span className="value">{selectedAppointment.visitor_mobile || "N/A"}</span>
-                  </div>
-                  <div className="view-detail">
-                    <span className="label"><FaEnvelope /> Email</span>
-                    <span className="value">{selectedAppointment.visitor_email || "N/A"}</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Appointment Information */}
-              <div className="view-section">
-                <h4><FaCalendarAlt /> Appointment Information</h4>
-                <div className="view-details-grid">
-                  <div className="view-detail">
-                    <span className="label">Appointment ID</span>
-                    <span className="value">{selectedAppointment.appointment_id}</span>
-                  </div>
-                  <div className="view-detail">
-                    <span className="label">Date</span>
-                    <span className="value">{formatDate(selectedAppointment.appointment_date)}</span>
-                  </div>
-                  <div className="view-detail">
-                    <span className="label">Time</span>
-                    <span className="value">{formatTime(selectedAppointment.slot_time)}</span>
-                  </div>
-                  <div className="view-detail">
-                    <span className="label">Department</span>
-                    <span className="value">{selectedAppointment.department_id || selectedAppointment.department_name}</span>
-                  </div>
-                  <div className="view-detail">
-                    <span className="label">Service</span>
-                    <span className="value">{selectedAppointment.service_id || selectedAppointment.service_name}</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Purpose */}
-              <div className="view-section">
-                <h4><FaClipboardList /> Purpose of Visit</h4>
-                <div className="view-purpose">
-                  {selectedAppointment.purpose || "No purpose specified"}
-                </div>
-              </div>
-
-              {/* Reschedule Reason if any */}
-              {selectedAppointment.reschedule_reason && (
-                <div className="view-section">
-                  <h4>📝 Notes / Reason</h4>
-                  <div className="view-purpose">
-                    {selectedAppointment.reschedule_reason}
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Action Buttons in Modal */}
-            <div className="modal-footer view-modal-footer">
-              <button 
-                className="btn-secondary" 
-                onClick={() => setShowViewModal(false)}
-              >
-                Close
-              </button>
-              
-              {/* Show action buttons based on status */}
-              {(selectedAppointment.status?.toLowerCase() === "pending" || 
-                selectedAppointment.status?.toLowerCase() === "rescheduled") && (
-                <>
-                  <button 
-                    className="btn-success"
-                    onClick={() => handleUpdateStatus(selectedAppointment.appointment_id, "approved")}
-                    disabled={actionLoading}
-                  >
-                    <FaCheck /> Approve
-                  </button>
-                  <button 
-                    className="btn-warning"
-                    onClick={() => {
-                      setShowViewModal(false);
-                      openRescheduleModal(selectedAppointment.appointment_id);
-                    }}
-                    disabled={actionLoading}
-                  >
-                    <FaCalendarAlt /> Reschedule
-                  </button>
-                  <button 
-                    className="btn-danger"
-                    onClick={() => {
-                      setShowViewModal(false);
-                      openRejectModal(selectedAppointment.appointment_id);
-                    }}
-                    disabled={actionLoading}
-                  >
-                    <FaTimes /> Reject
-                  </button>
-                </>
-              )}
-              
-              {selectedAppointment.status?.toLowerCase() === "approved" && (
-                <button 
-                  className="btn-success"
-                  onClick={() => handleUpdateStatus(selectedAppointment.appointment_id, "completed")}
-                  disabled={actionLoading}
-                >
-                  <FaCheckCircle /> Mark Complete
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Reject Modal with Reason */}
-      {showRejectModal && (
-        <div className="modal-overlay">
-          <div className="modal-content">
-            <div className="modal-header reject-header">
-              <h3>❌ Reject Appointment</h3>
-              <button 
-                className="modal-close" 
-                onClick={() => setShowRejectModal(false)}
-              >
-                ×
-              </button>
-            </div>
-            <div className="modal-body">
-              <p className="reject-warning">
-                Please provide a reason for rejecting this appointment. This will be communicated to the visitor.
-              </p>
-              <div className="form-group">
-                <label>Reason for Rejection *</label>
-                <textarea
-                  value={rejectData.reason}
-                  onChange={(e) => setRejectData(prev => ({ ...prev, reason: e.target.value }))}
-                  placeholder="Enter the reason for rejection..."
-                  rows={4}
-                  required
-                />
-              </div>
-            </div>
-            <div className="modal-footer">
-              <button 
-                className="btn-secondary" 
-                onClick={() => setShowRejectModal(false)}
-              >
-                Cancel
-              </button>
-              <button 
-                className="btn-danger" 
-                onClick={handleReject}
-                disabled={actionLoading || !rejectData.reason.trim()}
-              >
-                {actionLoading ? "Rejecting..." : "Confirm Rejection"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-      </div>
-      <Footer />
-      </div>
-    </div>
     </div>
   );
-
 }
 export default OfficerDashboard;

@@ -159,7 +159,9 @@ console.log(form.officer_id,"officerId")
 
 useEffect(() => {
   if (!form.state_code) return;
+
   setOfficersLoading(true);
+
   getOfficersByLocation({
     state_code: form.state_code,
     division_code: form.division_code || null,
@@ -168,9 +170,25 @@ useEffect(() => {
     organization_id: form.org_id || null,
     department_id: form.dept_id || null
   })
-  .then(res => setOfficers(res.data?.data || []))
-  .finally(() => setOfficersLoading(false));
-}, [form.state_code, form.division_code, form.district_code, form.taluka_code, form.org_id, form.dept_id]);
+    .then(res => {
+      const allOfficers = res.data?.data || [];
+
+      // ❌ Exclude Helpdesk officers
+      const filteredOfficers = allOfficers.filter(
+        o => o.officer_type !== "HELPDESK"
+      );
+
+      setOfficers(filteredOfficers);
+    })
+    .finally(() => setOfficersLoading(false));
+}, [
+  form.state_code,
+  form.division_code,
+  form.district_code,
+  form.taluka_code,
+  form.org_id,
+  form.dept_id
+]);
 
 
 

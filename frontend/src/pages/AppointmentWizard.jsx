@@ -296,10 +296,17 @@ useEffect(() => {
       taluka
     } = formData;
 
-    if (!appointment_date || !org_id || !service_id || !state) {
-      setAvailableSlots([]);
-      return;
-    }
+    if (
+  !appointment_date ||
+  !org_id ||
+  !service_id ||
+  !state ||
+  !officer_id ||
+  isHelpdeskOfficer
+) {
+  setAvailableSlots([]);
+  return;
+}
 
     try {
       setLoadingSlots(true);
@@ -553,6 +560,32 @@ useEffect(() => {
   formData.taluka
 ]);
 
+const isHelpdeskOfficer = useMemo(() => {
+  const officer = officers.find(
+    o => o.officer_id === formData.officer_id
+  );
+  return officer?.officer_type === "HELPDESK";
+}, [officers, formData.officer_id]);
+
+
+
+useEffect(() => {
+  if (isHelpdeskOfficer) {
+    setFormData(prev => ({
+      ...prev,
+      slot_time: "12:00",        // ✅ dummy slot
+      slot_end_time: "17:00"
+    }));
+  } else {
+    setFormData(prev => ({
+      ...prev,
+      slot_time: "",
+      slot_end_time: ""
+    }));
+  }
+}, [isHelpdeskOfficer]);
+
+
 const handleChange = (e) => {
   const { name, value } = e.target;
 //  setIsManualDateEntry(false); // picker selection
@@ -722,7 +755,6 @@ useEffect(() => {
   formData.dept_id
 ]);
 
-
   // 
   // Find selected names based on IDs
 const selectedOrganization = organization.find(o => o.organization_id === formData.org_id);
@@ -733,30 +765,6 @@ const selectedOfficer = officers.find(o => o.officer_id === formData.officer_id)
 
 const today = new Date().toISOString().split("T")[0];
 
-
-// filter for date or time:
-// // const getAvailableSlots = () => {
-//   if (!formData.appointment_date) return slots;
-
-//   const selectedDate = new Date(formData.appointment_date);
-//   const today = new Date();
-
-//   const isToday =
-//     selectedDate.getFullYear() === today.getFullYear() &&
-//     selectedDate.getMonth() === today.getMonth() &&
-//     selectedDate.getDate() === today.getDate();
-
-//   if (!isToday) return slots;
-
-//   const currentMinutes = today.getHours() * 60 + today.getMinutes();
-
-//   return slots.filter((slot) => {
-//     const [hh, mm] = slot.split(":").map(Number);
-//     const slotMinutes = hh * 60 + mm;
-//     return slotMinutes > currentMinutes;
-//   });
-// };
-
 const isStep1Valid = useMemo(() => {
   if (!formData.state || !formData.division) return false;
   if (!formData.org_id) return false;
@@ -766,16 +774,22 @@ const isStep1Valid = useMemo(() => {
 }, [formData, mode]);
 
 const isStep2Valid = useMemo(() => {
+  if (isHelpdeskOfficer) {
+    return !!formData.officer_id && !!formData.appointment_date;
+  }
+
   return (
     !!formData.officer_id &&
     !!formData.appointment_date &&
     !!formData.slot_time
   );
-}, [formData]);
+}, [formData, isHelpdeskOfficer]);
 
 const isStep3Valid = useMemo(() => {
   return !!formData.purpose;
 }, [formData]);
+
+
 
 const handleStepClick = (targetStep) => {
   // Step 1 is always accessible
@@ -1047,49 +1061,48 @@ const getError = (condition, message) => {
 
       {getError(formData.appointment_date, "Date is required")}
     </div>
-<div className="step2-field">
-  <label>
-    Time Slot <span className="required">*</span>
-  </label>
+{!isHelpdeskOfficer && (
+  <div className="step2-field">
+    <label>
+      Time Slot <span className="required">*</span>
+    </label>
 
-  <select
-  name="slot_time"
-  value={formData.slot_time}
-  onChange={(e) => {
-    const selected = availableSlots.find(
-      s => s.slot_time === e.target.value
-    );
+    <select
+      name="slot_time"
+      value={formData.slot_time}
+      onChange={(e) => {
+        const selected = availableSlots.find(
+          s => s.slot_time === e.target.value
+        );
 
-    setFormData(prev => ({
-      ...prev,
-      slot_time: selected.slot_time,
-      slot_end_time: selected.slot_end_time
-    }));
-  }}
->
-  <option value="">
-      {loadingSlots
-        ? "Loading slots..."
-        : availableSlots.length === 0
-        ? "No slots available"
-        : "Select Slot"}
-    </option>
+        setFormData(prev => ({
+          ...prev,
+          slot_time: selected.slot_time,
+          slot_end_time: selected.slot_end_time
+        }));
+      }}
+    >
+      <option value="">
+        {loadingSlots
+          ? "Loading slots..."
+          : availableSlots.length === 0
+          ? "No slots available"
+          : "Select Slot"}
+      </option>
 
-    {filterSlotsByCurrentTime(
-  availableSlots.filter(slot => slot.is_available),
-  formData.appointment_date
-).map(slot => (
-        <option
-          key={slot.slot_time}
-          value={slot.slot_time}          // ✅ backend expects slot_time
-        >
+      {filterSlotsByCurrentTime(
+        availableSlots.filter(slot => slot.is_available),
+        formData.appointment_date
+      ).map(slot => (
+        <option key={slot.slot_time} value={slot.slot_time}>
           {formatTimeAMPM(slot.slot_time)} - {formatTimeAMPM(slot.slot_end_time)}
         </option>
       ))}
-  </select>
+    </select>
 
-  {getError(formData.slot_time, "Time is required")}
-</div>
+    {getError(formData.slot_time, "Time is required")}
+  </div>
+)}
 
 
   </div>

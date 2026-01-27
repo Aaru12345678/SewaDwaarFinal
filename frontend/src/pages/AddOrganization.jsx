@@ -43,11 +43,11 @@ export default function AddOrganization() {
 
   // ========= Errors =========
   const [errors, setErrors] = useState({
-    organization_name: "",
-    pincode: "",
-    // Dynamic errors for dept/service names
-    departments: [],
-  });
+  organization_name: "",
+  organization_name_ll: "",   // ✅ add this
+  pincode: "",
+  departments: [],
+});
 
   // ========= Utils =========
   const renderOptions = (list, valueKey, labelKey) =>
@@ -76,6 +76,24 @@ export default function AddOrganization() {
         setErrors((er) => ({ ...er, organization_name: "" }));
       }
     }
+
+    // Organization Name (Local Language) → Marathi only
+if (name === "organization_name_ll") {
+  const marathiRegex = /^[\u0900-\u097F\s]*$/;
+
+  if (!marathiRegex.test(value)) {
+    setErrors((er) => ({
+      ...er,
+      organization_name_ll: "Only Marathi (देवनागरी) characters are allowed",
+    }));
+  } else {
+    setErrors((er) => ({
+      ...er,
+      organization_name_ll: "",
+    }));
+  }
+}
+
 
     // Pincode → numeric, max 6 digits
     if (name === "pincode") {
@@ -108,6 +126,7 @@ const handleLogout = () => {
 
   navigate("/login");
 };
+
 
 
   // ========= Load States =========
@@ -189,22 +208,49 @@ const handleLogout = () => {
   };
 
   const handleDeptChange = (i, field, val) => {
-    const d = [...departments];
-    d[i][field] = val;
-    setDepartments(d);
+  const d = [...departments];
+  d[i][field] = val;
+  setDepartments(d);
 
-    // Dept name validation
-    if (field === "dept_name") {
-      const regex = /^[A-Za-z ]*$/;
-      const newDeptErrors = [...errors.departments];
-      if (!regex.test(val)) {
-        newDeptErrors[i] = { ...newDeptErrors[i], dept_name: "Only alphabets and spaces are allowed" };
-      } else {
-        newDeptErrors[i] = { ...newDeptErrors[i], dept_name: "" };
-      }
-      setErrors((er) => ({ ...er, departments: newDeptErrors }));
+  const newDeptErrors = [...errors.departments];
+
+  // English dept name validation
+  if (field === "dept_name") {
+    const regex = /^[A-Za-z ]*$/;
+
+    if (!regex.test(val)) {
+      newDeptErrors[i] = {
+        ...newDeptErrors[i],
+        dept_name: "Only alphabets and spaces are allowed",
+      };
+    } else {
+      newDeptErrors[i] = {
+        ...newDeptErrors[i],
+        dept_name: "",
+      };
     }
-  };
+  }
+
+  // Marathi dept name validation
+  if (field === "dept_name_ll") {
+    const marathiRegex = /^[\u0900-\u097F\s]*$/;
+
+    if (!marathiRegex.test(val)) {
+      newDeptErrors[i] = {
+        ...newDeptErrors[i],
+        dept_name_ll: "Only Marathi (देवनागरी) characters are allowed",
+      };
+    } else {
+      newDeptErrors[i] = {
+        ...newDeptErrors[i],
+        dept_name_ll: "",
+      };
+    }
+  }
+
+  setErrors((er) => ({ ...er, departments: newDeptErrors }));
+};
+
 
   const removeDepartment = (i) => {
     const d = [...departments];
@@ -234,24 +280,51 @@ const handleLogout = () => {
   };
 
   const handleServiceChange = (di, si, field, val) => {
-    const d = [...departments];
-    d[di].services[si][field] = val;
-    setDepartments(d);
+  const d = [...departments];
+  d[di].services[si][field] = val;
+  setDepartments(d);
 
-    // Service name validation
-    if (field === "name") {
-      const regex = /^[A-Za-z ]*$/;
-      const depErrors = [...errors.departments];
-      if (!depErrors[di]) depErrors[di] = { dept_name: "", services: [] };
-      if (!depErrors[di].services) depErrors[di].services = [];
-      if (!regex.test(val)) {
-        depErrors[di].services[si] = { name: "Only alphabets and spaces are allowed" };
-      } else {
-        depErrors[di].services[si] = { name: "" };
-      }
-      setErrors((er) => ({ ...er, departments: depErrors }));
+  const depErrors = [...errors.departments];
+  if (!depErrors[di]) depErrors[di] = { dept_name: "", services: [] };
+  if (!depErrors[di].services) depErrors[di].services = [];
+
+  // English service name validation
+  if (field === "name") {
+    const regex = /^[A-Za-z ]*$/;
+
+    if (!regex.test(val)) {
+      depErrors[di].services[si] = {
+        ...depErrors[di].services[si],
+        name: "Only alphabets and spaces are allowed",
+      };
+    } else {
+      depErrors[di].services[si] = {
+        ...depErrors[di].services[si],
+        name: "",
+      };
     }
-  };
+  }
+
+  // Marathi service name validation
+  if (field === "name_ll") {
+    const marathiRegex = /^[\u0900-\u097F\s]*$/;
+
+    if (!marathiRegex.test(val)) {
+      depErrors[di].services[si] = {
+        ...depErrors[di].services[si],
+        name_ll: "Only Marathi (देवनागरी) characters are allowed",
+      };
+    } else {
+      depErrors[di].services[si] = {
+        ...depErrors[di].services[si],
+        name_ll: "",
+      };
+    }
+  }
+
+  setErrors((er) => ({ ...er, departments: depErrors }));
+};
+
 
   const removeService = (di, si) => {
     const d = [...departments];
@@ -419,11 +492,15 @@ const handleLogout = () => {
           )}
 
           <label>Organization Name (Local Language)</label>
-          <input
-            name="organization_name_ll"
-            value={form.organization_name_ll}
-            onChange={handleChange}
-          />
+<input
+  name="organization_name_ll"
+  value={form.organization_name_ll}
+  onChange={handleChange}
+/>
+{errors.organization_name_ll && (
+  <div className="error-text">{errors.organization_name_ll}</div>
+)}
+
 
           <h3>Address Details</h3>
 
@@ -525,12 +602,18 @@ const handleLogout = () => {
                   )}
 
                   <label>Department Name (Local Language)</label>
+                  
                   <input
                     value={dept.dept_name_ll}
                     onChange={(e) =>
                       handleDeptChange(i, "dept_name_ll", e.target.value)
                     }
                   />
+                  {errors.departments?.[i]?.dept_name_ll && (
+                    <div className="error-text">
+                      {errors.departments[i].dept_name_ll}
+                    </div>
+                  )}
 
                   <h4>Services</h4>
 
@@ -576,6 +659,11 @@ const handleLogout = () => {
                               handleServiceChange(i, si, "name_ll", e.target.value)
                             }
                           />
+                          {errors.departments?.[i]?.services?.[si]?.name_ll && (
+                            <div className="error-text">
+                              {errors.departments[i].services[si].name_ll}
+                            </div>
+                          )}
                         </div>
                       )}
                     </div>

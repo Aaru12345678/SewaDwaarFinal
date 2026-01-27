@@ -1,6 +1,6 @@
 const express = require('express');
 const cors = require('cors');
-
+require("./schedule");
 const organizationRoutes = require("./routes/organizationRoutes");
 const locationRoutes = require('./routes/locationRoutes');
 const signupRoutes = require('./routes/signupRoutes');
@@ -73,6 +73,14 @@ app.use("/api/slot-config", slotConfigRoutes);
 
 const authRoutes = require("./routes/authRoutes");
 app.use("/api/auth", authRoutes);
+
+const holidayRoutes = require("./routes/holidayRoutes");
+app.use("/api", holidayRoutes);
+
+const profileRoutes      = require("./routes/profileRoute");
+// 👤 Profile (Unified /me)
+app.use("/api/profile", profileRoutes);
+
 
 
 const PORT = process.env.PORT || 5000;

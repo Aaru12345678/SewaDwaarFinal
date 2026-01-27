@@ -65,6 +65,10 @@ import OfficerAvailability from "./pages/OfficerAvailability";
 import SearchUserByMobile from './pages/SearchUserByMobile';
 import HelpdeskBooking from "./pages/HelpdeskBooking";
 import EditOfficer from "./pages/EditOfficer";
+import HolidayConfig from "./pages/HolidayConfig";
+import AdminProfile from "./pages/AdminProfile";
+import ProtectedRoute from "./Components/ProtectedRoute";
+
 function App() {
   const loggedIn = !!localStorage.getItem("token");
 
@@ -115,7 +119,9 @@ function App() {
 
       
         {/* Visitor Routes */}
-        <Route path="/dashboard1" element={<VisitorDashboard />} />
+       
+        <Route path="/dashboard1" element={<ProtectedRoute><VisitorDashboard /></ProtectedRoute>} />
+      
         <Route path="/appointment-wizard" element={<AppointmentWizard />} />
         <Route path="/appointment-wizard2" element={<AppointmentWizard2 />} />
         <Route path="/appointment-pass/:id" element={<AppointmentPass />} />
@@ -125,7 +131,7 @@ function App() {
         <Route path="/profile" element={<Profile />} />
         <Route path="/logout" element={<Logout />} />
         <Route path="/edit-profile" element ={<EditProfile/>}/>
-
+<Route path="/admin/slot-holidays" element={<HolidayConfig />} />
         {/* Admin Dashboard (nested) */}
         <Route path="/admin/*" element={<Dashboard1 />} />
     
@@ -152,6 +158,16 @@ function App() {
         <Route path="/officer/history" element={<History />} />
         <Route path="/officer/reports" element={<OfficerReport/>}/>
         <Route path="/officer/notifications2" element={<OfficerNotifications/>}/>
+        {/* ✅ Admin Profile Page */}
+<Route
+  path="/admin/profile"
+  element={
+    <PrivateRoute>
+      <AdminProfile />
+    </PrivateRoute>
+  }
+/>
+
         
         {/* Main Layout */}
         <Route path="/" element={<MainPage />}>

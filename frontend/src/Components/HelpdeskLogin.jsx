@@ -1,9 +1,10 @@
-import React, { useState,useRef,useMemo } from "react";
+import React, { useState,useRef,useMemo,useEffect} from "react";
 import { useNavigate,Link } from "react-router-dom";
 import { toast } from "react-toastify";
 import "../css/OfficersLogin.css"; // Reuse officer login styles
 import logo from "../assets/emblem2.png";
 import { AiOutlineEye, AiOutlineEyeInvisible } from "react-icons/ai";
+import Swal from "sweetalert2";
 
 const HelpdeskLogin = () => {
   const [formData, setFormData] = useState({
@@ -16,17 +17,83 @@ const HelpdeskLogin = () => {
   
   const navigate = useNavigate();
   const [progress, setProgress] = useState(false);
-
+const [captchaText, setCaptchaText] = useState("");
+  const [captchaInput, setCaptchaInput] = useState("");
+  const canvasRef = React.useRef(null);
+  
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
-
+ /* ===============Genrate captcha ========================*/
+  const generateCaptchaText = () => {
+    const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+    let text = "";
+    for (let i = 0; i < 6; i++) {
+      text += chars[Math.floor(Math.random() * chars.length)];
+    }
+    return text;
+  };
+  
+  const drawCaptcha = (text) => {
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext("2d");
+  
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+  
+    // Background
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+  
+    // Noise lines
+    for (let i = 0; i < 5; i++) {
+      ctx.strokeStyle = `rgba(0,0,0,0.2)`;
+      ctx.beginPath();
+      ctx.moveTo(Math.random() * canvas.width, Math.random() * canvas.height);
+      ctx.lineTo(Math.random() * canvas.width, Math.random() * canvas.height);
+      ctx.stroke();
+    }
+  
+    ctx.font = "bold 32px Arial";
+    ctx.textBaseline = "middle";
+  
+    [...text].forEach((char, i) => {
+      const x = 30 + i * 28;
+      const y = 40 + Math.sin(i) * 10;
+      const angle = (Math.random() - 0.5) * 0.5;
+  
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.rotate(angle);
+      ctx.fillStyle = "#000";
+      ctx.fillText(char, 0, 0);
+      ctx.restore();
+    });
+  };
+  
+  const refreshCaptcha = () => {
+    const text = generateCaptchaText();
+    setCaptchaText(text);
+    setCaptchaInput("");
+    drawCaptcha(text);
+  };
+  
+  useEffect(() => {
+    refreshCaptcha();
+  }, []);
+ 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (captchaInput !== captchaText) {
+          Swal.fire("Error", "Invalid captcha", "error");
+          refreshCaptcha();
+          return;
+        }
     setLoading(true);
+    
 
     try {
+      
       const res = await fetch("http://localhost:5000/api/helpdesk/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -49,6 +116,8 @@ localStorage.setItem("state", data.state);
 localStorage.setItem("division", data.division);
 localStorage.setItem("district", data.district);
 localStorage.setItem("taluka", data.taluka);
+localStorage.setItem("organization", data.organization);
+
         toast.success("Login successful!");
         navigate("/helpdesk/dashboard");
       } else {
@@ -137,7 +206,34 @@ localStorage.setItem("taluka", data.taluka);
             </button>
           </div>
 
-          
+          <div className="form-field">
+  <label>Captcha *</label>
+
+  <div className="captcha-wrapper">
+    <canvas
+      ref={canvasRef}
+      width={220}
+      height={80}
+      className="captcha-canvas"
+    />
+    <button
+      type="button"
+      className="captcha-refresh"
+      onClick={refreshCaptcha}
+      title="Refresh Captcha"
+    >
+      🔄
+    </button>
+  </div>
+
+  <input
+    type="text"
+    placeholder="Enter captcha"
+    value={captchaInput}
+    onChange={(e) => setCaptchaInput(e.target.value.toUpperCase())}
+  />
+</div>
+
           {/* </div> */}
 
 <Link to="/forgot" className="forgot">

@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useRef } from "react";
+import React, { useState, useMemo, useRef,useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { toast } from "react-toastify";
 import { login, getVisitorDashboard } from "../services/api";
@@ -7,6 +7,7 @@ import "../css/Login.css";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faUniversalAccess } from "@fortawesome/free-solid-svg-icons";
 import logo from "../assets/emblem.png";
+import Swal from "sweetalert2";
 
 export default function Login() {
   const navigate = useNavigate();
@@ -21,10 +22,73 @@ export default function Login() {
   const [superUserMode, setSuperUserMode] = useState(false);
   const [missingFields, setMissingFields] = useState({});
 
+  const [captchaText, setCaptchaText] = useState("");
+  const [captchaInput, setCaptchaInput] = useState("");
+  const canvasRef = React.useRef(null);
+  
+
   const isDisabled = useMemo(
     () => !username.trim() || !password.trim() || loading,
     [username, password, loading]
   );
+
+  /* ===============Genrate captcha ========================*/
+  const generateCaptchaText = () => {
+    const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+    let text = "";
+    for (let i = 0; i < 6; i++) {
+      text += chars[Math.floor(Math.random() * chars.length)];
+    }
+    return text;
+  };
+  
+  const drawCaptcha = (text) => {
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext("2d");
+  
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+  
+    // Background
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+  
+    // Noise lines
+    for (let i = 0; i < 5; i++) {
+      ctx.strokeStyle = `rgba(0,0,0,0.2)`;
+      ctx.beginPath();
+      ctx.moveTo(Math.random() * canvas.width, Math.random() * canvas.height);
+      ctx.lineTo(Math.random() * canvas.width, Math.random() * canvas.height);
+      ctx.stroke();
+    }
+  
+    ctx.font = "bold 32px Arial";
+    ctx.textBaseline = "middle";
+  
+    [...text].forEach((char, i) => {
+      const x = 30 + i * 28;
+      const y = 40 + Math.sin(i) * 10;
+      const angle = (Math.random() - 0.5) * 0.5;
+  
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.rotate(angle);
+      ctx.fillStyle = "#000";
+      ctx.fillText(char, 0, 0);
+      ctx.restore();
+    });
+  };
+  
+  const refreshCaptcha = () => {
+    const text = generateCaptchaText();
+    setCaptchaText(text);
+    setCaptchaInput("");
+    drawCaptcha(text);
+  };
+  
+  useEffect(() => {
+    refreshCaptcha();
+  }, []);
+  
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -34,29 +98,58 @@ export default function Login() {
       return;
     }
 
+    if (captchaInput !== captchaText) {
+      Swal.fire("Error", "Invalid captcha", "error");
+      refreshCaptcha();
+      return;
+    }
+    
+
     setLoading(true);
     setProgress(true);
 
     try {
       const payload = { username, password };
+      console.log(payload)
       const { data } = await login(payload);
-
+      console.log(data,"data")
       if (!data?.success) {
         toast.error(data?.message || "Invalid credentials");
         return;
       }
 
       // 🔐 Store session data
-      localStorage.setItem("visitor_id", data.visitor_id);
-      localStorage.setItem("user_id", data.user_id);
-      localStorage.setItem("username", data.username);
-      localStorage.setItem("role_code", data.role || "");
-      localStorage.setItem("userstate_code", data.userstate_code);
-      localStorage.setItem("userdivision_code", data.userdivision_code);
-      localStorage.setItem("userdistrict_code", data.userdistrict_code);
-      localStorage.setItem("usertaluka_code", data.usertaluka_code);
-
+      localStorage.setItem("visitor_id", data.user.visitor_id);
+      localStorage.setItem("user_id", data.user.user_id);
+      localStorage.setItem("username", data.user.username);
+      localStorage.setItem("role_code", data.user.role || "");
+      // localStorage.setItem("is_first_login", data.user.is_first_login);
+      localStorage.setItem("userstate_code", data.user.state_code);
+      localStorage.setItem("userdivision_code", data.user.division_code);
+      localStorage.setItem("userdistrict_code", data.user.district_code);
+      localStorage.setItem("usertaluka_code", data.user.taluka_code);
       // 👤 Fetch & store full name (no alert)
+
+      if (data.user.is_first_login === true) {
+
+  // 🔑 STORE IT
+  localStorage.setItem("is_first_login", "true");
+  localStorage.setItem("user_id", data.user.user_id);
+
+  Swal.fire({
+    title: "First Login",
+    text: "This is your first login. Please change your password first.",
+    icon: "warning",
+    confirmButtonText: "Change Password",
+    allowOutsideClick: false,
+    allowEscapeKey: false,
+  }).then(() => {
+    navigate("/change-password");
+  });
+
+  return; // ⛔ stop further navigation
+}
+
       try {
         const dashboardRes = await getVisitorDashboard(data.username);
         const fullName =
@@ -158,6 +251,35 @@ export default function Login() {
                   {showPass ? <AiOutlineEye /> : <AiOutlineEyeInvisible />}
                 </button>
               </div>
+                 {/* CAPTCHA */}
+<div className="form-field">
+  <label>Captcha *</label>
+
+  <div className="captcha-wrapper">
+    <canvas
+      ref={canvasRef}
+      width={220}
+      height={80}
+      className="captcha-canvas"
+    />
+    <button
+      type="button"
+      className="captcha-refresh"
+      onClick={refreshCaptcha}
+      title="Refresh Captcha"
+    >
+      🔄
+    </button>
+  </div>
+
+  <input
+    type="text"
+    placeholder="Enter captcha"
+    value={captchaInput}
+    onChange={(e) => setCaptchaInput(e.target.value.toUpperCase())}
+  />
+</div>
+
 
               <Link to="/forgot" className="forgot">
                 Forgot your password?

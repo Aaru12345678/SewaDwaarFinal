@@ -1,107 +1,202 @@
-/* Layout */
+/* =========================
+   BASE LAYOUT
+========================= */
 .admin-layout {
   display: flex;
   min-height: 100vh;
   background-color: #f4f6f9;
-  font-family: "Segoe UI", sans-serif;
+  font-family: "Segoe UI", Roboto, Arial, sans-serif;
 }
 
-/* Sidebar */
+/* =========================
+   SIDEBAR
+========================= */
 .sidebar {
   width: 240px;
   background: #1f3a60;
-  color: #fff;
-  padding: 20px;
+  color: #ffffff;
+  padding: 22px 20px;
 }
 
 .sidebar .logo {
   font-size: 18px;
-  font-weight: bold;
-  margin-bottom: 30px;
-  color: #fff;
+  font-weight: 700;
+  margin-bottom: 32px;
+  letter-spacing: 0.5px;
 }
 
 .sidebar ul {
   list-style: none;
   padding: 0;
+  margin: 0;
 }
 
 .sidebar ul li {
-  display: flex;
-  align-items: center;
-  gap: 10px;
   margin: 18px 0;
   font-size: 15px;
-  cursor: pointer;
 }
 
-/* Make sidebar links white */
 .sidebar ul li a {
-  color: white; /* white text */
-  text-decoration: none; /* remove underline */
+  color: #ffffff;
+  text-decoration: none;
   display: flex;
   align-items: center;
   gap: 10px;
-  transition: color 0.2s;
+  padding: 6px 4px;
+  border-radius: 6px;
+  transition: background 0.2s ease, color 0.2s ease;
 }
 
 .sidebar ul li a:hover {
-  color: #4e73df; /* light blue on hover */
+  background: rgba(255, 255, 255, 0.08);
+  color: #e3ecff;
 }
 
-/* Main Section */
+/* =========================
+   MAIN CONTENT
+========================= */
 .main {
   flex: 1;
   display: flex;
   flex-direction: column;
 }
 
-/* Topbar */
+/* =========================
+   TOPBAR
+========================= */
 .topbar {
-  background: #fff;
-  padding: 15px 25px;
+  background: #ffffff;
+  padding: 14px 26px;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  border-bottom: 1px solid #e1e1e1;
+  border-bottom: 1px solid #e5e7eb;
 }
 
 .top-actions {
   display: flex;
   align-items: center;
-  gap: 20px;
+  gap: 16px;
 }
 
-.logout-btn {
-  background: #dc3545;
-  color: #fff;
-  border: none;
-  padding: 6px 12px;
-  border-radius: 6px;
+/* =========================
+   PROFILE (TOP RIGHT)
+========================= */
+.profile-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   cursor: pointer;
+  position: relative;
+  user-select: none;
 }
 
-.logout-btn:hover {
+.profile-avatar {
+  color: #1f3a60;
+}
+
+.profile-name {
+  font-weight: 600;
+  font-size: 14px;
+  color: #1f3a60;
+}
+
+/* =========================
+   PROFILE DROPDOWN
+========================= */
+.profile-dropdown {
+  position: absolute;
+  top: 48px;
+  right: 0;
+  width: 230px;
+  background: #ffffff;
+  border-radius: 10px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+  z-index: 1000;
+  padding: 12px;
+}
+
+/* Dropdown header */
+.profile-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-bottom: 10px;
+  margin-bottom: 10px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.profile-header strong {
+  font-size: 14px;
+  color: #1f3a60;
+}
+
+.profile-header p {
+  margin: 0;
+  font-size: 12px;
+  color: #6b7280;
+}
+
+/* Dropdown menu */
+.profile-dropdown ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.profile-dropdown ul li {
+  padding: 8px 10px;
+  font-size: 14px;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: background 0.2s ease;
+}
+
+.profile-dropdown ul li:hover {
+  background: #f1f5f9;
+}
+
+/* Logout button inside dropdown */
+.dropdown-logout {
+  width: 100%;
+  margin-top: 12px;
+  background: #dc3545;
+  color: #ffffff;
+  border: none;
+  padding: 9px;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.dropdown-logout:hover {
   background: #b02a37;
 }
 
-/* Dashboard */
+/* =========================
+   DASHBOARD CONTENT
+========================= */
 .dashboard {
   flex: 1;
-  padding: 20px;
+  padding: 22px;
   display: flex;
   flex-direction: column;
   gap: 30px;
 }
 
-/* Cards */
+/* =========================
+   CARDS
+========================= */
 .cards {
   display: flex;
   flex-wrap: wrap;
   gap: 20px;
 }
 
-/* Charts */
+/* =========================
+   CHARTS
+========================= */
 .charts {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -115,20 +210,27 @@
 }
 
 .chart {
-  background: #fff;
+  background: #ffffff;
   padding: 20px;
   border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 
 .chart h3 {
   margin-bottom: 15px;
   font-size: 16px;
-  font-weight: bold;
+  font-weight: 700;
   color: #1f3a60;
   text-align: center;
 }
 
 .chart-content {
   height: 300px;
+}
+/* ================================
+   TOPBAR PROFILE ICON (FIX)
+================================ */
+.topbar-avatar {
+  color: #1f3a60;
+  cursor: pointer;
 }

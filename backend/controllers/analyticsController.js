@@ -1,8 +1,11 @@
 const pool = require("../db");
+const today = new Date().toISOString().split("T")[0];
 
 // ---------------- KPIs ----------------
 exports.getApplicationAppointmentKpis = async (req, res) => {
   try {
+    const today = new Date().toISOString().split("T")[0];
+
     const {
       state_code = null,
       division_code = null,
@@ -11,8 +14,8 @@ exports.getApplicationAppointmentKpis = async (req, res) => {
       org_id = null,
       dept_id = null,
       service_id = null,
-      fromDate = null,
-      toDate = null,
+      fromDate = today,
+      toDate = today,
     } = req.query;
 
     const result = await pool.query(
@@ -20,15 +23,15 @@ exports.getApplicationAppointmentKpis = async (req, res) => {
         $1, $2, $3, $4, $5, $6, $7, $8, $9
       )`,
       [
-        state_code || null,
-        division_code || null,
-        district_code || null,
-        taluka_code || null,
-        org_id || null,
-        dept_id || null,
-        service_id || null,
-        fromDate || null,
-        toDate || null,
+        state_code,
+        division_code,
+        district_code,
+        taluka_code,
+        org_id,
+        dept_id,
+        service_id,
+        fromDate,
+        toDate,
       ]
     );
 
@@ -38,6 +41,7 @@ exports.getApplicationAppointmentKpis = async (req, res) => {
       completed_appointments: 0,
       rejected_appointments: 0,
       pending_appointments: 0,
+      rescheduled_appointments: 0,
     });
   } catch (error) {
     console.error("Error fetching appointment KPIs:", error);
@@ -45,17 +49,20 @@ exports.getApplicationAppointmentKpis = async (req, res) => {
   }
 };
 
+
 // ---------------- TREND ----------------
 exports.getApplicationAppointmentsTrend = async (req, res) => {
   try {
+    const today = new Date().toISOString().split("T")[0];
+
     const {
       dateType = "month",
       state_code = null,
       division_code = null,
       district_code = null,
       taluka_code = null,
-      fromDate = null,
-      toDate = null,
+      fromDate = today,
+      toDate = today,
       org_id = null,
       dept_id = null,
       service_id = null,
@@ -67,15 +74,15 @@ exports.getApplicationAppointmentsTrend = async (req, res) => {
       )`,
       [
         dateType,
-        state_code || null,
-        division_code || null,
-        district_code || null,
-        taluka_code || null,
-        fromDate || null,
-        toDate || null,
-        org_id || null,
-        dept_id || null,
-        service_id || null,
+        state_code,
+        division_code,
+        district_code,
+        taluka_code,
+        fromDate,
+        toDate,
+        org_id,
+        dept_id,
+        service_id,
       ]
     );
 
@@ -86,16 +93,19 @@ exports.getApplicationAppointmentsTrend = async (req, res) => {
   }
 };
 
+
 // ---------------- APPOINTMENTS BY DEPARTMENT ----------------
 exports.getAppointmentsByDepartment = async (req, res) => {
   try {
+    const today = new Date().toISOString().split("T")[0];
+
     const {
       state_code = null,
       division_code = null,
       district_code = null,
       taluka_code = null,
-      fromDate = null,
-      toDate = null,
+      fromDate = today,
+      toDate = today,
       org_id = null,
       dept_id = null,
     } = req.query;
@@ -105,37 +115,38 @@ exports.getAppointmentsByDepartment = async (req, res) => {
         $1,$2,$3,$4,$5,$6,$7,$8
       )`,
       [
-        state_code || null,
-        division_code || null,
-        district_code || null,
-        taluka_code || null,
-        fromDate || null,
-        toDate || null,
-        org_id || null,
-        dept_id || null,
+        state_code,
+        division_code,
+        district_code,
+        taluka_code,
+        fromDate,
+        toDate,
+        org_id,
+        dept_id,
       ]
     );
 
     res.status(200).json(result.rows || []);
   } catch (error) {
     console.error("Error fetching appointments by department:", error);
-    res
-      .status(500)
-      .json({ message: "Failed to fetch appointments by department" });
+    res.status(500).json({ message: "Failed to fetch appointments by department" });
   }
 };
+
 
 
 // ---------------- APPOINTMENTS BY SERVICE ----------------
 exports.getAppointmentsByService = async (req, res) => {
   try {
+    const today = new Date().toISOString().split("T")[0];
+
     const {
       state_code = null,
       division_code = null,
       district_code = null,
       taluka_code = null,
-      fromDate = null,
-      toDate = null,
+      fromDate = today,
+      toDate = today,
       org_id = null,
       dept_id = null,
       service_id = null,
@@ -146,23 +157,21 @@ exports.getAppointmentsByService = async (req, res) => {
         $1,$2,$3,$4,$5,$6,$7,$8,$9
       )`,
       [
-        state_code || null,
-        division_code || null,
-        district_code || null,
-        taluka_code || null,
-        fromDate || null,
-        toDate || null,
-        org_id || null,
-        dept_id || null,
-        service_id || null,
+        state_code,
+        division_code,
+        district_code,
+        taluka_code,
+        fromDate,
+        toDate,
+        org_id,
+        dept_id,
+        service_id,
       ]
     );
 
     res.status(200).json(result.rows || []);
   } catch (error) {
     console.error("Error fetching appointments by service:", error);
-    res
-      .status(500)
-      .json({ message: "Failed to fetch appointments by service" });
+    res.status(500).json({ message: "Failed to fetch appointments by service" });
   }
 };

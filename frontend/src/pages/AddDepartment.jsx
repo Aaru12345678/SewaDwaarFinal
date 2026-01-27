@@ -16,6 +16,7 @@ import {
 } from "../services/api";
 
 const NAME_REGEX = /^[A-Za-z\s]+$/;
+const MARATHI_REGEX = /^[\u0900-\u097F\s]*$/;
 
 export default function AddDepartment() {
   const navigate = useNavigate();
@@ -38,7 +39,10 @@ export default function AddDepartment() {
 
   // 🔹 Inline errors
   const [deptError, setDeptError] = useState("");
+  const [deptLLError, setDeptLLError] = useState("");
   const [serviceError, setServiceError] = useState("");
+  const [serviceLLError, setServiceLLError] = useState(""); // 👈 NEW
+
 
    const handleLogout = () => {
   localStorage.removeItem("token");
@@ -71,6 +75,17 @@ export default function AddDepartment() {
       setDeptError("");
     }
   };
+
+  const handleDeptNameLLChange = (value) => {
+  setCurrentDept({ ...currentDept, department_name_ll: value });
+
+  if (!MARATHI_REGEX.test(value)) {
+    setDeptLLError("Only Marathi (देवनागरी) characters are allowed");
+  } else {
+    setDeptLLError("");
+  }
+};
+
 
   // 🟢 Save department locally
   const handleSaveDepartment = () => {
@@ -156,19 +171,30 @@ export default function AddDepartment() {
   };
 
   const updateServiceField = (i, key, value) => {
-    if (key === "service_name") {
-      if (!NAME_REGEX.test(value) && value !== "") {
-        setServiceError("Only alphabets and spaces allowed");
-        return;
-      } else {
-        setServiceError("");
-      }
-    }
+  const services = [...currentDept.services];
+  services[i][key] = value;        // ✅ always update state first
+  setCurrentDept({ ...currentDept, services });
 
-    const updated = [...currentDept.services];
-    updated[i][key] = value;
-    setCurrentDept({ ...currentDept, services: updated });
-  };
+  // English service name validation
+  if (key === "service_name") {
+    if (value && !NAME_REGEX.test(value)) {
+      setServiceError("Only alphabets and spaces are allowed");
+    } else {
+      setServiceError("");
+    }
+  }
+
+  // Marathi service name validation
+  if (key === "service_name_ll") {
+    if (value && !MARATHI_REGEX.test(value)) {
+      setServiceLLError("Only Marathi (देवनागरी) characters are allowed");
+    } else {
+      setServiceLLError("");
+    }
+  }
+};
+
+
 
   const removeService = (i) => {
     const updated = [...currentDept.services];
@@ -285,13 +311,17 @@ export default function AddDepartment() {
           {deptError && <div className="field-error">{deptError}</div>}
 
           <label>Department Name (Local Language)</label>
-          <input
-            type="text"
-            value={currentDept.department_name_ll}
-            onChange={(e) =>
-              setCurrentDept({ ...currentDept, department_name_ll: e.target.value })
-            }
-          />
+<input
+  type="text"
+  value={currentDept.department_name_ll}
+  onChange={(e) => handleDeptNameLLChange(e.target.value)}
+/>
+
+{deptLLError && (
+  <div className="field-error">{deptLLError}</div>
+)}
+
+
 
           {/* Services */}
           <div className="section-label">Services</div>
@@ -325,13 +355,16 @@ export default function AddDepartment() {
               {serviceError && <div className="field-error">{serviceError}</div>}
 
               <label>Service Name (Local Language)</label>
-              <input
-                type="text"
-                value={currentDept.services[activeServiceIndex].service_name_ll}
-                onChange={(e) =>
-                  updateServiceField(activeServiceIndex, "service_name_ll", e.target.value)
-                }
-              />
+<input
+  type="text"
+  value={currentDept.services[activeServiceIndex].service_name_ll}
+  onChange={(e) =>
+    updateServiceField(activeServiceIndex, "service_name_ll", e.target.value)
+  }
+/>
+{serviceLLError && (
+  <div className="field-error">{serviceLLError}</div>
+)}
             </div>
           )}
 

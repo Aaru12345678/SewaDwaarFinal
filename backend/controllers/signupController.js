@@ -6,17 +6,17 @@ const {verifyToken} = '../helpers/middleware'
 const bcrypt = require("bcrypt");
 
 // generate token:
-const generateToken = (user) => {
+function generateToken(user) {
   return jwt.sign(
     {
       user_id: user.out_user_id,
-      username: user.out_username,
       role: user.out_role_code,
+      is_first_login: user.out_is_first_login // 👈 ADD
     },
     process.env.JWT_SECRET,
-    { expiresIn: process.env.JWT_EXPIRES_IN || "4h" }
+    { expiresIn: "1d" }
   );
-};
+}
 
 // exports.insertVisitorSignup = async (req, res) => {
 //   try {
@@ -553,6 +553,7 @@ exports.login = async (req, res) => {
     const result = await pool.query("SELECT * FROM get_user_by_username2($1);", [username]);
     const user = result.rows[0];
    console.log(user,"localStorage.getItem")
+
     // 2️⃣ Check if user exists
     if (!user) {
       return res.status(404).json({
@@ -586,18 +587,22 @@ exports.login = async (req, res) => {
 
     // 5️⃣ Success — return login info
     res.status(200).json({
-      success: true,
-      message: "Login successful",
-      token, // <-- send token to frontend
-      user_id: user.out_user_id,
-      username: user.out_username,
-      role: user.out_role_code,
-      userstate_code: user.out_state_code,
-      userdivision_code: user.out_division_code,
-      userdistrict_code: user.out_district_code,
-      usertaluka_code: user.out_taluka_code,
-    });
-  } catch (error) {
+  success: true,
+  message: "Login successful",
+  token,
+  user: {
+    user_id: user.out_user_id,
+    username: user.out_username,
+    role: user.out_role_code,
+    is_first_login: user.out_is_first_login,
+    state_code: user.out_state_code,
+    division_code: user.out_division_code,
+    district_code: user.out_district_code,
+    taluka_code: user.out_taluka_code
+  }
+});
+ 
+ } catch (error) {
     console.error("❌ Login error:", error);
     res.status(500).json({
       success: false,
@@ -609,61 +614,157 @@ exports.login = async (req, res) => {
 
 
 exports.changePassword = async (req, res) => {
+  const { user_id, old_password, new_password } = req.body;
+
   try {
-    const { user_id, old_password, new_password } = req.body;
-
-    if (!user_id || !old_password || !new_password) {
-      return res.status(400).json({
-        success: false,
-        message: "All fields are required"
-      });
-    }
-
-    // Get existing password hash
-    const userResult = await pool.query(
+    // 1️⃣ Get current password hash
+    const userRes = await pool.query(
       "SELECT password_hash FROM m_users WHERE user_id = $1",
       [user_id]
     );
 
-    if (userResult.rowCount === 0) {
+    if (!userRes.rows.length) {
       return res.status(404).json({
         success: false,
-        message: "User not found"
+        message: "User not found",
       });
     }
 
-    const isMatch = await bcrypt.compare(
-      old_password,
-      userResult.rows[0].password_hash
-    );
+    // 2️⃣ Compare old password
+    const isMatch = await bcrypt.compare(old_password, userRes.rows[0].password_hash);
 
     if (!isMatch) {
       return res.status(401).json({
         success: false,
-        message: "Old password is incorrect"
+        message: "Old password is incorrect",
       });
     }
 
-    // Hash new password
-    const newPasswordHash = await bcrypt.hash(new_password, 10);
+    // 3️⃣ Hash new password
+    const hashedNewPassword = await bcrypt.hash(new_password, 10);
 
-    await pool.query(
-      "UPDATE m_users SET password_hash = $1, updated_date = CURRENT_TIMESTAMP WHERE user_id = $2",
-      [newPasswordHash, user_id]
+    // 4️⃣ Call DB function (updates password + is_first_login)
+    const result = await pool.query(
+      "SELECT * FROM change_user_password($1, $2)",
+      [user_id, hashedNewPassword]
     );
+   console.log(result)
+    // 5️⃣ Send response
+    return res.json(result.rows[0]);
 
-    return res.status(200).json({
-      success: true,
-      message: "Password changed successfully"
-    });
-
-  } catch (error) {
-    console.error("Change password error:", error);
-    res.status(500).json({
+  } catch (err) {
+    console.error("changePassword error:", err);
+    return res.status(500).json({
       success: false,
-      message: "Server error"
+      message: "Server error",
     });
   }
 };
 
 
+
+const crypto = require("crypto");
+
+
+exports.insertVisitorSignupWalkin = async (req, res) => {
+  try {
+    const {
+      full_name,
+      gender,
+      dob,
+      mobile_no,
+      email_id,
+      state,
+      division,
+      district,
+      taluka,
+      pincode
+    } = req.body;
+
+    /* ---------------- VALIDATION ---------------- */
+    if (!full_name || !mobile_no) {
+      return res.status(400).json({
+        success: false,
+        message: "Full name and mobile number are required"
+      });
+    }
+
+    const normalizedEmail =
+      email_id && email_id.trim() !== "" ? email_id.trim() : null;
+
+    /* ---------------- AUTO PASSWORD ---------------- */
+    const plainPassword = crypto.randomBytes(4).toString("hex");
+    const hashedPassword = await bcrypt.hash(plainPassword, 10);
+
+    /* ---------------- DB CALL ---------------- */
+    const result = await pool.query(
+      `SELECT * FROM register_visitor_walkin(
+        $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12
+      );`,
+      [
+        hashedPassword,
+        full_name.trim(),
+        gender?.charAt(0) || null,
+        dob || null,
+        mobile_no.trim(),
+        normalizedEmail,
+        state || null,
+        division || null,
+        district || null,
+        taluka || null,
+        pincode || null,
+        null // photo
+      ]
+    );
+
+    const row = result.rows[0];
+
+    if (!row || row.message !== "Registration successful") {
+      return res.status(400).json({
+        success: false,
+        message: row?.message || "Visitor registration failed"
+      });
+    }
+
+    /* ---------------- EMAIL ---------------- */
+    if (row.out_email_id) {
+      try {
+        await sendMail(
+          row.out_email_id,
+          "Welcome to SevaDwaar",
+          `
+Hi ${row.full_name},
+
+Your visitor account has been created during a walk-in appointment.
+
+Visitor ID: ${row.visitor_id}
+Temporary Password: ${plainPassword}
+
+Please log in and change your password after first login.
+
+Thank you,
+SevaDwaar Team
+          `
+        );
+      } catch (mailErr) {
+        console.error("📧 Email failed:", mailErr);
+      }
+    }
+
+    /* ---------------- RESPONSE ---------------- */
+    return res.status(201).json({
+      success: true,
+      message: "Visitor registered successfully (walk-in)",
+      visitor_id: row.visitor_id,
+      user_id: row.out_user_id
+    });
+
+  } catch (error) {
+    console.error("❌ Walk-in signup error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to register walk-in visitor",
+      error: error.message
+    });
+  }
+};

@@ -18,6 +18,7 @@ import {
 } from "../services/api";
 
 const NAME_REGEX = /^[A-Za-z ]+$/;
+const MARATHI_REGEX = /^[\u0900-\u097F\s]+$/;
 
 export default function AddServices() {
   const navigate = useNavigate();
@@ -41,6 +42,7 @@ export default function AddServices() {
     organization_id: "",
     department_id: "",
     service_name: "",
+    service_name_ll: "",
   });
 
   // 🔹 Logout
@@ -70,59 +72,85 @@ export default function AddServices() {
 
   // 🔹 Save service locally
   const saveService = () => {
-    if (errors.service_name) {
-  return;
-}
-    let hasError = false;
-    const newErrors = { organization_id: "", department_id: "", service_name: "" };
+  let hasError = false;
 
-    if (!currentService.organization_id) {
-      newErrors.organization_id = "Organization is required";
-      hasError = true;
-    }
-
-    if (!currentService.department_id) {
-      newErrors.department_id = "Department is required";
-      hasError = true;
-    }
-
-    if (!currentService.service_name.trim()) {
-      newErrors.service_name = "Service name is required";
-      hasError = true;
-    } else if (!NAME_REGEX.test(currentService.service_name)) {
-      newErrors.service_name = "Only alphabets and spaces allowed";
-      hasError = true;
-    }
-
-    setErrors(newErrors);
-    if (hasError) return;
-
-    const updated = [...services];
-
-    if (activeServiceIndex !== null) {
-      updated[activeServiceIndex] = currentService;
-    } else {
-      updated.push({
-  ...currentService,
-  service_name: currentService.service_name.trim(),
-});
-
-    }
-
-    setServices(updated);
-
-    setCurrentService({
-      organization_id: "",
-      organization_name: "",
-      department_id: "",
-      department_name: "",
-      service_name: "",
-      service_name_ll: "",
-    });
-
-    setActiveServiceIndex(null);
-    setErrors({ organization_id: "", department_id: "", service_name: "" });
+  // Initialize errors object with all keys
+  const newErrors = {
+    organization_id: "",
+    department_id: "",
+    service_name: "",
+    service_name_ll: "",
   };
+
+  // ✅ Organization validation
+  if (!currentService.organization_id) {
+    newErrors.organization_id = "Organization is required";
+    hasError = true;
+  }
+
+  // ✅ Department validation
+  if (!currentService.department_id) {
+    newErrors.department_id = "Department is required";
+    hasError = true;
+  }
+
+  // ✅ English service name validation
+  if (!currentService.service_name.trim()) {
+    newErrors.service_name = "Service name is required";
+    hasError = true;
+  } else if (!NAME_REGEX.test(currentService.service_name)) {
+    newErrors.service_name = "Only alphabets and spaces allowed";
+    hasError = true;
+  }
+
+  // ✅ Marathi service name validation
+  if (!currentService.service_name_ll.trim()) {
+    newErrors.service_name_ll = "Only Marathi (देवनागरी) characters are allowed";
+    hasError = true;
+  } else if (!MARATHI_REGEX.test(currentService.service_name_ll)) {
+    newErrors.service_name_ll = "Only Marathi (देवनागरी) characters are allowed";
+    hasError = true;
+  }
+
+  setErrors(newErrors);
+
+  // Stop if any validation error exists
+  if (hasError) return;
+
+  // Save / update service in local array
+  const updated = [...services];
+  if (activeServiceIndex !== null) {
+    updated[activeServiceIndex] = currentService;
+  } else {
+    updated.push({
+      ...currentService,
+      service_name: currentService.service_name.trim(),
+      service_name_ll: currentService.service_name_ll.trim(),
+    });
+  }
+
+  setServices(updated);
+
+  // Reset form
+  setCurrentService({
+    organization_id: "",
+    organization_name: "",
+    department_id: "",
+    department_name: "",
+    service_name: "",
+    service_name_ll: "",
+  });
+
+  setActiveServiceIndex(null);
+  // Reset errors completely
+  setErrors({
+    organization_id: "",
+    department_id: "",
+    service_name: "",
+    service_name_ll: "",
+  });
+};
+
 
   const editService = (i) => {
     setCurrentService(services[i]);
@@ -282,7 +310,7 @@ export default function AddServices() {
               {errors.department_id && <div className="field-error">{errors.department_id}</div>}
 
               <label>Service Name *</label>
-              <input
+<input
   value={currentService.service_name}
   onChange={(e) => {
     const val = e.target.value;
@@ -304,15 +332,43 @@ export default function AddServices() {
     }
   }}
 />
-              {errors.service_name && <div className="field-error">{errors.service_name}</div>}
+
+{errors.service_name && (
+  <div className="field-error">{errors.service_name}</div>
+)}
+
 
               <label>Service Name (Local Language)</label>
-              <input
-                value={currentService.service_name_ll}
-                onChange={(e) =>
-                  setCurrentService({ ...currentService, service_name_ll: e.target.value })
-                }
-              />
+<input
+  value={currentService.service_name_ll}
+  onChange={(e) => {
+    const val = e.target.value;
+
+    setCurrentService({
+      ...currentService,
+      service_name_ll: val,
+    });
+
+    if (!val.trim()) {
+      setErrors({
+        ...errors,
+        service_name_ll: "Only Marathi (देवनागरी) characters are allowed",
+      });
+    } else if (!MARATHI_REGEX.test(val)) {
+      setErrors({
+        ...errors,
+        service_name_ll: "Only Marathi (देवनागरी) characters are allowed",
+      });
+    } else {
+      setErrors({ ...errors, service_name_ll: "" });
+    }
+  }}
+/>
+
+{errors.service_name_ll && (
+  <div className="field-error">{errors.service_name_ll}</div>
+)}
+
 
               <div className="btn-row">
                 <button type="button" onClick={saveService}>Save Service</button>

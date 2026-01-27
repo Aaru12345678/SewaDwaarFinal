@@ -18,6 +18,10 @@ import logo from "../assets/emblem.png";
 
 export default function SignUp() {
   const navigate = useNavigate();
+ const [captchaText, setCaptchaText] = useState("");
+const [captchaInput, setCaptchaInput] = useState("");
+const canvasRef = React.useRef(null);
+
 
   /* ===================== STATE ===================== */
   const [formData, setFormData] = useState({
@@ -132,7 +136,73 @@ export default function SignUp() {
     return valid;
   };
 
+
+  /* ===============Genrate captcha ========================*/
+const generateCaptchaText = () => {
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  let text = "";
+  for (let i = 0; i < 6; i++) {
+    text += chars[Math.floor(Math.random() * chars.length)];
+  }
+  return text;
+};
+
+const drawCaptcha = (text) => {
+  const canvas = canvasRef.current;
+  const ctx = canvas.getContext("2d");
+
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  // Background
+  ctx.fillStyle = "#ffffff";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  // Noise lines
+  for (let i = 0; i < 5; i++) {
+    ctx.strokeStyle = `rgba(0,0,0,0.2)`;
+    ctx.beginPath();
+    ctx.moveTo(Math.random() * canvas.width, Math.random() * canvas.height);
+    ctx.lineTo(Math.random() * canvas.width, Math.random() * canvas.height);
+    ctx.stroke();
+  }
+
+  ctx.font = "bold 32px Arial";
+  ctx.textBaseline = "middle";
+
+  [...text].forEach((char, i) => {
+    const x = 30 + i * 28;
+    const y = 40 + Math.sin(i) * 10;
+    const angle = (Math.random() - 0.5) * 0.5;
+
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(angle);
+    ctx.fillStyle = "#000";
+    ctx.fillText(char, 0, 0);
+    ctx.restore();
+  });
+};
+
+const refreshCaptcha = () => {
+  const text = generateCaptchaText();
+  setCaptchaText(text);
+  setCaptchaInput("");
+  drawCaptcha(text);
+};
+
+useEffect(() => {
+  refreshCaptcha();
+}, []);
+
+
+
+
+
+
+
   /* ===================== HANDLE CHANGE ===================== */
+
+
   const handleChange = (e) => {
     const { name, value, files } = e.target;
 
@@ -213,6 +283,18 @@ export default function SignUp() {
     }
   };
 
+//   const handleCaptchaChange = (e) => {
+//   const value = e.target.value.toUpperCase();
+//   setCaptchaInput(value);
+
+//   if (value && value !== captcha) {
+//     setCaptchaError("Captcha does not match");
+//   } else {
+//     setCaptchaError("");
+//   }
+// };
+
+
   /* ===================== FORM VALID ===================== */
   const isFormValid = useMemo(() => {
     const required = [
@@ -229,14 +311,24 @@ export default function SignUp() {
       "state",
     ];
     return (
-      required.every((f) => formData[f]) &&
-      Object.values(errors).every((e) => !e) &&
-      passwordMatch &&
-      passwordStrength &&
-      is18 &&
-      !submitting
-    );
-  }, [formData, errors, passwordMatch, passwordStrength, is18, submitting]);
+    required.every((f) => formData[f]) &&
+    Object.values(errors).every((e) => !e) &&
+    passwordMatch &&
+    passwordStrength &&
+    is18 &&
+    captchaInput === captchaText &&   // 🔐 CAPTCHA CHECK
+    !submitting
+  );
+}, [
+  formData,
+  errors,
+  passwordMatch,
+  passwordStrength,
+  is18,
+  captchaInput,
+  captchaText,
+  submitting,
+])
 
   /* ===================== SUBMIT ===================== */
   const handleSubmit = async (e) => {
@@ -249,6 +341,11 @@ export default function SignUp() {
       }));
       return;
     }
+if (captchaInput !== captchaText) {
+  Swal.fire("Error", "Invalid captcha", "error");
+  refreshCaptcha();
+  return;
+}
 
     setSubmitting(true);
     try {
@@ -593,6 +690,35 @@ return (
             <p className="error-text">{errors.photo}</p>
           )}
         </div>
+        {/* CAPTCHA */}
+<div className="form-field">
+  <label>Captcha *</label>
+
+  <div className="captcha-wrapper">
+    <canvas
+      ref={canvasRef}
+      width={220}
+      height={80}
+      className="captcha-canvas"
+    />
+    <button
+      type="button"
+      className="captcha-refresh"
+      onClick={refreshCaptcha}
+      title="Refresh Captcha"
+    >
+      🔄
+    </button>
+  </div>
+
+  <input
+    type="text"
+    placeholder="Enter captcha"
+    value={captchaInput}
+    onChange={(e) => setCaptchaInput(e.target.value.toUpperCase())}
+  />
+</div>
+
 
         {/* Submit */}
         <div className="form-field full">

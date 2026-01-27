@@ -118,7 +118,7 @@ const NavbarHelpdesk = ({ username, onLogout }) => {
         <div className="navbar-title">Helpdesk Portal</div>
       </div>
       <div className="navbar-right">
-        <div className="notification-container" ref={notificationRef}>
+        {/* <div className="notification-container" ref={notificationRef}>
           <button
             className="navbar-icon-btn notification-btn"
             onClick={() => setShowNotifications(!showNotifications)}
@@ -190,7 +190,7 @@ const NavbarHelpdesk = ({ username, onLogout }) => {
               </div>
             </div>
           )}
-        </div>
+        </div> */}
 
         <div className="navbar-user">
           <FiUser size={24} />

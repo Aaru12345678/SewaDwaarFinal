@@ -33,13 +33,20 @@ exports.cancelAppointment = async (req, res) => {
 // ============================
 // Get Appointments Summary
 // ============================
+// ============================
+// Get Appointments Summary (WITH PAGINATION)
+// ============================
 exports.getAppointmentsSummary = async (req, res) => {
   try {
-    const { from_date, to_date } = req.query;
+    const page = parseInt(req.query.page) || 1;          // 🔥 READ PAGE
+    const fromDate = req.query.from_date || null;
+    const toDate = req.query.to_date || null;
+
+    console.log("PAGE FROM FRONTEND:", page);            // 🔥 DEBUG
 
     const result = await pool.query(
-      "SELECT get_appointments_summary($1, $2) AS data",
-      [from_date || null, to_date || null]
+      "SELECT get_appointments_summary($1, $2, $3) AS data",   // 🔥 3 PARAMS
+      [page, fromDate, toDate]
     );
 
     return res.status(200).json({
@@ -137,3 +144,4 @@ exports.deleteAppointment = async (req, res) => {
     });
   }
 };
+

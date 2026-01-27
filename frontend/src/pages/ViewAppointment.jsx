@@ -6,7 +6,7 @@ const ViewAppointment = () => {
   const navigate = useNavigate();
   const { state } = useLocation();
   const appointment = state?.appointment;
-
+  console.log(appointment,"appointment")
   if (!appointment) {
     return <p className="no-data">No appointment data found</p>;
   }
