@@ -1,6 +1,10 @@
 /* --- Page Layout --- */
 .gov-edit-wrapper {
-  background: #eef7fc;
+  background-image: url("../assets/dashboard-bg.jpg");
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+
   min-height: 100vh;
   padding: 40px 0;
   display: flex;

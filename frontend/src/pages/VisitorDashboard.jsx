@@ -154,7 +154,7 @@ const VisitorDashboard = () => {
               </Link>
 
               {/* ✅ Appointments + Walkins Combined Table */}
-              <div className="table-container">
+              {/* <div className="table-container">
                 <h3>🗓️ Your Appointments (Normal + Walk-ins)</h3>
                 <table>
                   <thead>
@@ -211,10 +211,10 @@ const VisitorDashboard = () => {
                     )}
                   </tbody>
                 </table>
-              </div>
+              </div> */}
 
               {/* Notifications */}
-              <div className="notifications">
+              {/* <div className="notifications">
                 <h3>🔔 Notifications</h3>
                 {notifications.length === 0 ? (
                   <p className="empty">No notifications yet.</p>
@@ -230,7 +230,7 @@ const VisitorDashboard = () => {
                     ))}
                   </ul>
                 )}
-              </div>
+              </div> */}
             </div>
           </div>
         </div>

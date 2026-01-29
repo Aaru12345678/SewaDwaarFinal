@@ -1399,3 +1399,70 @@ button, .view-btn {
     justify-content: center;
   }
 }
+
+.documents-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.document-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  padding: 10px 12px;
+  border-radius: 8px;
+}
+
+.document-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.doc-icon {
+  color: #dc2626;
+  font-size: 22px;
+}
+
+.doc-name {
+  font-weight: 600;
+}
+
+.doc-date {
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.document-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.doc-btn {
+  border: none;
+  padding: 6px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.doc-btn.view {
+  background: #e0f2fe;
+  color: #0369a1;
+}
+
+.doc-btn.download {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.no-documents {
+  color: #6b7280;
+  font-size: 14px;
+}

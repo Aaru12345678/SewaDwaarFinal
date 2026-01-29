@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useState, useMemo,useCallback } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Formik, Form, Field, ErrorMessage } from "formik";
 import * as Yup from "yup";
@@ -6,28 +6,82 @@ import axios from "axios";
 import { toast } from "react-toastify";
 import "../css/EditProfile.css";
 import {updateVisitorProfile} from "../services/api"
+import NavbarTop from "../Components/NavbarTop";
+import Header from "../Components/Header";
+import VisitorNavbar from "./VisitorNavbar";
+import { getVisitorProfile } from "../services/api";
+import {
+  getStates,
+  getDivisions,
+  getDistricts,
+  getTalukas,
+  submitSignup,
+} from "../services/api";
+import Swal from "sweetalert2";
+
 
 // --------------------------
 // Validation schema
 // --------------------------
 const ProfileSchema = Yup.object().shape({
-  name: Yup.string().min(3, "Too short").required("Full name is required"),
-  email: Yup.string().email("Invalid email").required("Email is required"),
+  name: Yup.string()
+    .matches(/^[A-Za-z\s]+$/, "Only alphabets allowed")
+    .min(3, "Name must be at least 3 characters")
+    .max(150, "Name too long")
+    .required("Full name is required"),
+
+  email: Yup.string()
+    .email("Invalid email format")
+    .max(255, "Email too long")
+    .required("Email is required"),
+
   phone: Yup.string()
-    .matches(/^\d{10}$/, "Mobile must be 10 digits")
+    .matches(/^[6-9]\d{9}$/, "Mobile must start with 6–9 and be 10 digits")
     .required("Mobile number is required"),
-  gender: Yup.string().required("Gender is required"),
-  dob: Yup.string().required("DOB is required"),
-  // address: Yup.string().min(5).required("Address required"),
-  state: Yup.string().required("State required"),
-  division: Yup.string().required("Division required"),
-  // district: Yup.string().required("District required"),
-  // taluka: Yup.string().required("Taluka required"),
+
+  gender: Yup.string()
+    .oneOf(["M", "F", "O"], "Invalid gender")
+    .required("Gender is required"),
+
+  dob: Yup.date()
+    .required("Date of birth is required")
+    .test(
+      "age-check",
+      "You must be at least 18 years old",
+      function (value) {
+        if (!value) return false;
+        const today = new Date();
+        const dob = new Date(value);
+        let age = today.getFullYear() - dob.getFullYear();
+        const m = today.getMonth() - dob.getMonth();
+        if (m < 0 || (m === 0 && today.getDate() < dob.getDate())) {
+          age--;
+        }
+        return age >= 18;
+      }
+    ),
+
+  address: Yup.string()
+    .min(5, "Address too short")
+    .max(100, "Address too long")
+     .matches(
+    /^[A-Za-z0-9\s]+$/,
+    "Address can only contain letters, numbers, and spaces"
+  )
+  .required("Address is required"),
+
+  state: Yup.string().required("State is required"),
+
+  division: Yup.string().nullable(),
+  district: Yup.string().nullable(),
+  taluka: Yup.string().nullable(),
+
   pincode: Yup.string()
-    .matches(/^\d{6}$/, "Pincode must be 6 digits")
-    .required("Pincode required"),
+    .matches(/^\d{6}$/, "Pincode must be exactly 6 digits")
+    .required("Pincode is required"),
 });
 
+ 
 // Helper: date → yyyy-MM-dd for <input type="date">
 const formatDateForInput = (value) => {
   if (!value) return "";
@@ -57,6 +111,108 @@ const buildInitialImageUrl = (photo) => {
 export default function EditProfile() {
   const navigate = useNavigate();
   const location = useLocation();
+ const username = localStorage.getItem("username");
+const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+    const [visitor, setVisitor] = useState(null);
+  const [states, setStates] = useState([]);
+    const [divisions, setDivisions] = useState([]);
+    const [districts, setDistricts] = useState([]);
+    const [talukas, setTalukas] = useState([]);
+   const [loadingStates, setLoadingStates] = useState(false);
+    const [loadingDivisions, setLoadingDivisions] = useState(false);
+    const [loadingDistricts, setLoadingDistricts] = useState(false);
+    const [loadingTalukas, setLoadingTalukas] = useState(false);
+  
+  const [fullName, setFullName] = useState("");
+useEffect(() => {
+    if (!username) {
+      setError("Session expired. Please login again.");
+      setLoading(false);
+      return;
+    }
+
+    
+ const fetchProfile = async () => {
+      try {
+        const res = await getVisitorProfile(username);
+
+        if (res.data?.success) {
+          setVisitor(res.data.data);
+        setFullName(res.data.data.full_name || username);
+
+        } else {
+          setError("Profile not found");
+        }
+      } catch (err) {
+        setError("Session expired. Please login again.");
+        localStorage.clear();
+        navigate("/login");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProfile();
+  }, [username, navigate]);
+
+
+ /* ===================== FETCHERS ===================== */
+  const fetchDivisions = useCallback(async (stateCode) => {
+    if (!stateCode) return;
+    setLoadingDivisions(true);
+    const { data } = await getDivisions(stateCode);
+    setLoadingDivisions(false);
+    if (data) setDivisions(data);
+  }, []);
+
+  const fetchDistricts = useCallback(async (stateCode, divisionCode) => {
+    if (!stateCode || !divisionCode) return;
+    setLoadingDistricts(true);
+    const { data } = await getDistricts(stateCode, divisionCode);
+    setLoadingDistricts(false);
+    if (data) setDistricts(data);
+  }, []);
+
+  const fetchTalukas = useCallback(async (stateCode, divisionCode, districtCode) => {
+    if (!stateCode || !divisionCode || !districtCode) return;
+    setLoadingTalukas(true);
+    const { data } = await getTalukas(stateCode, divisionCode, districtCode);
+    setLoadingTalukas(false);
+    if (data) setTalukas(data);
+  }, []);
+
+useEffect(() => {
+  (async () => {
+    setLoadingStates(true);
+    try {
+      const { data, error } = await getStates();
+      setLoadingStates(false);
+
+      if (error || !data) {
+        Swal.fire(
+          "Error",
+          "Unable to load states. Please try again later.",
+          "error"
+        );
+        return;
+      }
+
+      setStates(data);
+    } catch (err) {
+      setLoadingStates(false);
+      Swal.fire(
+        "Error",
+        "Unable to load states due to server error.",
+        "error"
+      );
+    }
+  })();
+}, []);
+
+
+
+
 
   const initialData = useMemo(() => {
     return (
@@ -125,57 +281,42 @@ const handleImageUpload = (e, setFieldValue) => {
   setImagePreview(URL.createObjectURL(file));
   setFieldValue("profilePic", file);
 };
+useEffect(() => {
+  if (!visitor) return;
 
+  if (visitor.state_code) {
+    fetchDivisions(visitor.state_code);
+  }
 
-  // Submit handler
-  // const updateVisitorProfile = async (values) => {
-  //   try {
-  //     const id = initialData.visitor_id || initialData.user_id;
+  if (visitor.state_code && visitor.division_code) {
+    fetchDistricts(visitor.state_code, visitor.division_code);
+  }
 
-  //     const mappedData = {
-  //       full_name: values.name,
-  //       gender: values.gender,
-  //       dob: values.dob, // yyyy-MM-dd
-  //       mobile_no: values.phone,
-  //       email_id: values.email,
+  if (
+    visitor.state_code &&
+    visitor.division_code &&
+    visitor.district_code
+  ) {
+    fetchTalukas(
+      visitor.state_code,
+      visitor.division_code,
+      visitor.district_code
+    );
+  }
+}, [visitor, fetchDivisions, fetchDistricts, fetchTalukas]);
 
-  //       // Always send codes from initialData (user can't change location here)
-  //       state_code: initialData.state_code || "",
-  //       division_code: initialData.division_code || "",
-  //       district_code: initialData.district_code || "",
-  //       taluka_code: initialData.taluka_code || "",
-
-  //       pincode: values.pincode,
-  //       address: values.address,
-
-  //       // new base64 if changed, else keep existing filename
-  //       photo: values.profilePic || initialData.photo || null,
-  //     };
-
-  //     const res = await axios.put(
-  //       `http://localhost:5000/api/visitor/profile/${id}`,
-  //       mappedData
-  //     );
-
-  //     console.log("Update response:", res.data);
-
-  //     if (res.data?.success) {
-  //       const updatedProfile = res.data.data || { ...initialData, ...mappedData };
-
-  //       localStorage.setItem("visitorData", JSON.stringify(updatedProfile));
-
-  //       toast.success("Profile updated successfully!");
-  //       setTimeout(() => navigate("/profile"), 1200);
-  //     } else {
-  //       toast.error(res.data?.message || "Update failed. Try again.");
-  //     }
-  //   } catch (err) {
-  //     console.error("Error updating visitor profile:", err);
-  //     toast.error("Update failed. Try again.");
-  //   }
-  // };
 
   return (
+    <>
+     <div className="fixed-header">
+        <NavbarTop />
+        <Header />
+        <VisitorNavbar fullName={fullName} />
+      </div>
+
+      <div className="main-layout">
+        <div className="content-below">
+   
     <div className="gov-edit-wrapper">
       <div className="gov-edit-container">
         <div style={{ display: "flex", alignItems: "center", gap: 18 }}>
@@ -196,30 +337,30 @@ const handleImageUpload = (e, setFieldValue) => {
         </div>
 
         <Formik
-          initialValues={{
-            ...initialData,
-            name: initialData.full_name || "",
-            phone: initialData.mobile_no || "",
-            email: initialData.email_id || "",
-            // show NAMES here, not codes
-            state: initialData.state_name || initialData.state_code || "",
-            division:
-              initialData.division_name || initialData.division_code || "",
-            district:
-              initialData.district_name || initialData.district_code || "",
-            taluka: initialData.taluka_name || initialData.taluka_code || "",
-            pincode: initialData.pincode || "",
-            address: initialData.address || "",
-            dob: formatDateForInput(initialData.dob),
-            gender: initialData.gender || "",
-            profilePic: null,
+         initialValues={{
+  name: initialData.full_name || "",
+  phone: initialData.mobile_no || "",
+  email: initialData.email_id || "",
+  gender: initialData.gender || "",
+  dob: formatDateForInput(initialData.dob),
 
-          }}
-          enableReinitialize
-          validationSchema={ProfileSchema}
-           onSubmit={handleSubmit}
+  state: initialData.state_code || "",
+  division: initialData.division_code || "",
+  district: initialData.district_code || "",
+  taluka: initialData.taluka_code || "",
+
+  pincode: initialData.pincode || "",
+  address: initialData.address || "",
+  profilePic: null,
+}}
+enableReinitialize
+onSubmit={handleSubmit}
+validateOnChange={true}   // ✅ validate on every keystroke
+validateOnBlur={true} 
+validationSchema={ProfileSchema}
         >
-          {({ setFieldValue, isValid }) => (
+         {({ values, setFieldValue, isValid }) => (
+
             <Form className="gov-form">
               {/* Image Upload */}
               <label className="image-upload-label">
@@ -330,44 +471,99 @@ const handleImageUpload = (e, setFieldValue) => {
 
                   {/* Names shown here, read-only */}
                   <div className="gov-form-group">
-                    <label>State</label>
-                    <Field name="state" readOnly />
-                    <ErrorMessage
-                      name="state"
-                      component="small"
-                      className="field-error"
-                    />
-                  </div>
+  <label>State</label>
+  <Field
+    as="select"
+    name="state"
+    onChange={async (e) => {
+      const value = e.target.value;
+      setFieldValue("state", value);
+      setFieldValue("division", "");
+      setFieldValue("district", "");
+      setFieldValue("taluka", "");
+
+      setDivisions([]);
+      setDistricts([]);
+      setTalukas([]);
+
+      await fetchDivisions(value);
+    }}
+  >
+    <option value="">Select State</option>
+    {states.map((s) => (
+      <option key={s.state_code} value={s.state_code}>
+        {s.state_name}
+      </option>
+    ))}
+  </Field>
+</div>
 
                   <div className="gov-form-group">
-                    <label>Division</label>
-                    <Field name="division" readOnly />
-                    <ErrorMessage
-                      name="division"
-                      component="small"
-                      className="field-error"
-                    />
-                  </div>
+  <label>Division</label>
+  <Field
+    as="select"
+    name="division"
+    onChange={async (e) => {
+      const value = e.target.value;
+      setFieldValue("division", value);
+      setFieldValue("district", "");
+      setFieldValue("taluka", "");
+
+      setDistricts([]);
+      setTalukas([]);
+
+      await fetchDistricts(values.state, value);
+    }}
+    disabled={!values.state}
+  >
+    <option value="">Select Division</option>
+    {divisions.map((d) => (
+      <option key={d.division_code} value={d.division_code}>
+        {d.division_name}
+      </option>
+    ))}
+  </Field>
+</div>
+
+                 <div className="gov-form-group">
+  <label>District</label>
+  <Field
+    as="select"
+    name="district"
+    onChange={async (e) => {
+      const value = e.target.value;
+      setFieldValue("district", value);
+      setFieldValue("taluka", "");
+
+      setTalukas([]);
+      await fetchTalukas(values.state, values.division, value);
+    }}
+    disabled={!values.division}
+  >
+    <option value="">Select District</option>
+    {districts.map((d) => (
+      <option key={d.district_code} value={d.district_code}>
+        {d.district_name}
+      </option>
+    ))}
+  </Field>
+</div>
 
                   <div className="gov-form-group">
-                    <label>District</label>
-                    <Field name="district" readOnly />
-                    <ErrorMessage
-                      name="district"
-                      component="small"
-                      className="field-error"
-                    />
-                  </div>
-
-                  <div className="gov-form-group">
-                    <label>Taluka</label>
-                    <Field name="taluka" readOnly />
-                    <ErrorMessage
-                      name="taluka"
-                      component="small"
-                      className="field-error"
-                    />
-                  </div>
+  <label>Taluka</label>
+  <Field
+    as="select"
+    name="taluka"
+    disabled={!values.district}
+  >
+    <option value="">Select Taluka</option>
+    {talukas.map((t) => (
+      <option key={t.taluka_code} value={t.taluka_code}>
+        {t.taluka_name}
+      </option>
+    ))}
+  </Field>
+</div>
 
                   <div className="gov-form-group">
                     <label>Pincode</label>
@@ -403,5 +599,8 @@ const handleImageUpload = (e, setFieldValue) => {
         </Formik>
       </div>
     </div>
+    </div>
+    </div>
+    </>
   );
 }

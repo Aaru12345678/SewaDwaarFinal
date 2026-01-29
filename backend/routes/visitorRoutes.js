@@ -31,18 +31,20 @@ const upload = multer({
 });
 
 router.get("/:username/dashboard", visitorController.getVisitorDashboard);
-router.get("/profile/:visitor_id", visitorController.getVisitorProfile);
+router.get("/profile/:visitor_id",visitorController.getVisitorProfile);
 
 router.put(
   "/profile/:visitor_id",
-  upload.single("photo"),   // ✅ multer runs here
+  upload.single("photo"), // ✅ multer runs here
   visitorController.updateVisitorProfile
 );
 
-router.put("/change-password/:visitor_id", visitorController.changePassword);
+router.put("/change-password/:visitor_id",verifyToken, visitorController.changePassword);
 // unread notifications count:
 router.get(
   "/notifications/unreadcount",
+  
+
   visitorController.getUnreadNotificationCount
 );
 

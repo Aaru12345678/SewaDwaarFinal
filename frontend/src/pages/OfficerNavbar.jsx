@@ -249,7 +249,7 @@ const refreshDashboard = async () => {
         </div>
         {dropdownOpen && (
           <div className="dropdown">
-            <Link to="/profile">My Profile</Link>
+            <Link to="/officer/profile">My Profile</Link>
             <button className="logout-btn" onClick={handleLogout}>
               Logout
             </button>

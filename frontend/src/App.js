@@ -68,7 +68,8 @@ import EditOfficer from "./pages/EditOfficer";
 import HolidayConfig from "./pages/HolidayConfig";
 import AdminProfile from "./pages/AdminProfile";
 import ProtectedRoute from "./Components/ProtectedRoute";
-
+import OfficerProfile from "./pages/OfficerProfile";
+import HelpdeskAllAppointments from "./pages/HelpdeskAllAppointments"
 function App() {
   const loggedIn = !!localStorage.getItem("token");
 
@@ -110,7 +111,7 @@ function App() {
  {/* Helpdesk login */}
         <Route path="/login/helpdesklogin" element={<HelpdeskLogin />} />
         {/* Helpdesk Routes - Protected */}
-        <Route path="/helpdesk/dashboard" element={<HelpdeskProtectedRoute><HelpdeskDashboard /></HelpdeskProtectedRoute>} />
+        <Route path="/helpdesk/dashboard" element={<HelpdeskProtectedRoute><HelpdeskAllAppointments /></HelpdeskProtectedRoute>} />
         <Route path="/helpdesk/availability" element={<OfficerAvailability />} />
         {/* <Route path="/helpdesk/bookappointment" element={<HelpdeskBooking />} /> */}
 
@@ -150,6 +151,9 @@ function App() {
         <Route path="/edit-service/:service_id" element={<EditServices/>}/>
         <Route path="/edit-officer/:officer_id" element={<EditOfficer/>}/>
         {/*  */}
+
+        <Route path="/officer/profile" element={<OfficerProfile />} />
+
         {/* Officer Routes */}
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/officer/today" element={<TodayAppointments />} />

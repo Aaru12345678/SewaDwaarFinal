@@ -796,6 +796,20 @@ setStats({
     }
   : stats;
 
+  const handleDownloadDocument = (filePath) => {
+  if (!filePath) {
+    toast.error("Invalid file");
+    return;
+  }
+
+  // If file_path is already full URL, use directly
+  const url = filePath.startsWith("http")
+    ? filePath
+    : `http://localhost:5000/${filePath}`;
+
+  window.open(url, "_blank");
+};
+
 
   return (
     <div>
@@ -1203,6 +1217,50 @@ Today ({stats.today_total})
                         {selectedAppointment.purpose || "No purpose specified"}
                       </div>
                     </div>
+
+                    {/* Documents Section */}
+<div className="view-section">
+  <h4><FaFilePdf /> Uploaded Documents</h4>
+
+  {selectedAppointment.documents && selectedAppointment.documents.length > 0 ? (
+    <div className="documents-list">
+      {selectedAppointment.documents.map((doc) => (
+        <div key={doc.document_id} className="document-item">
+          <div className="document-info">
+            <FaFilePdf className="doc-icon" />
+            <div>
+              <div className="doc-name">{doc.doc_type || "Document"}</div>
+              <div className="doc-date">
+                Uploaded on {new Date(doc.uploaded_at).toLocaleDateString("en-IN")}
+              </div>
+            </div>
+          </div>
+
+          <div className="document-actions">
+            <button
+              className="doc-btn view"
+              onClick={() => handleDownloadDocument(doc.file_path)}
+              title="View / Download"
+            >
+              <FaEye /> View
+            </button>
+
+            <button
+              className="doc-btn download"
+              onClick={() => handleDownloadDocument(doc.file_path)}
+              title="Download"
+            >
+              <FaDownload /> Download
+            </button>
+          </div>
+        </div>
+      ))}
+    </div>
+  ) : (
+    <p className="no-documents">No documents uploaded.</p>
+  )}
+</div>
+
 
                     {/* Reschedule Reason if any */}
                     {selectedAppointment.reschedule_reason && (

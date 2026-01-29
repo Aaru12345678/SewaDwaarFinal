@@ -39,6 +39,7 @@ const [loadingSlots, setLoadingSlots] = useState(false);
 
 
 const [showErrors, setShowErrors] = useState(false);
+const [fileError, setFileError] = useState("");
 
 
   const [step, setStep] = useState(1);
@@ -180,17 +181,23 @@ useEffect(() => {
 
   const navigate = useNavigate();
   
-  // const officers = [
-  //   { id: "officer1", name: "John Doe" },
-  //   { id: "officer2", name: "Jane Smith" }
-  // ];
-//   const slots = [
-//   "09:00",
-//   "10:00",
-//   "11:00",
-//   "14:00",
-//   "15:00"
-// ];
+  // pdf check:
+  const isRealPdf = async (file) => {
+  const buffer = await file.arrayBuffer();
+  const bytes = new Uint8Array(buffer).slice(0, 4);
+
+  // %PDF
+  return (
+    bytes[0] === 0x25 &&
+    bytes[1] === 0x50 &&
+    bytes[2] === 0x44 &&
+    bytes[3] === 0x46
+  );
+};
+
+
+
+
 const formatTimeAMPM = (time24) => {
   let [hours, minutes] = time24.split(":").map(Number);
   const ampm = hours >= 12 ? "PM" : "AM";
@@ -368,6 +375,16 @@ const handleSubmit = async (e) => {
     toast.error("Please fill all required fields!");
     return;
   }
+const purposeRegex = /^[A-Za-z0-9\s]+$/;
+
+if (!purposeRegex.test(formData.purpose)) {
+  Swal.fire({
+    icon: "error",
+    title: "Invalid Purpose",
+    text: "Purpose must contain only alphabets and numbers.",
+  });
+  return;
+}
 
   setSubmitting(true);
 
@@ -586,14 +603,56 @@ useEffect(() => {
 }, [isHelpdeskOfficer]);
 
 
-const handleChange = (e) => {
-  const { name, value } = e.target;
-//  setIsManualDateEntry(false); // picker selection
+const handleChange = async (e) => {
+  const { name, value, files } = e.target;
+
+  /* ================= FILE VALIDATION ================= */
+  if (name === "document") {
+  const file = files?.[0];
+  if (!file) return;
+
+  setFileError(""); // reset
+
+  /* MIME check */
+  if (file.type !== "application/pdf") {
+    setFileError("Only PDF files are allowed.");
+    return;
+  }
+
+  /* Magic byte check (%PDF) */
+  const buffer = await file.arrayBuffer();
+  const bytes = new Uint8Array(buffer).slice(0, 4);
+  const isPdf =
+    bytes[0] === 0x25 &&
+    bytes[1] === 0x50 &&
+    bytes[2] === 0x44 &&
+    bytes[3] === 0x46;
+
+  if (!isPdf) {
+    setFileError("Invalid PDF file. Renamed files are not allowed.");
+    return;
+  }
+
+  /* Size check: 5–10 MB */
+  if (file.size > 10 * 1024 * 1024) {
+  setFileError("PDF size must not exceed 10 MB.");
+  return;
+}
+
+  /* ✅ VALID FILE */
+  setFormData(prev => ({
+    ...prev,
+    documents: [file]   // ✅ correct key
+  }));
+
+  return;
+}
+
+  /* ================= NORMAL FORM LOGIC ================= */
   setFormData((prev) => {
     let updated = { ...prev, [name]: value };
 
     if (mode === "department") {
-      // Reset when org changes
       if (name === "org_id") {
         updated.dept_id = "";
         updated.service_id = "";
@@ -603,16 +662,14 @@ const handleChange = (e) => {
         if (value) fetchDepartment(value);
       }
 
-      // When department is selected → fetch services using UPDATED org_id
       if (name === "dept_id") {
         fetchServices(updated.org_id, value);
       }
     }
 
     if (mode === "service") {
-      // Fetch services ONLY by org_id
       if (name === "org_id") {
-        fetchServices(value, null);   // consistent usage
+        fetchServices(value, null);
       }
     }
 
@@ -1120,14 +1177,31 @@ const getError = (condition, message) => {
       </label>
 
       <textarea
-        name="purpose"
-        value={formData.purpose}
-        onChange={handleChange}
-        rows={4}
-        required
-      />
+  name="purpose"
+  value={formData.purpose}
+  rows={4}
+  maxLength={100}
+  required
+  onChange={(e) => {
+    const value = e.target.value;
 
-      {getError(formData.purpose, "Purpose is required")}
+    const purposeRegex = /^[A-Za-z0-9\s]*$/;
+
+    if (!purposeRegex.test(value)) {
+      Swal.fire({
+        icon: "warning",
+        title: "Invalid Characters",
+        text: "Purpose can contain only alphabets and numbers.",
+      });
+      return;
+    }
+
+    setFormData((prev) => ({
+      ...prev,
+      purpose: value,
+    }));
+  }}
+/>
     </div>
 
     {/* Document Upload */}
@@ -1137,31 +1211,16 @@ const getError = (condition, message) => {
         <span className="required">*</span>
       </label>
 
-      <input
-        type="file"
-        name="documents"
-        multiple
-        accept="application/pdf"
-        onChange={(e) => {
-          const files = Array.from(e.target.files);
+   <input
+  type="file"
+  name="document"
+  accept="application/pdf"
+  onChange={handleChange}
+/>
 
-          const invalid = files.some(
-            (file) => file.type !== "application/pdf"
-          );
+{fileError && <span className="error-text">{fileError}</span>}
 
-          if (invalid) {
-            Swal.fire({
-              icon: "error",
-              title: "Invalid File!",
-              text: "Only PDF files are allowed.",
-            });
-            e.target.value = "";
-            return;
-          }
 
-          setFormData({ ...formData, documents: files });
-        }}
-      />
 
       <small className="hint-text">
         Upload scanned documents in PDF format only

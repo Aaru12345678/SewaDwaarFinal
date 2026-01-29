@@ -6,6 +6,20 @@ const pool = require('../db');
 // 
 
 // controllers/bookAppointmentController.js
+const fs = require("fs");
+const path = require("path");
+
+/* 🔐 Real PDF check (magic bytes) */
+const isRealPdf = (filePath) => {
+  const buffer = fs.readFileSync(filePath);
+  return (
+    buffer[0] === 0x25 && // %
+    buffer[1] === 0x50 && // P
+    buffer[2] === 0x44 && // D
+    buffer[3] === 0x46    // F
+  );
+};
+
 exports.createAppointment = async (req, res) => {
   try {
     const {
@@ -110,38 +124,80 @@ exports.createAppointment = async (req, res) => {
 
 exports.uploadAppointmentDocument = async (req, res) => {
   try {
-    const { appointment_id } = req.params; // <-- fixed here
+    const { appointment_id } = req.params;
     const { uploaded_by, doc_type } = req.body;
 
     if (!appointment_id) {
-      return res.status(400).json({ success: false, message: "Appointment ID is required" });
+      return res.status(400).json({
+        success: false,
+        message: "Appointment ID is required"
+      });
     }
 
     if (!req.files || req.files.length === 0) {
-      return res.status(400).json({ success: false, message: "No files uploaded" });
+      return res.status(400).json({
+        success: false,
+        message: "No files uploaded"
+      });
     }
 
     const uploadedDocuments = [];
 
     for (const file of req.files) {
+      /* 🔐 MIME CHECK */
+      if (file.mimetype !== "application/pdf") {
+        fs.unlinkSync(file.path);
+        return res.status(400).json({
+          success: false,
+          message: "Only PDF files are allowed"
+        });
+      }
+
+      /* 🔐 SIZE CHECK (5–10 MB) */
+     if (file.size > 10 * 1024 * 1024) {
+  fs.unlinkSync(file.path);
+  return res.status(400).json({
+    success: false,
+    message: "PDF size must not exceed 10 MB."
+  });
+}
+
+      /* 🔐 REAL PDF CONTENT CHECK */
+      if (!isRealPdf(file.path)) {
+        fs.unlinkSync(file.path);
+        return res.status(400).json({
+          success: false,
+          message: "Invalid PDF file detected"
+        });
+      }
+
+      /* ✅ DB INSERT */
       const query = `
         SELECT * FROM insert_appointment_document($1, $2, $3, $4)
       `;
+
       const values = [
         appointment_id,
         doc_type || file.originalname,
         file.path,
-        uploaded_by || "system",
+        uploaded_by || "system"
       ];
 
       const { rows } = await pool.query(query, values);
       uploadedDocuments.push(rows[0]);
     }
 
-    return res.status(201).json({ success: true, documents: uploadedDocuments });
+    return res.status(201).json({
+      success: true,
+      documents: uploadedDocuments
+    });
+
   } catch (err) {
-    console.error("Error uploading documents:", err);
-    return res.status(500).json({ success: false, message: "Failed to upload documents" });
+    console.error("❌ Upload error:", err);
+    return res.status(500).json({
+      success: false,
+      message: err.message || "Failed to upload documents"
+    });
   }
 };
 

@@ -8,109 +8,120 @@ import Header from "../Components/Header";
 import NavbarTop from "../Components/NavbarTop";
 import "./MainPage.css";
 
+const ITEMS_PER_PAGE = 5;
+
 const AppointmentList = () => {
   const navigate = useNavigate();
   const username = localStorage.getItem("username");
 
   const [fullName, setFullName] = useState("");
   const [appointments, setAppointments] = useState([]);
-  const [walkins, setWalkins] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // ✅ Fetch appointments + walkins
+  const [currentPage, setCurrentPage] = useState(1);
+  const [sortAsc, setSortAsc] = useState(false);
+  const [statusFilter, setStatusFilter] = useState("all");
+
+  /* ================= Date Group ================= */
+  const getDateGroup = (date) => {
+    const today = new Date();
+    const d = new Date(date);
+
+    if (d.toDateString() === today.toDateString()) return "Today";
+
+    const yesterday = new Date();
+    yesterday.setDate(today.getDate() - 1);
+    if (d.toDateString() === yesterday.toDateString())
+      return "Yesterday";
+
+    return "Older";
+  };
+
+  /* ================= Fetch Appointments ================= */
   useEffect(() => {
     const fetchData = async () => {
-      try {
-        setLoading(true);
+      setLoading(true);
 
-        const { data, error } = await getVisitorDashboard(username);
+      const { data, error } = await getVisitorDashboard(username);
 
-        if (error || !data?.success) {
-          Swal.fire("Error", "Failed to fetch appointments", "error");
-          return;
-        }
-
+      if (error) {
+        Swal.fire("Error", "Failed to fetch appointments", "error");
+      } else if (data?.success) {
         setFullName(data.data.full_name || username);
         setAppointments(data.data.appointments || []);
-        setWalkins(data.data.walkins || []);
-      } catch (err) {
-        console.error(err);
-        Swal.fire("Error", "Server error while fetching appointments", "error");
-      } finally {
-        setLoading(false);
       }
+
+      setLoading(false);
     };
 
     if (username) fetchData();
   }, [username]);
 
-  // ✅ Merge Online + Walkins into ONE list
-  const combinedAppointments = [
-    ...(appointments || []).map((a) => ({
-      ...a,
-      rowType: "appointment",
-      id: a.appointment_id,
-      date: a.appointment_date,
-    })),
-    ...(walkins || []).map((w) => ({
-      ...w,
-      rowType: "walkin",
-      id: w.walkin_id,
-      date: w.walkin_date,
-    })),
-  ];
-
-  // ✅ Sort by latest (optional)
-  combinedAppointments.sort((a, b) => (b.id > a.id ? 1 : -1));
-
-  // ✅ Cancel Appointment (ONLY for online appointments)
+  /* ================= Cancel Appointment ================= */
   const handleCancel = async (id) => {
-    try {
-      const { value: reason, isConfirmed } = await Swal.fire({
-        title: "Cancel Appointment",
-        text: "Please provide a reason for cancelling:",
-        input: "textarea",
-        inputPlaceholder: "Enter cancelled reason...",
-        showCancelButton: true,
-        confirmButtonText: "Cancel Appointment",
-        cancelButtonText: "Keep Appointment",
-        inputValidator: (value) => {
-          if (!value) return "Reason is required!";
-        },
-      });
+    const { value: reason, isConfirmed } = await Swal.fire({
+      title: "Cancel Appointment",
+      input: "textarea",
+      inputPlaceholder: "Enter cancellation reason...",
+      showCancelButton: true,
+      confirmButtonText: "Cancel Appointment",
+      inputValidator: (v) => (!v ? "Reason is required!" : null),
+    });
 
-      if (!isConfirmed) return;
+    if (!isConfirmed) return;
 
-      const { data, error } = await cancelAppointment(id, reason);
+    const { data } = await cancelAppointment(id, reason);
 
-      if (error || !data?.success) {
-        Swal.fire("Error", "Failed to cancel appointment", "error");
-        return;
-      }
-
-      // ✅ Update only online appointments state
-      setAppointments((prev) =>
-        prev.map((appt) =>
-          appt.appointment_id === id ? { ...appt, status: "cancelled" } : appt
-        )
-      );
-
-      Swal.fire("Cancelled!", "Your appointment has been cancelled.", "success");
-    } catch (err) {
-      console.error(err);
-      Swal.fire("Error", "Server error while cancelling appointment", "error");
+    if (!data?.success) {
+      Swal.fire("Error", "Failed to cancel appointment", "error");
+      return;
     }
+
+    setAppointments((prev) =>
+      prev.map((a) =>
+        a.appointment_id === id
+          ? { ...a, status: "cancelled" }
+          : a
+      )
+    );
+
+    Swal.fire("Cancelled", "Appointment cancelled", "success");
   };
 
-  // ✅ View handlers
-  const handleViewPass = (id) => navigate(`/appointment-pass/${id}`);
-  const handleView = (type, id) => {
-    if (type === "walkin") navigate(`/appointment/${id}`);
-    else navigate(`/appointment/${id}`);
-  };
+  /* ================= Filters + Sorting ================= */
+  const filteredAppointments = appointments
+    .filter((a) =>
+      statusFilter === "all"
+        ? true
+        : a.status === statusFilter
+    )
+    .sort((a, b) => {
+      const d1 = new Date(`${a.appointment_date} ${a.slot_time}`);
+      const d2 = new Date(`${b.appointment_date} ${b.slot_time}`);
+      return sortAsc ? d1 - d2 : d2 - d1;
+    });
 
-  const canCancel = (status) => ["pending", "rescheduled"].includes(status);
-  const canViewPass = (status) => ["approved", "rescheduled"].includes(status);
+  /* ================= Pagination ================= */
+  const totalPages = Math.ceil(
+    filteredAppointments.length / ITEMS_PER_PAGE
+  );
+
+  const paginated = filteredAppointments.slice(
+    (currentPage - 1) * ITEMS_PER_PAGE,
+    currentPage * ITEMS_PER_PAGE
+  );
+
+  /* ================= Group ================= */
+  const grouped = paginated.reduce((g, a) => {
+    const key = getDateGroup(a.appointment_date);
+    if (!g[key]) g[key] = [];
+    g[key].push(a);
+    return g;
+  }, {});
+
+  const canCancel = (s) => ["pending", "rescheduled"].includes(s);
+  const canViewPass = (s) =>
+    ["approved", "rescheduled"].includes(s);
 
   if (loading) return <p>Loading appointments...</p>;
 
@@ -126,108 +137,147 @@ const AppointmentList = () => {
         <div className="content-below">
           <div className="appointment-list-container">
             <h2>
-              <span>
-                <button className="back-btn" onClick={() => navigate(-1)}>
-                  ← Back
-                </button>
-              </span>
+              <button
+                className="back-btn"
+                onClick={() => navigate(-1)}
+              >
+                ← Back
+              </button>{" "}
               📅 My Appointments
             </h2>
 
-            <table className="appointment-table">
-              <thead>
-                <tr>
-                  <th>ID</th>
-                  <th>Type</th>
-                  <th>Officer</th>
-                  <th>Department</th>
-                  <th>Service</th>
-                  <th>Date & Time</th>
-                  <th>Status</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
+            {/* Filters */}
+            <div className="filters">
+              <select
+                value={statusFilter}
+                onChange={(e) => {
+                  setStatusFilter(e.target.value);
+                  setCurrentPage(1);
+                }}
+              >
+                <option value="all">All Status</option>
+                <option value="pending">Pending</option>
+                <option value="approved">Approved</option>
+                <option value="rescheduled">Rescheduled</option>
+                <option value="cancelled">Cancelled</option>
+                <option value="rejected">Rejected</option>
+                <option value="completed">Completed</option>
+              </select>
+            </div>
 
-              <tbody>
-                {combinedAppointments.length === 0 ? (
-                  <tr>
-                    <td colSpan="8">No appointments found.</td>
-                  </tr>
-                ) : (
-                  combinedAppointments.map((appt) => (
-                    <tr key={appt.id}>
-                      <td>{appt.id}</td>
+            {Object.entries(grouped).map(
+              ([group, items]) => (
+                <div key={group}>
+                  <h4 className="date-heading">{group}</h4>
 
-                      <td style={{ fontWeight: 600 }}>
-                        {appt.rowType === "walkin" ? "Walk-in" : "Online"}
-                      </td>
+                  <table className="appointment-table">
+                    <thead>
+                      <tr>
+                        <th>ID</th>
+                        <th>Officer</th>
+                        <th>Department</th>
+                        <th>Service</th>
+                        <th
+                          style={{ cursor: "pointer" }}
+                          onClick={() =>
+                            setSortAsc((p) => !p)
+                          }
+                        >
+                          Date & Time{" "}
+                          {sortAsc ? "▲" : "▼"}
+                        </th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                      </tr>
+                    </thead>
 
-                      <td>{appt.officer_name || "Helpdesk"}</td>
-                      <td>{appt.department_name || "-"}</td>
-                      <td>{appt.service_name || "-"}</td>
-
-                      <td>
-                        {appt.date || "-"} {appt.slot_time || ""}
-                      </td>
-
-                      <td className={`status ${appt.status?.toLowerCase()}`}>
-                        {appt.status}
-                      </td>
-
-                      <td>
-                        {/* ✅ VIEW */}
-                        {appt.status !== "rejected" && (
-                          <button onClick={() => handleView(appt.rowType, appt.id)}>
-                            View
-                          </button>
-                        )}
-
-                        {/* ✅ VIEW PASS (Only for Online) */}
-                        {appt.rowType === "appointment" && canViewPass(appt.status) && (
-                          <button
-                            style={{ marginLeft: "5px" }}
-                            onClick={() => handleViewPass(appt.appointment_id)}
+                    <tbody>
+                      {items.map((appt) => (
+                        <tr key={appt.appointment_id}>
+                          <td>{appt.appointment_id}</td>
+                          <td>{appt.officer_name || "Helpdesk"}</td>
+                          <td>{appt.department_name}</td>
+                          <td>{appt.service_name}</td>
+                          <td>
+                            {appt.appointment_date}{" "}
+                            {appt.slot_time}
+                          </td>
+                          <td
+                            className={`status ${appt.status}`}
                           >
-                            View Pass
-                          </button>
-                        )}
+                            {appt.status}
+                          </td>
+                          <td>
+                            {appt.status !== "rejected" && (
+                              <button
+                                onClick={() =>
+                                  navigate(
+                                    `/appointment/${appt.appointment_id}`
+                                  )
+                                }
+                              >
+                                View
+                              </button>
+                            )}
 
-                        {/* ✅ CANCEL (Only for Online) */}
-                        {appt.rowType === "appointment" && canCancel(appt.status) && (
-                          <button
-                            style={{ marginLeft: "5px" }}
-                            onClick={() => handleCancel(appt.appointment_id)}
-                          >
-                            Cancel
-                          </button>
-                        )}
+                            {canViewPass(appt.status) && (
+                              <button
+                                onClick={() =>
+                                  navigate(
+                                    `/appointment-pass/${appt.appointment_id}`
+                                  )
+                                }
+                              >
+                                View Pass
+                              </button>
+                            )}
 
-                        {/* ✅ CANCELLED */}
-                        {appt.status === "cancelled" && (
-                          <button
-                            disabled
-                            style={{
-                              cursor: "not-allowed",
-                              opacity: 0.5,
-                              marginLeft: "5px",
-                            }}
-                          >
-                            Cancelled
-                          </button>
-                        )}
+                            {canCancel(appt.status) && (
+                              <button
+                                onClick={() =>
+                                  handleCancel(
+                                    appt.appointment_id
+                                  )
+                                }
+                              >
+                                Cancel
+                              </button>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )
+            )}
 
-                        {/* ✅ REJECTED */}
-                        {appt.status === "rejected" && (
-                          <span style={{ color: "#d9534f", fontWeight: 600 }}>
-                            ❌ Rejected
-                          </span>
-                        )}
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div className="pagination">
+                <button
+                  disabled={currentPage === 1}
+                  onClick={() =>
+                    setCurrentPage((p) => p - 1)
+                  }
+                >
+                  ◀ Prev
+                </button>
+
+                <span>
+                  Page {currentPage} of {totalPages}
+                </span>
+
+                <button
+                  disabled={currentPage === totalPages}
+                  onClick={() =>
+                    setCurrentPage((p) => p + 1)
+                  }
+                >
+                  Next ▶
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </div>

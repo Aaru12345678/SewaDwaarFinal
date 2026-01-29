@@ -1,17 +1,21 @@
 const cron = require("node-cron");
 const pool = require("./db");
 
-/**
- * Runs every 1 hour (minute 0)
- */
-cron.schedule("0 * * * *", async () => {
+const autoReject = async () => {
   try {
-    console.log("⏰ Running auto-reject job...");
+    console.log("⏰ Auto-reject job started");
 
-    await pool.query("SELECT auto_reject_expired_appointments()");
+    // Call DB function
+    await pool.query(`SELECT auto_reject_expired_appointments();`);
 
-    console.log("✅ Auto-reject completed");
+    console.log("✅ Auto-reject job finished");
   } catch (err) {
-    console.error("❌ Auto-reject failed:", err.message);
+    console.error("❌ Auto-reject job failed:", err.message);
   }
-});
+};
+
+/* 🔥 Run once when Node starts */
+autoReject();
+
+/* 🔁 Run every 2 hours */
+cron.schedule("0 */2 * * *", autoReject);

@@ -4,6 +4,8 @@ import "../css/admin-profile.css";
 import { FaUserCircle } from "react-icons/fa";
 import { toast } from "react-toastify";
 import axios from "axios";
+import jwtDecode from "jwt-decode";   // 🔥 IMPORTANT
+import { getUserByEntityId } from "../services/api";
 
 const AdminProfile = () => {
   const navigate = useNavigate();
@@ -15,47 +17,94 @@ const AdminProfile = () => {
   const role = localStorage.getItem("role_code");
 
   // 🔐 AUTH CHECK + FETCH PROFILE
-  useEffect(() => {
-    if (!token) {
-      toast.error("Please login first");
+  // useEffect(() => {
+  //   if (!token) {
+  //     toast.error("Please login first");
+  //     navigate("/login");
+  //     return;
+  //   }
+
+  //   if (role !== "AD") {
+  //     toast.error("Unauthorized access");
+  //     navigate("/login");
+  //     return;
+  //   }
+
+  //   fetchAdminProfile();
+  // }, []);
+
+  // 📡 FETCH ADMIN PROFILE USING YOUR CONTROLLER
+  const [formData, setFormData] = useState({
+  full_name: "",
+  email_id: "",
+  mobile_no: "",
+  state_name: "",
+  division_name: "",
+  district_name: "",
+  taluka_name: "",
+  address: "",
+  pincode: "",
+  role_name: "",
+  designation: "",
+  department_name: "",
+  organization_name: ""
+});
+const fetchAdminProfile = async () => {
+  try {
+    const entityId = localStorage.getItem("username"); // ADM001
+
+    if (!entityId) {
+      toast.error("Session expired. Please login again.");
       navigate("/login");
       return;
     }
 
-    if (role !== "AD") {
-      toast.error("Unauthorized access");
-      navigate("/login");
+    const res = await getUserByEntityId(entityId);
+
+    console.log("🔥 FULL API RESPONSE:", res);
+    console.log("🔥 PROFILE WRAPPER:", res.data.data);
+    console.log("🔥 REAL PROFILE DATA:", res.data.data.data);
+
+    if (!res.data?.success) {
+      toast.error(res.data?.message || "Admin profile not found");
       return;
     }
 
-    fetchAdminProfile();
-  }, [token, role]);
+    // 🔥 THIS IS THE REAL ADMIN OBJECT
+    const profile = res.data.data;
 
-  // 📡 FETCH ADMIN PROFILE
-  const fetchAdminProfile = async () => {
-    try {
-      const res = await axios.get(
-        "http://localhost:5000/api/profile/me",
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+    setAdmin(profile);
 
-      if (!res.data.success) {
-        toast.error(res.data.message || "Admin profile not found");
-        return;
-      }
+  } catch (err) {
+    console.error("Profile fetch error:", err);
+    toast.error("Failed to load admin profile");
+  } finally {
+    setLoading(false);
+  }
+};
+const handleChange = (e) => {
+  const { name, value } = e.target;
+  setFormData(prev => ({
+    ...prev,
+    [name]: value
+  }));
+};
+useEffect(() => {
+  if (!token) {
+    toast.error("Please login first");
+    navigate("/login");
+    return;
+  }
 
-      setAdmin(res.data.data);
-    } catch (err) {
-      console.error("Profile fetch error:", err.response?.data || err.message);
-      toast.error(err.response?.data?.message || "Failed to load admin profile");
-    } finally {
-      setLoading(false);
-    }
-  };
+  if (role !== "AD") {
+    toast.error("Unauthorized access");
+    navigate("/login");
+    return;
+  }
+
+  fetchAdminProfile();
+}, []);
+
 
   if (loading) return <div className="admin-profile-page">Loading profile...</div>;
   if (!admin) return <div className="admin-profile-page">No data available</div>;
@@ -102,30 +151,30 @@ const AdminProfile = () => {
         </div>
 
         {/* ADDRESS DETAILS */}
-{/* ADDRESS DETAILS (NAMES FROM DB) */}
-<div className="info-card">
-  <h4>Address Details</h4>
-  <div className="info-grid">
-    <p><span>State</span>{admin.state_name || "-"}</p>
-    <p><span>Division</span>{admin.division_name || "-"}</p>
-    <p><span>District</span>{admin.district_name || "-"}</p>
-    <p><span>Taluka</span>{admin.taluka_name || "-"}</p>
+        <div className="info-card">
+          <h4>Address Details</h4>
+          <div className="info-grid">
+            <p><span>State</span>{admin.state_name || "-"}</p>
+            <p><span>Division</span>{admin.division_name || "-"}</p>
+            <p><span>District</span>{admin.district_name || "-"}</p>
+            <p><span>Taluka</span>{admin.taluka_name || "-"}</p>
 
-    <p><span>Address</span>{admin.address || "-"}</p>
-    <p><span>Pincode</span>{admin.pincode || "-"}</p>
-  </div>
-</div>
+            <p><span>Address</span>{admin.address || "-"}</p>
+            <p><span>Pincode</span>{admin.pincode || "-"}</p>
+          </div>
+        </div>
 
         {/* OFFICE DETAILS */}
-<div className="info-card">
-  <h4>Officer Details</h4>
-  <div className="info-grid">
-    <p><span>Role</span>{admin.role_name || "-"}</p>              {/* 🔥 NEW */}
-    <p><span>Designation</span>{admin.designation || "-"}</p>
-    <p><span>Department</span>{admin.department_name || "-"}</p>
-    <p><span>Organization</span>{admin.organization_name || "-"}</p> {/* 🔥 NEW */}
-  </div>
-</div>
+        <div className="info-card">
+          <h4>Officer Details</h4>
+          <div className="info-grid">
+            <p><span>Role</span>{admin.role_name || "-"}</p>
+            <p><span>Designation</span>{admin.designation || "-"}</p>
+            <p><span>Department</span>{admin.department_name || "-"}</p>
+            <p><span>Organization</span>{admin.organization_name || "-"}</p>
+          </div>
+        </div>
+
       </div>
     </div>
   );

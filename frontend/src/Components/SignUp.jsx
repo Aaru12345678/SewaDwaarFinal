@@ -96,6 +96,14 @@ const canvasRef = React.useRef(null);
     if (data) setTalukas(data);
   }, []);
 
+const isRealJpeg = async (file) => {
+  const buffer = await file.arrayBuffer();
+  const bytes = new Uint8Array(buffer).slice(0, 3);
+  return bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff;
+};
+
+
+
   useEffect(() => {
   (async () => {
     setLoadingStates(true);
@@ -203,26 +211,43 @@ useEffect(() => {
   /* ===================== HANDLE CHANGE ===================== */
 
 
-  const handleChange = (e) => {
+  const handleChange = async (e) => {
     const { name, value, files } = e.target;
 
     setErrors((p) => ({ ...p, [name]: "" }));
 
-    if (name === "photo") {
-      const file = files[0];
-      if (!file) return;
+   if (name === "photo") {
+  const file = files[0];
+  if (!file) return;
 
-      if (!["image/jpeg", "image/jpg"].includes(file.type)) {
-        setErrors((e) => ({ ...e, photo: "Only JPG/JPEG allowed." }));
-        return;
-      }
-      if (file.size > 200 * 1024) {
-        setErrors((e) => ({ ...e, photo: "Photo must be ≤ 200 KB." }));
-        return;
-      }
-      setFormData((p) => ({ ...p, photo: file }));
-      return;
-    }
+  // MIME check
+  if (file.type !== "image/jpeg") {
+    setErrors((e) => ({ ...e, photo: "Only JPG/JPEG images allowed." }));
+    return;
+  }
+
+  // Magic byte check
+  const isJpeg = await isRealJpeg(file);
+  if (!isJpeg) {
+    setErrors((e) => ({
+      ...e,
+      photo: "Invalid image file. Please upload a valid JPG.",
+    }));
+    return;
+  }
+
+  // Size check
+  if (file.size > 200 * 1024) {
+    setErrors((e) => ({
+      ...e,
+      photo: "Photo must be ≤ 200 KB.",
+    }));
+    return;
+  }
+
+  setFormData((p) => ({ ...p, photo: file }));
+  return;
+}
 
     setFormData((prev) => {
       const updated = { ...prev, [name]: value };
@@ -436,6 +461,7 @@ return (
             name="full_name"
             value={formData.full_name}
             onChange={handleChange}
+            maxLength={150}
             required
           />
           {errors.full_name && (
@@ -454,6 +480,7 @@ return (
               name="email_id"
               value={formData.email_id}
               onChange={handleChange}
+              maxLength={255}
               required
             />
             {errors.email_id && (
@@ -528,6 +555,7 @@ return (
             onChange={handleChange}
             rows="3"
             required
+            maxLength={150}
           />
         </div>
 

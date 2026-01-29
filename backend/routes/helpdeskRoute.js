@@ -54,7 +54,7 @@ router.post("/book-walkin", bookWalkinAppointment);
 router.post("/officers", getOfficersForBooking);
 
 // Appointments by department (date-based)
-router.get("/:helpdesk_id/appointments-by-department", getAllAppointmentsByDepartment);
+router.get("/appointments-by-department", getAllAppointmentsByDepartment);
 
 // Notifications (location-based)
 router.get("/:helpdesk_id/notifications", getNotifications);

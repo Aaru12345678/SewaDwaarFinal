@@ -13,6 +13,12 @@ import {
   FaMapMarkerAlt,
 } from "react-icons/fa";
 import "../css/HelpdeskAllAppointment.css";
+import Header from "../Components/Header";
+import NavbarHelpdesk from "../pages/NavbarHelpdesk";
+import SidebarHelpdesk from "../pages/SidebarHelpdesk";
+import { useNavigate } from "react-router-dom";
+import HelpdeskBooking from "../pages/HelpdeskBooking";
+import AppointmentList from "../pages/AppointmentHelpdesk";
 
 /* ================= HELPERS ================= */
 
@@ -20,22 +26,27 @@ const buildDepartmentHierarchy = (departments, appointments) => {
   const deptMap = {};
 
   departments.forEach((dept) => {
-    deptMap[dept.department_id] = { ...dept, officers: {} };
+    deptMap[dept.department_id] = {
+      ...dept,
+      officers: {},
+    };
   });
 
   appointments.forEach((apt) => {
     const deptId = apt.department_id;
-    const officerId = apt.officer_id || "UNKNOWN";
-    if (!deptMap[deptId]) return;
+    if (!deptId || !deptMap[deptId]) return;
+
+    const officerId = apt.officer_id || "UNASSIGNED";
 
     if (!deptMap[deptId].officers[officerId]) {
       deptMap[deptId].officers[officerId] = {
         officer_id: officerId,
-        officer_name: apt.officer_name,
-        officer_designation: apt.officer_designation,
+        officer_name: apt.officer_name || "Not Assigned",
+        officer_designation: apt.officer_designation || "—",
         appointments: [],
       };
     }
+
     deptMap[deptId].officers[officerId].appointments.push(apt);
   });
 
@@ -92,17 +103,31 @@ const HelpdeskAllAppointments = () => {
   const [statusFilter, setStatusFilter] = useState("all");
   const [selectedAppointment, setSelectedAppointment] = useState(null);
   const [showViewModal, setShowViewModal] = useState(false);
-
+  const [showBooking, setShowBooking] = useState(false);
+const [activeMenu, setActiveMenu] = useState("dashboard");
+  const [showSearchUser, setShowSearchUser] = useState(false);
+const [showAllAppointments, setShowAllAppointments] = useState(false);
+  const [filterType, setFilterType] = useState("");
+  const [showAppointmentList, setShowAppointmentList] = useState(false);
   const helpdeskId = localStorage.getItem("helpdesk_id");
+  const username = localStorage.getItem("username");
+    const [filteredAppointments, setFilteredAppointments] = useState([]);
+  
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    localStorage.clear();
+    navigate("/login");
+  };
 
   const fetchAppointments = useCallback(async () => {
     try {
       setLoading(true);
       const res = await fetch(
-        `http://localhost:5000/api/helpdesk/${helpdeskId}/appointments-by-department?date=${selectedDate}`
+        `http://localhost:5000/api/helpdesk/appointments-by-department?helpdesk_id=${username}&date=${selectedDate}`
       );
       const data = await res.json();
-
+      console.log(data,"data")
       if (data.success) {
         const structured = buildDepartmentHierarchy(
           data.departments || [],
@@ -129,11 +154,16 @@ const HelpdeskAllAppointments = () => {
     } finally {
       setLoading(false);
     }
-  }, [helpdeskId, selectedDate]);
+  }, [username, selectedDate]);
 
   useEffect(() => {
     fetchAppointments();
   }, [fetchAppointments]);
+
+  useEffect(() => {
+  setShowAllAppointments(true);
+}, []);
+
 
   const toggleDepartment = (id) =>
     setExpandedDepartments((p) => ({ ...p, [id]: !p[id] }));
@@ -210,6 +240,34 @@ const HelpdeskAllAppointments = () => {
     0
   );
 
+const handleBackToDashboard = () => {
+    setShowAppointmentList(false);
+    setShowBooking(false);
+    setShowAllAppointments(false);
+    setFilterType("");
+    setActiveMenu("dashboard");
+  };
+
+const handleMenuClick = (menu) => {
+  setActiveMenu(menu);
+
+  setShowBooking(false);
+  setShowAppointmentList(false);
+  setShowSearchUser(false);
+
+  if (menu === "booking") {
+    setShowBooking(true);
+    setShowAllAppointments(false);
+  } 
+  else if (menu === "all-appointments") {
+    setShowAllAppointments(true);   // ✅ IMPORTANT
+  } 
+  else if (menu === "user") {
+    setShowSearchUser(true);
+    setShowAllAppointments(false);
+  }
+};
+
   if (loading) {
     return (
       <div className="hd-apt-loading">
@@ -220,6 +278,24 @@ const HelpdeskAllAppointments = () => {
   }
 
   return (
+    <>
+     <Header />
+      <div className="helpdesk-layout">
+        <SidebarHelpdesk activeMenu={activeMenu} onMenuClick={handleMenuClick} />
+
+        <div className="helpdesk-main">
+          <NavbarHelpdesk username={username} onLogout={handleLogout} />
+<div className="helpdesk-content">
+  {showBooking ? (
+    <HelpdeskBooking onBack={handleBackToDashboard} />
+  ) 
+   : showAppointmentList ? (
+    <AppointmentList
+      filteredAppointments={filteredAppointments}
+      handleBackToDashboard={handleBackToDashboard}
+      filterType={filterType}
+    />
+  ) : (
     <div className="hd-all-appointments">
       {/* HEADER */}
       <div className="hd-apt-header">
@@ -273,41 +349,122 @@ const HelpdeskAllAppointments = () => {
 
       {/* SUMMARY */}
       <div className="hd-apt-summary">
-        <div className="hd-summary-card total">
-          <span className="hd-summary-count">{totalFiltered}</span>
-          <span className="hd-summary-label">Total</span>
+  <div className="hd-summary-card total">
+    <span className="hd-summary-count">{allAppointments.length}</span>
+    <span className="hd-summary-label">Total</span>
+  </div>
+
+  <div className="hd-summary-card pending">
+    <span className="hd-summary-count">{statusSummary.pending}</span>
+    <span className="hd-summary-label">Pending</span>
+  </div>
+
+  <div className="hd-summary-card approved">
+    <span className="hd-summary-count">{statusSummary.approved}</span>
+    <span className="hd-summary-label">Approved</span>
+  </div>
+
+  <div className="hd-summary-card completed">
+    <span className="hd-summary-count">{statusSummary.completed}</span>
+    <span className="hd-summary-label">Completed</span>
+  </div>
+
+  <div className="hd-summary-card rejected">
+    <span className="hd-summary-count">{statusSummary.rejected}</span>
+    <span className="hd-summary-label">Rejected</span>
+  </div>
+
+  <div className="hd-summary-card rescheduled">
+    <span className="hd-summary-count">{statusSummary.rescheduled}</span>
+    <span className="hd-summary-label">Rescheduled</span>
+  </div>
+
+  <div className="hd-summary-card walkins">
+    <span className="hd-summary-count">{statusSummary.walkins}</span>
+    <span className="hd-summary-label">Walk-ins</span>
+  </div>
+
+  <div className="hd-summary-card walkins-completed">
+    <span className="hd-summary-count">{statusSummary.walkins_completed}</span>
+    <span className="hd-summary-label">Walk-ins Completed</span>
+  </div>
+</div>
+
+{/* ================= DEPARTMENTS & APPOINTMENTS ================= */}
+<div className="hd-departments-container">
+  {departments.map((dept) => (
+    <div key={dept.department_id} className="hd-department-card">
+      
+      {/* ================= DEPARTMENT HEADER ================= */}
+      <div className="hd-dept-header">
+        <div className="hd-dept-info">
+          <FaBuilding />
+          <div>
+            <h3>{dept.department_name}</h3>
+            <span className="hd-org-name">
+              {dept.organization_name}
+            </span>
+          </div>
         </div>
-        <div className="hd-summary-card pending">
-          <span className="hd-summary-count">{statusSummary.pending}</span>
-          <span className="hd-summary-label">Pending</span>
-        </div>
-        <div className="hd-summary-card approved">
-          <span className="hd-summary-count">{statusSummary.approved}</span>
-          <span className="hd-summary-label">Approved</span>
-        </div>
-        <div className="hd-summary-card completed">
-          <span className="hd-summary-count">{statusSummary.completed}</span>
-          <span className="hd-summary-label">Completed</span>
-        </div>
-        <div className="hd-summary-card rejected">
-          <span className="hd-summary-count">{statusSummary.rejected}</span>
-          <span className="hd-summary-label">Rejected</span>
-        </div>
-        <div className="hd-summary-card rescheduled">
-          <span className="hd-summary-count">{statusSummary.rescheduled}</span>
-          <span className="hd-summary-label">Rescheduled</span>
-        </div>
-        <div className="hd-summary-card walkins">
-          <span className="hd-summary-count">
-            {statusSummary.walkins}
+
+        <div className="hd-dept-meta">
+          <span className="hd-apt-count">
+            {allAppointments.length}
           </span>
-          <span className="hd-summary-label">Walk-ins</span>
-        </div>
-        <div className="hd-summary-card walkins-completed">
-          <span className="hd-summary-count">{statusSummary.walkins_completed}</span>
-          <span className="hd-summary-label">Walk-ins Completed</span>
         </div>
       </div>
+
+      {/* ================= APPOINTMENTS LIST ================= */}
+      <div className="hd-appointments-list">
+        {allAppointments.length > 0 ? (
+          allAppointments.map((apt) => (
+            <div
+              key={apt.appointment_id}
+              className={`hd-appointment-item ${apt.status}`}
+            >
+              <div className="hd-apt-visitor-info">
+                
+                {/* VISITOR NAME */}
+                <div className="hd-apt-name">
+                  {apt.visitor_name}
+                </div>
+
+                {/* DETAILS */}
+                <div className="hd-apt-details">
+                  <span className="hd-apt-time">
+                    <FaClock /> {apt.slot_time}
+                  </span>
+
+                  <span className="hd-apt-service">
+                    {apt.service_name}
+                  </span>
+
+                  {/* ✅ OFFICER NAME */}
+                  <span className="hd-apt-officer">
+                    <FaUser />{" "}
+                    {apt.officer_name || "Not Assigned"}
+                  </span>
+                </div>
+              </div>
+
+              {/* STATUS */}
+              <div className="hd-apt-status">
+                <span className={`hd-status-badge ${apt.status}`}>
+                  {apt.status.charAt(0).toUpperCase() +
+                    apt.status.slice(1)}
+                </span>
+              </div>
+            </div>
+          ))
+        ) : (
+          <div className="hd-no-appointments">
+            <p>No appointments for selected date</p>
+          </div>
+        )}
+      </div>
+    </div>
+  ))}
+</div>
 
       {/* DEPARTMENTS */}
       <div className="hd-departments-container">
@@ -418,7 +575,11 @@ const HelpdeskAllAppointments = () => {
           </div>
         ))}
       </div>
+    </div>)}
     </div>
+    </div>
+    </div>
+    </>
   );
 };
 

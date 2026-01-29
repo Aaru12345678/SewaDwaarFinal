@@ -13,10 +13,14 @@ const safeRequest = async (request) => {
     const response = await request;
     return { data: response.data, error: null };
   } catch (error) {
-    console.error("API error:", error?.response?.data || error.message || error);
-    return { data: null, error };
+    console.error("API error:", error?.response?.data || error.message);
+
+    // ❗ rethrow so interceptor can catch 401
+    throw error;
   }
 };
+
+
 
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem("token");
@@ -26,6 +30,26 @@ api.interceptors.request.use((config) => {
   }
   return config;
 });
+
+
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      console.warn("JWT expired → force logout");
+
+      localStorage.clear();
+
+      // Avoid infinite redirect loop
+      if (!window.location.pathname.includes("/login")) {
+        window.location.href = "/login";
+      }
+    }
+
+    return Promise.reject(error); // 👈 IMPORTANT
+  }
+);
+
 
 // ================= LOCATION DATA =================
 export const getStates = () => safeRequest(api.get("/states"));

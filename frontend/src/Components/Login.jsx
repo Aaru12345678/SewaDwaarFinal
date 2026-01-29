@@ -94,7 +94,12 @@ export default function Login() {
     e.preventDefault();
 
     if (!username || !password) {
-      toast.error("Please enter username and password");
+      Swal.fire({
+  icon: "error",
+  title: "Missing Details",
+  text: "Please enter username and password",
+});
+
       return;
     }
 
@@ -114,7 +119,12 @@ export default function Login() {
       const { data } = await login(payload);
       console.log(data,"data")
       if (!data?.success) {
-        toast.error(data?.message || "Invalid credentials");
+        Swal.fire({
+  icon: "error",
+  title: "Login Failed",
+  text: data?.message || "Invalid credentials",
+});
+
         return;
       }
 
@@ -128,6 +138,9 @@ export default function Login() {
       localStorage.setItem("userdivision_code", data.user.division_code);
       localStorage.setItem("userdistrict_code", data.user.district_code);
       localStorage.setItem("usertaluka_code", data.user.taluka_code);
+      localStorage.setItem("token",  data.token);
+      localStorage.setItem("loginTime", Date.now());
+           
       // 👤 Fetch & store full name (no alert)
 
       if (data.user.is_first_login === true) {
@@ -164,7 +177,12 @@ export default function Login() {
       navigate("/dashboard1");
     } catch (err) {
       console.error("Login error:", err);
-      toast.error("Something went wrong, try again.");
+      Swal.fire({
+  icon: "error",
+  title: "Error",
+  text: "Something went wrong. Please try again.",
+});
+
     } finally {
       setLoading(false);
       setTimeout(() => setProgress(false), 400);

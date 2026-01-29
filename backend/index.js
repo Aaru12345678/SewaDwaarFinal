@@ -83,6 +83,8 @@ const profileRoutes      = require("./routes/profileRoute");
 // 👤 Profile (Unified /me)
 app.use("/api/profile", profileRoutes);
 
+app.use("/api", require("./routes/user"));
+
 
 
 const PORT = process.env.PORT || 5000;

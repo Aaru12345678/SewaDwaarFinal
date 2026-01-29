@@ -280,17 +280,23 @@ const getOfficersForBooking = async (req, res) => {
 // Get all appointments grouped by department (read-only view for helpdesk)
 // GET /api/helpdesk/appointments-by-department?date=YYYY-MM-DD
 const getAllAppointmentsByDepartment = async (req, res) => {
-  const { date } = req.query;
+  const { date, helpdesk_id } = req.query;
 
+  // 🔐 Priority:
+  // 1️⃣ helpdesk_id from query (if explicitly passed)
+  // 2️⃣ otherwise take from JWT
+  const helpdeskUserId = helpdesk_id;
+
+  // Default date = today
   const queryDate = date || new Date().toISOString().split("T")[0];
 
   try {
     const result = await pool.query(
-      "SELECT get_all_appointments_by_department_function($1) AS data",
-      [queryDate]
+      `SELECT get_all_appointments_by_department_function($1, $2) AS data`,
+      [helpdeskUserId, queryDate]
     );
 
-    res.json(result.rows[0].data); // already { success, departments, appointments }
+    res.json(result.rows[0].data);
   } catch (error) {
     console.error("❌ getAllAppointmentsByDepartment:", error);
     res.status(500).json({
