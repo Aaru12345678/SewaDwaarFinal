@@ -1,7 +1,7 @@
 const cron = require("node-cron");
 const pool = require("../db");
 
-cron.schedule("*/10 * * * *", async () => {
+cron.schedule("*/1 * * * *", async () => {
   try {
     /* =========================
        EXPIRE APPOINTMENTS

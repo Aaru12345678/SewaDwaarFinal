@@ -602,51 +602,61 @@ useEffect(() => {
   }
 }, [isHelpdeskOfficer]);
 
-
 const handleChange = async (e) => {
   const { name, value, files } = e.target;
 
   /* ================= FILE VALIDATION ================= */
   if (name === "document") {
-  const file = files?.[0];
-  if (!file) return;
+    const file = files?.[0];
+    if (!file) return;
 
-  setFileError(""); // reset
+    setFileError(""); // reset
 
-  /* MIME check */
-  if (file.type !== "application/pdf") {
-    setFileError("Only PDF files are allowed.");
+    /* MIME check */
+    if (file.type !== "application/pdf") {
+      setFileError("Only PDF files are allowed.");
+      return;
+    }
+
+    /* Filename validation */
+    const fileNameWithoutExt = file.name.replace(/\.pdf$/i, "");
+    const validNameRegex = /^[A-Za-z0-9 _-]+$/;
+
+    if (!validNameRegex.test(fileNameWithoutExt)) {
+      setFileError(
+        "PDF name can contain only A-Z, a-z, 0-9, space, _ and -"
+      );
+      return;
+    }
+
+    /* Magic byte check (%PDF) */
+    const buffer = await file.arrayBuffer();
+    const bytes = new Uint8Array(buffer).slice(0, 4);
+    const isPdf =
+      bytes[0] === 0x25 &&
+      bytes[1] === 0x50 &&
+      bytes[2] === 0x44 &&
+      bytes[3] === 0x46;
+
+    if (!isPdf) {
+      setFileError("Invalid PDF file. Renamed files are not allowed.");
+      return;
+    }
+
+    /* Size check: max 10 MB */
+    if (file.size > 10 * 1024 * 1024) {
+      setFileError("PDF size must not exceed 10 MB.");
+      return;
+    }
+
+    /* ✅ VALID FILE */
+    setFormData((prev) => ({
+      ...prev,
+      documents: [file]
+    }));
+
     return;
   }
-
-  /* Magic byte check (%PDF) */
-  const buffer = await file.arrayBuffer();
-  const bytes = new Uint8Array(buffer).slice(0, 4);
-  const isPdf =
-    bytes[0] === 0x25 &&
-    bytes[1] === 0x50 &&
-    bytes[2] === 0x44 &&
-    bytes[3] === 0x46;
-
-  if (!isPdf) {
-    setFileError("Invalid PDF file. Renamed files are not allowed.");
-    return;
-  }
-
-  /* Size check: 5–10 MB */
-  if (file.size > 10 * 1024 * 1024) {
-  setFileError("PDF size must not exceed 10 MB.");
-  return;
-}
-
-  /* ✅ VALID FILE */
-  setFormData(prev => ({
-    ...prev,
-    documents: [file]   // ✅ correct key
-  }));
-
-  return;
-}
 
   /* ================= NORMAL FORM LOGIC ================= */
   setFormData((prev) => {
@@ -676,6 +686,80 @@ const handleChange = async (e) => {
     return updated;
   });
 };
+
+// const handleChange = async (e) => {
+//   const { name, value, files } = e.target;
+
+//   /* ================= FILE VALIDATION ================= */
+//   if (name === "document") {
+//   const file = files?.[0];
+//   if (!file) return;
+
+//   setFileError(""); // reset
+
+//   /* MIME check */
+//   if (file.type !== "application/pdf") {
+//     setFileError("Only PDF files are allowed.");
+//     return;
+//   }
+
+//   /* Magic byte check (%PDF) */
+//   const buffer = await file.arrayBuffer();
+//   const bytes = new Uint8Array(buffer).slice(0, 4);
+//   const isPdf =
+//     bytes[0] === 0x25 &&
+//     bytes[1] === 0x50 &&
+//     bytes[2] === 0x44 &&
+//     bytes[3] === 0x46;
+
+//   if (!isPdf) {
+//     setFileError("Invalid PDF file. Renamed files are not allowed.");
+//     return;
+//   }
+
+//   /* Size check: 5–10 MB */
+//   if (file.size > 10 * 1024 * 1024) {
+//   setFileError("PDF size must not exceed 10 MB.");
+//   return;
+// }
+
+//   /* ✅ VALID FILE */
+//   setFormData(prev => ({
+//     ...prev,
+//     documents: [file]   // ✅ correct key
+//   }));
+
+//   return;
+// }
+
+//   /* ================= NORMAL FORM LOGIC ================= */
+//   setFormData((prev) => {
+//     let updated = { ...prev, [name]: value };
+
+//     if (mode === "department") {
+//       if (name === "org_id") {
+//         updated.dept_id = "";
+//         updated.service_id = "";
+//         setDepartment([]);
+//         setServices([]);
+
+//         if (value) fetchDepartment(value);
+//       }
+
+//       if (name === "dept_id") {
+//         fetchServices(updated.org_id, value);
+//       }
+//     }
+
+//     if (mode === "service") {
+//       if (name === "org_id") {
+//         fetchServices(value, null);
+//       }
+//     }
+
+//     return updated;
+//   });
+// };
 
 
 // console.log(formData.org_id,"org_id")

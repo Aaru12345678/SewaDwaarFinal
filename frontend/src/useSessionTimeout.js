@@ -1,7 +1,7 @@
 import { useEffect, useCallback, useRef } from 'react';
 
 const SESSION_TIMEOUT = 20 * 60 * 1000; 
-const CHECK_INTERVAL = 10000; 
+const CHECK_INTERVAL = 5000; 
 const THROTTLE_TIME = 5000; 
 
 const useSessionTimeout = (onTimeout) => {
