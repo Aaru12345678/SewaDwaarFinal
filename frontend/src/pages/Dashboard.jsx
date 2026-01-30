@@ -9,8 +9,6 @@ import NavbarTop from '../Components/NavbarTop';
 import VisitorNavbar from "./VisitorNavbar";
 import "../css/DashboardOfficer.css";
 
-
-
 import {
   FaCalendarDay,
   FaClock,
@@ -44,16 +42,16 @@ function OfficerDashboard() {
   const [loading, setLoading] = useState(true);
   const [fullName, setFullName] = useState("Officer");
   const [stats, setStats] = useState({
-  today_total: 0,
-  pending: 0,
-  approved: 0,
-  completed: 0,
-  rejected: 0,
-  rescheduled: 0,
-  cancelled: 0,
-  expired: 0,
-  walkins: 0,
-});
+    today_total: 0,
+    pending: 0,
+    approved: 0,
+    completed: 0,
+    rejected: 0,
+    rescheduled: 0,
+    cancelled: 0,
+    expired: 0,
+    walkins: 0,
+  });
 
   const [todayAppointments, setTodayAppointments] = useState([]);
   const [pendingAppointments, setPendingAppointments] = useState([]);
@@ -82,7 +80,17 @@ function OfficerDashboard() {
   // Date picker states for reports
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [dateAppointments, setDateAppointments] = useState([]);
-  const [dateStats, setDateStats] = useState({ total: 0, pending: 0, approved: 0, completed: 0, rejected: 0 });
+  const [dateStats, setDateStats] = useState({
+    total: 0,
+    pending: 0,
+    approved: 0,
+    completed: 0,
+    rejected: 0,
+    rescheduled: 0,
+    cancelled: 0,
+    expired: 0,
+    walkins: 0
+  });
   const [dateLoading, setDateLoading] = useState(false);
 
   // View appointment modal
@@ -96,12 +104,19 @@ function OfficerDashboard() {
     reason: "",
   });
   // Visitor photo preview modal
-const [showPhotoModal, setShowPhotoModal] = useState(false);
-const [previewPhoto, setPreviewPhoto] = useState(null);
+  const [showPhotoModal, setShowPhotoModal] = useState(false);
+  const [previewPhoto, setPreviewPhoto] = useState(null);
 
+  // Additional derived lists for tabs (approved/rejected/cancelled/expired)
+  const [approvedAppointments, setApprovedAppointments] = useState([]);
+  const [rejectedAppointments, setRejectedAppointments] = useState([]);
+  const [cancelledAppointments, setCancelledAppointments] = useState([]);
+  const [expiredAppointments, setExpiredAppointments] = useState([]);
 
   const officer = localStorage.getItem("username");
   console.log(officer, "officerID");
+
+  const normalizeStatus = (s) => (s ? String(s).trim().toLowerCase() : "");
 
   useEffect(() => {
     if (!officer) {
@@ -135,28 +150,45 @@ const [previewPhoto, setPreviewPhoto] = useState(null);
           const walkinArr = inner.walkin_appointments || inner.walkinAppointments || [];
           const recentArr = inner.recent_activity || inner.recentActivity || [];
 
-          setTodayAppointments(todayArr);
-          setPendingAppointments(pendingArr);
-          setRescheduledAppointments(rescheduledArr);
-          setCompletedAppointments(completedArr);
-          setWalkinAppointments(walkinArr);
-          setRecentActivity(recentArr);
+          // Normalize status fields in arrays (do not mutate original objects; create small wrappers)
+          const normalizeArray = (arr) =>
+            (arr || []).map((a) => ({ ...a, status: normalizeStatus(a.status) }));
+
+          const todayNorm = normalizeArray(todayArr);
+          const pendingNorm = normalizeArray(pendingArr);
+          const rescheduledNorm = normalizeArray(rescheduledArr);
+          const completedNorm = normalizeArray(completedArr);
+          const walkinNorm = normalizeArray(walkinArr);
+          const recentNorm = (recentArr || []).map((r) => ({ ...r, status: normalizeStatus(r.status) }));
+
+          setTodayAppointments(todayNorm);
+          setPendingAppointments(pendingNorm);
+          setRescheduledAppointments(rescheduledNorm);
+          setCompletedAppointments(completedNorm);
+          setWalkinAppointments(walkinNorm);
+          setRecentActivity(recentNorm);
+
+          // Setup derived lists by combining online + walkins for "today" population
+          const combinedToday = [...todayNorm, ...walkinNorm];
+
+          setApprovedAppointments(combinedToday.filter(a => normalizeStatus(a.status) === "approved"));
+          setRejectedAppointments(combinedToday.filter(a => normalizeStatus(a.status) === "rejected"));
+          setCancelledAppointments(combinedToday.filter(a => normalizeStatus(a.status) === "cancelled"));
+          setExpiredAppointments(combinedToday.filter(a => normalizeStatus(a.status) === "expired"));
 
           // Stats: prefer the stats object from API but fallback to lengths of arrays
           const s = inner.stats || {};
-
-setStats({
-  today_total: Number(s.today_total || 0),
-  pending: Number(s.pending || 0),
-  approved: Number(s.approved || 0),
-  completed: Number(s.completed || 0),
-  rejected: Number(s.rejected || 0),
-  rescheduled: Number(s.rescheduled || 0),
-  cancelled: Number(s.cancelled || 0),
-  expired: Number(s.expired || 0),
-  walkins: Number(s.walkins || 0),
-});
-
+          setStats({
+            today_total: Number(s.today_total ?? (todayNorm.length + walkinNorm.length) ?? 0),
+            pending: Number(s.pending ?? pendingNorm.length ?? 0),
+            approved: Number(s.approved ?? (approvedAppointments.length) ?? 0),
+            completed: Number(s.completed ?? completedNorm.length ?? 0),
+            rejected: Number(s.rejected ?? (rejectedAppointments.length) ?? 0),
+            rescheduled: Number(s.rescheduled ?? rescheduledNorm.length ?? 0),
+            cancelled: Number(s.cancelled ?? cancelledAppointments.length ?? 0),
+            expired: Number(s.expired ?? expiredAppointments.length ?? 0),
+            walkins: Number(s.walkins ?? walkinNorm.length ?? 0),
+          });
         }
       } catch (err) {
         console.error("Dashboard fetch error:", err);
@@ -165,6 +197,7 @@ setStats({
     };
 
     fetchDashboardData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [officer, navigate]);
 
   const handleLogout = () => {
@@ -175,27 +208,46 @@ setStats({
   const formatDate = (dateStr) => {
     if (!dateStr) return "";
     const date = new Date(dateStr);
+    if (isNaN(date)) return String(dateStr);
     return date.toLocaleDateString("en-IN", { day: "numeric", month: "short" });
   };
 
   const formatTime = (timeStr) => {
-    if (!timeStr) return "";
-    const [hours, minutes] = timeStr.split(":");
-    const hour = parseInt(hours);
-    const ampm = hour >= 12 ? "PM" : "AM";
-    const hour12 = hour % 12 || 12;
-    return `${hour12}:${minutes} ${ampm}`;
+    if (!timeStr && timeStr !== 0) return "";
+    // timeStr could be "HH:MM", "HH:MM:SS", or a Date-like value
+    try {
+      if (typeof timeStr === "string") {
+        const parts = timeStr.split(":");
+        const hours = parseInt(parts[0], 10) || 0;
+        let minutes = parts[1] || "00";
+        minutes = String(minutes).slice(0, 2).padStart(2, "0");
+        const ampm = hours >= 12 ? "PM" : "AM";
+        const hour12 = hours % 12 === 0 ? 12 : hours % 12;
+        return `${hour12}:${minutes} ${ampm}`;
+      }
+      // fallback: try to build Date
+      const d = new Date(`1970-01-01T${timeStr}`);
+      if (!isNaN(d)) {
+        return d.toLocaleTimeString("en-IN", { hour: "numeric", minute: "2-digit" });
+      }
+    } catch (e) {
+      // ignore and return raw
+    }
+    return String(timeStr);
   };
 
   const getStatusClass = (status) => {
+    const s = normalizeStatus(status);
     const statusMap = {
       pending: "pending",
       approved: "approved",
       completed: "completed",
       rejected: "rejected",
       rescheduled: "rescheduled",
+      cancelled: "cancelled",
+      expired: "expired",
     };
-    return statusMap[status?.toLowerCase()] || "pending";
+    return statusMap[s] || "pending";
   };
 
   // Refresh dashboard data
@@ -212,20 +264,42 @@ setStats({
       const walkinArr = inner.walkin_appointments || inner.walkinAppointments || [];
       const recentArr = inner.recent_activity || inner.recentActivity || [];
 
-      setTodayAppointments(todayArr);
-      setPendingAppointments(pendingArr);
-      setRescheduledAppointments(rescheduledArr);
-      setCompletedAppointments(completedArr);
-      setWalkinAppointments(walkinArr);
-      setRecentActivity(recentArr);
+      const normalizeArray = (arr) =>
+        (arr || []).map((a) => ({ ...a, status: normalizeStatus(a.status) }));
 
-      const apiStats = inner.stats || inner.counts || {};
+      const todayNorm = normalizeArray(todayArr);
+      const pendingNorm = normalizeArray(pendingArr);
+      const rescheduledNorm = normalizeArray(rescheduledArr);
+      const completedNorm = normalizeArray(completedArr);
+      const walkinNorm = normalizeArray(walkinArr);
+      const recentNorm = (recentArr || []).map((r) => ({ ...r, status: normalizeStatus(r.status) }));
+
+      setTodayAppointments(todayNorm);
+      setPendingAppointments(pendingNorm);
+      setRescheduledAppointments(rescheduledNorm);
+      setCompletedAppointments(completedNorm);
+      setWalkinAppointments(walkinNorm);
+      setRecentActivity(recentNorm);
+
+      // recompute derived lists from combined today
+      const combinedToday = [...todayNorm, ...walkinNorm];
+      setApprovedAppointments(combinedToday.filter(a => normalizeStatus(a.status) === "approved"));
+      setRejectedAppointments(combinedToday.filter(a => normalizeStatus(a.status) === "rejected"));
+      setCancelledAppointments(combinedToday.filter(a => normalizeStatus(a.status) === "cancelled"));
+      setExpiredAppointments(combinedToday.filter(a => normalizeStatus(a.status) === "expired"));
+
+      // Stats: prefer the stats object from API but fallback to lengths of arrays
+      const s = inner.stats || inner.counts || {};
       setStats({
-        today: apiStats.today ?? todayArr.length,
-        pending: apiStats.pending ?? pendingArr.length,
-        completed: apiStats.completed ?? completedArr.length,
-        rescheduled: apiStats.rescheduled ?? rescheduledArr.length,
-        walkins: apiStats.walkins ?? walkinArr.length,
+        today_total: Number(s.today_total ?? (todayNorm.length + walkinNorm.length) ?? 0),
+        pending: Number(s.pending ?? pendingNorm.length ?? 0),
+        approved: Number(s.approved ?? (combinedToday.filter(a => normalizeStatus(a.status) === "approved").length) ?? 0),
+        completed: Number(s.completed ?? completedNorm.length ?? 0),
+        rejected: Number(s.rejected ?? (combinedToday.filter(a => normalizeStatus(a.status) === "rejected").length) ?? 0),
+        rescheduled: Number(s.rescheduled ?? rescheduledNorm.length ?? 0),
+        cancelled: Number(s.cancelled ?? (combinedToday.filter(a => normalizeStatus(a.status) === "cancelled").length) ?? 0),
+        expired: Number(s.expired ?? (combinedToday.filter(a => normalizeStatus(a.status) === "expired").length) ?? 0),
+        walkins: Number(s.walkins ?? walkinNorm.length ?? 0),
       });
     } catch (err) {
       console.error("Refresh error:", err);
@@ -248,8 +322,23 @@ setStats({
       console.log(result, "response");
 
       if (result.success) {
-        setDateAppointments(result.data.appointments || []);
-        setDateStats(result.data.stats || { total: 0, pending: 0, approved: 0, completed: 0, rejected: 0 });
+        // normalize lower-casing statuses and ensure stats includes all fields
+        const appts = (result.data.appointments || []).map(a => ({ ...a, status: normalizeStatus(a.status) }));
+        setDateAppointments(appts);
+
+        const s = result.data.stats || {};
+        setDateStats({
+          total: Number(s.total ?? 0),
+          pending: Number(s.pending ?? 0),
+          approved: Number(s.approved ?? 0),
+          completed: Number(s.completed ?? 0),
+          rejected: Number(s.rejected ?? 0),
+          rescheduled: Number(s.rescheduled ?? 0),
+          cancelled: Number(s.cancelled ?? 0),
+          expired: Number(s.expired ?? 0),
+          walkins: Number(s.walkins ?? 0)
+        });
+
         setLastLoadedDate(selectedDate);
       } else {
         toast.error(result.message || "Failed to fetch appointments");
@@ -261,16 +350,16 @@ setStats({
     setDateLoading(false);
   };
 
-  // Download as PDF (unchanged)
+  // Download as PDF (unchanged behavior)
   const downloadPDF = () => {
     if (dateAppointments.length === 0) {
       toast.warning("No appointments to download");
       return;
     }
     if (!lastLoadedDate || lastLoadedDate !== selectedDate) {
-  toast.warning("Please click Search to load data for the selected date before downloading.");
-  return;
-}
+      toast.warning("Please click Search to load data for the selected date before downloading.");
+      return;
+    }
 
     const formattedDate = new Date(selectedDate).toLocaleDateString("en-IN", {
       day: "numeric", month: "long", year: "numeric"
@@ -353,9 +442,9 @@ setStats({
       return;
     }
     if (!lastLoadedDate || lastLoadedDate !== selectedDate) {
-  toast.warning("Please click Search to load data for the selected date before downloading.");
-  return;
-}
+      toast.warning("Please click Search to load data for the selected date before downloading.");
+      return;
+    }
 
     const formattedDate = new Date(selectedDate).toLocaleDateString("en-IN", {
       day: "numeric", month: "long", year: "numeric"
@@ -541,7 +630,7 @@ setStats({
   };
 
   const getActivityMessage = (item) => {
-    const status = item.status?.toLowerCase();
+    const status = normalizeStatus(item.status);
     const visitor = item.visitor_name || "A visitor";
     switch (status) {
       case "pending":
@@ -554,6 +643,10 @@ setStats({
         return `Appointment with ${visitor} was declined`;
       case "rescheduled":
         return `Appointment with ${visitor} rescheduled`;
+      case "cancelled":
+        return `Appointment with ${visitor} was cancelled`;
+      case "expired":
+        return `Appointment with ${visitor} expired`;
       default:
         return `${visitor} - ${item.purpose || "Appointment"}`;
     }
@@ -574,6 +667,14 @@ setStats({
         return walkinAppointments;
       case "bydate":
         return dateAppointments;
+      case "approved":
+        return approvedAppointments;
+      case "rejected":
+        return rejectedAppointments;
+      case "cancelled":
+        return cancelledAppointments;
+      case "expired":
+        return expiredAppointments;
       default:
         return todayAppointments;
     }
@@ -581,7 +682,7 @@ setStats({
 
   // Render action buttons based on status
   const renderActionButtons = (apt, showViewBtn = true) => {
-    const status = apt.status?.toLowerCase();
+    const status = normalizeStatus(apt.status);
 
     // open visit modal helper
     const openVisitConfirm = (appointmentId) => {
@@ -614,7 +715,7 @@ setStats({
           <>
             <button
               className="action-btn approve-btn"
-              onClick={() => handleUpdateStatus(apt.appointment_id, "approved")}
+              onClick={() => handleUpdateStatus(apt.appointment_id || apt.walkin_id, "approved")}
               disabled={actionLoading}
               title="Approve"
             >
@@ -622,7 +723,7 @@ setStats({
             </button>
             <button
               className="action-btn reject-btn"
-              onClick={() => openRejectModal(apt.appointment_id)}
+              onClick={() => openRejectModal(apt.appointment_id || apt.walkin_id)}
               disabled={actionLoading}
               title="Reject"
             >
@@ -630,7 +731,7 @@ setStats({
             </button>
             <button
               className="action-btn reschedule-btn"
-              onClick={() => openRescheduleModal(apt.appointment_id)}
+              onClick={() => openRescheduleModal(apt.appointment_id || apt.walkin_id)}
               disabled={actionLoading}
               title="Reschedule"
             >
@@ -641,7 +742,7 @@ setStats({
         {status === "approved" && (
           <button
             className="action-btn complete-btn"
-            onClick={() => openVisitConfirm(apt.appointment_id)}
+            onClick={() => openVisitConfirm(apt.appointment_id || apt.walkin_id)}
             disabled={actionLoading}
             title="Mark Complete"
           >
@@ -658,7 +759,7 @@ setStats({
     const v = apt.is_visited ?? apt.visited ?? apt.visit_status ?? apt.visit ?? null;
     if (typeof v === "boolean") return v ? "Visited" : "Not Visited";
     if (typeof v === "string") {
-      const normalized = v.toLowerCase();
+      const normalized = normalizeStatus(v);
       if (["yes", "true", "visited"].includes(normalized)) return "Visited";
       if (["no", "false", "not visited", "not_visited", "no-show"].includes(normalized)) return "Not Visited";
       return apt.visit_status || v;
@@ -680,6 +781,10 @@ setStats({
             {activeTab === "rescheduled" && "No rescheduled appointments."}
             {activeTab === "completed" && "No completed appointments yet."}
             {activeTab === "walkins" && "No walk-in appointments."}
+            {activeTab === "approved" && "No approved appointments."}
+            {activeTab === "rejected" && "No rejected appointments."}
+            {activeTab === "cancelled" && "No cancelled appointments."}
+            {activeTab === "expired" && "No expired appointments."}
             {activeTab === "bydate" && "No appointments found for the selected date. Try searching for a different date."}
           </p>
         </div>
@@ -702,23 +807,23 @@ setStats({
             </tr>
           </thead>
           <tbody>
-            {appointments.map((apt) => (
-              <tr key={apt.appointment_id} className={`appointment-row ${getStatusClass(apt.status)}`}>
+            {appointments.map((apt, idx) => (
+              <tr key={apt.appointment_id || apt.walkin_id || idx} className={`appointment-row ${getStatusClass(apt.status)}`}>
                 <td>
                   <div className="visitor-info">
-                    <span className="visitor-name">{apt.visitor_name || "Visitor"}</span>
+                    <span className="visitor-name">{apt.visitor_name || apt.full_name || "Visitor"}</span>
                     {apt.visitor_mobile && (
                       <span className="visitor-mobile">{apt.visitor_mobile}</span>
                     )}
                   </div>
                 </td>
-                <td>{formatDate(apt.appointment_date)}</td>
+                <td>{formatDate(apt.appointment_date || apt.walkin_date)}</td>
                 <td>{formatTime(apt.slot_time)}</td>
                 <td className="service-cell">{apt.service_id || apt.department_id || apt.service_name || "-"}</td>
                 <td className="purpose-cell">{apt.purpose || "-"}</td>
                 <td>
                   <span className={`status-badge ${getStatusClass(apt.status)}`}>
-                    {apt.status}
+                    {String(apt.status || "").toUpperCase()}
                   </span>
                 </td>
                 {activeTab === "completed" && (
@@ -791,29 +896,28 @@ setStats({
   }
 
   const displayedStats = activeTab === "bydate"
-  ? {
-      today: dateStats.total || 0,
-      pending: dateStats.pending || 0,
-      completed: dateStats.completed || 0,
-      rescheduled: dateStats.rescheduled || 0,
-      walkins: dateStats.walkins || 0,
-    }
-  : stats;
+    ? {
+        today: dateStats.total || 0,
+        pending: dateStats.pending || 0,
+        completed: dateStats.completed || 0,
+        rescheduled: dateStats.rescheduled || 0,
+        walkins: dateStats.walkins || 0,
+      }
+    : stats;
 
   const handleDownloadDocument = (filePath) => {
-  if (!filePath) {
-    toast.error("Invalid file");
-    return;
-  }
+    if (!filePath) {
+      toast.error("Invalid file");
+      return;
+    }
 
-  // If file_path is already full URL, use directly
-  const url = filePath.startsWith("http")
-    ? filePath
-    : `http://localhost:5000/${filePath}`;
+    // If file_path is already full URL, use directly
+    const url = String(filePath).startsWith("http")
+      ? filePath
+      : `http://localhost:5000/${filePath}`;
 
-  window.open(url, "_blank");
-};
-
+    window.open(url, "_blank");
+  };
 
   return (
     <div>
@@ -829,7 +933,7 @@ setStats({
               {/* Welcome Header */}
               <header className="dashboard-header">
                 <div className="header-text">
-                  <h1>Welcome back, {fullName.split(" ")[0]}!</h1>
+                  <h1>Welcome back, {String(fullName).split(" ")[0] || "Officer"}!</h1>
                   <p>Here's what's happening with your appointments today.</p>
                 </div>
                 <div className="header-date">
@@ -839,108 +943,135 @@ setStats({
               </header>
 
               {/* Stats Cards */}
-            <section className="stats-grid">
+              <section className="stats-grid">
 
-  <div
-    onClick={() => setActiveTab("today")}
-    className={`stat-card today ${activeTab === "today" ? "active" : ""}`}
-  >
-    <div className="stat-icon">
-      <FaCalendarDay />
-    </div>
-    <div className="stat-info">
-<span className="stat-number">{stats.today_total}</span>
-      <span className="stat-label">Today's Appointments</span>
-    </div>
-    <FaArrowRight className="stat-arrow" />
-  </div>
+                <div
+                  onClick={() => setActiveTab("today")}
+                  className={`stat-card today ${activeTab === "today" ? "active" : ""}`}
+                >
+                  <div className="stat-icon">
+                    <FaCalendarDay />
+                  </div>
+                  <div className="stat-info">
+                    <span className="stat-number">{stats.today_total}</span>
+                    <span className="stat-label">Today's Appointments</span>
+                  </div>
+                  <FaArrowRight className="stat-arrow" />
+                </div>
 
-  <div
-    onClick={() => setActiveTab("pending")}
-    className={`stat-card pending ${activeTab === "pending" ? "active" : ""}`}
-  >
-    <div className="stat-icon">
-      <FaClock />
-    </div>
-    <div className="stat-info">
-      <span className="stat-number">{stats.pending}</span>
-      <span className="stat-label">Pending (Today)</span>
-    </div>
-    <FaArrowRight className="stat-arrow" />
-  </div>
+                <div
+                  onClick={() => setActiveTab("pending")}
+                  className={`stat-card pending ${activeTab === "pending" ? "active" : ""}`}
+                >
+                  <div className="stat-icon">
+                    <FaClock />
+                  </div>
+                  <div className="stat-info">
+                    <span className="stat-number">{stats.pending}</span>
+                    <span className="stat-label">Pending (Today)</span>
+                  </div>
+                  <FaArrowRight className="stat-arrow" />
+                </div>
 
-  <div
-    onClick={() => setActiveTab("rescheduled")}
-    className={`stat-card rescheduled ${activeTab === "rescheduled" ? "active" : ""}`}
-  >
-    <div className="stat-icon">
-      <FaRedo />
-    </div>
-    <div className="stat-info">
-      <span className="stat-number">{stats.rescheduled}</span>
-      <span className="stat-label">Rescheduled (Today)</span>
-    </div>
-    <FaArrowRight className="stat-arrow" />
-  </div>
+                <div
+                  onClick={() => setActiveTab("rescheduled")}
+                  className={`stat-card rescheduled ${activeTab === "rescheduled" ? "active" : ""}`}
+                >
+                  <div className="stat-icon">
+                    <FaRedo />
+                  </div>
+                  <div className="stat-info">
+                    <span className="stat-number">{stats.rescheduled}</span>
+                    <span className="stat-label">Rescheduled (Today)</span>
+                  </div>
+                  <FaArrowRight className="stat-arrow" />
+                </div>
 
-  <div
-    onClick={() => setActiveTab("walkins")}
-    className={`stat-card walkins ${activeTab === "walkins" ? "active" : ""}`}
-  >
-    <div className="stat-icon">
-      <FaWalking />
-    </div>
-    <div className="stat-info">
-      <span className="stat-number">{stats.walkins}</span>
-      <span className="stat-label">Walk-ins (Today)</span>
-    </div>
-    <FaArrowRight className="stat-arrow" />
-  </div>
+                <div
+                  onClick={() => setActiveTab("walkins")}
+                  className={`stat-card walkins ${activeTab === "walkins" ? "active" : ""}`}
+                >
+                  <div className="stat-icon">
+                    <FaWalking />
+                  </div>
+                  <div className="stat-info">
+                    <span className="stat-number">{stats.walkins}</span>
+                    <span className="stat-label">Walk-ins (Today)</span>
+                  </div>
+                  <FaArrowRight className="stat-arrow" />
+                </div>
 
-  <div
-    onClick={() => setActiveTab("completed")}
-    className={`stat-card completed ${activeTab === "completed" ? "active" : ""}`}
-  >
-    <div className="stat-icon">
-      <FaCheckCircle />
-    </div>
-    <div className="stat-info">
-      <span className="stat-number">{stats.completed}</span>
-      <span className="stat-label">Completed (Today)</span>
-    </div>
-    <FaArrowRight className="stat-arrow" />
-  </div>
-  <div
-  onClick={() => setActiveTab("cancelled")}
-  className={`stat-card cancelled ${activeTab === "cancelled" ? "active" : ""}`}
->
-  <div className="stat-icon">
-    ❌
-  </div>
-  <div className="stat-info">
-    <span className="stat-number">{stats.cancelled}</span>
-    <span className="stat-label">Cancelled (Today)</span>
-  </div>
-  <FaArrowRight className="stat-arrow" />
-</div>
+                <div
+                  onClick={() => setActiveTab("completed")}
+                  className={`stat-card completed ${activeTab === "completed" ? "active" : ""}`}
+                >
+                  <div className="stat-icon">
+                    <FaCheckCircle />
+                  </div>
+                  <div className="stat-info">
+                    <span className="stat-number">{stats.completed}</span>
+                    <span className="stat-label">Completed (Today)</span>
+                  </div>
+                  <FaArrowRight className="stat-arrow" />
+                </div>
 
-<div
-  onClick={() => setActiveTab("expired")}
-  className={`stat-card expired ${activeTab === "expired" ? "active" : ""}`}
->
-  <div className="stat-icon">
-    ⏳
-  </div>
-  <div className="stat-info">
-    <span className="stat-number">{stats.expired}</span>
-    <span className="stat-label">Expired (Today)</span>
-  </div>
-  <FaArrowRight className="stat-arrow" />
-</div>
+                <div
+                  onClick={() => setActiveTab("cancelled")}
+                  className={`stat-card cancelled ${activeTab === "cancelled" ? "active" : ""}`}
+                >
+                  <div className="stat-icon">
+                    ❌
+                  </div>
+                  <div className="stat-info">
+                    <span className="stat-number">{stats.cancelled}</span>
+                    <span className="stat-label">Cancelled (Today)</span>
+                  </div>
+                  <FaArrowRight className="stat-arrow" />
+                </div>
 
+                <div
+                  onClick={() => setActiveTab("expired")}
+                  className={`stat-card expired ${activeTab === "expired" ? "active" : ""}`}
+                >
+                  <div className="stat-icon">
+                    ⏳
+                  </div>
+                  <div className="stat-info">
+                    <span className="stat-number">{stats.expired}</span>
+                    <span className="stat-label">Expired (Today)</span>
+                  </div>
+                  <FaArrowRight className="stat-arrow" />
+                </div>
 
-</section>
+                <div
+                  onClick={() => setActiveTab("approved")}
+                  className={`stat-card approved ${activeTab === "approved" ? "active" : ""}`}
+                >
+                  <div className="stat-icon">
+                    <FaCheck />
+                  </div>
+                  <div className="stat-info">
+                    <span className="stat-number">{stats.approved}</span>
+                    <span className="stat-label">Approved (Today)</span>
+                  </div>
+                  <FaArrowRight className="stat-arrow" />
+                </div>
 
+                <div
+                  onClick={() => setActiveTab("rejected")}
+                  className={`stat-card rejected ${activeTab === "rejected" ? "active" : ""}`}
+                >
+                  <div className="stat-icon">
+                    <FaTimes />
+                  </div>
+                  <div className="stat-info">
+                    <span className="stat-number">{stats.rejected}</span>
+                    <span className="stat-label">Rejected (Today)</span>
+                  </div>
+                  <FaArrowRight className="stat-arrow" />
+                </div>
+
+              </section>
 
               {/* Main Content Grid */}
               <div className="dashboard-grid">
@@ -953,6 +1084,10 @@ setStats({
                       {activeTab === "rescheduled" && "🔄 Rescheduled Appointments"}
                       {activeTab === "completed" && "✅ Completed Appointments"}
                       {activeTab === "walkins" && "🚶 Walk-in Appointments"}
+                      {activeTab === "approved" && "✅ Approved Appointments"}
+                      {activeTab === "rejected" && "❌ Rejected Appointments"}
+                      {activeTab === "cancelled" && "❌ Cancelled Appointments"}
+                      {activeTab === "expired" && "⏳ Expired Appointments"}
                       {activeTab === "bydate" && "📊 Appointments by Date"}
                     </h2>
                     <div className="tab-pills">
@@ -960,9 +1095,9 @@ setStats({
                         className={`tab-pill ${activeTab === "today" ? "active" : ""}`}
                         onClick={() => setActiveTab("today")}
                       >
-Today ({stats.today_total})
+                        Today ({stats.today_total})
                       </button>
-                      <button
+                      {/* <button
                         className={`tab-pill ${activeTab === "pending" ? "active" : ""}`}
                         onClick={() => setActiveTab("pending")}
                       >
@@ -985,7 +1120,7 @@ Today ({stats.today_total})
                         onClick={() => setActiveTab("walkins")}
                       >
                         Walk-ins ({stats.walkins})
-                      </button>
+                      </button> */}
                       <button
                         className={`tab-pill ${activeTab === "bydate" ? "active" : ""}`}
                         onClick={() => setActiveTab("bydate")}
@@ -1005,15 +1140,15 @@ Today ({stats.today_total})
                             type="date"
                             value={selectedDate}
                             onChange={(e) => {
-  const newDate = e.target.value;
-  setSelectedDate(newDate);
+                              const newDate = e.target.value;
+                              setSelectedDate(newDate);
 
-  // Clear previously loaded results because the selected date changed.
-  // This forces the user to click Search to load data for the new date.
-  setDateAppointments([]);
-  setDateStats({ total: 0, pending: 0, approved: 0, completed: 0, rejected: 0 });
-  setLastLoadedDate(null);
-}}
+                              // Clear previously loaded results because the selected date changed.
+                              // This forces the user to click Search to load data for the new date.
+                              setDateAppointments([]);
+                              setDateStats({ total: 0, pending: 0, approved: 0, completed: 0, rejected: 0, rescheduled: 0, cancelled: 0, expired: 0, walkins: 0 });
+                              setLastLoadedDate(null);
+                            }}
 
                             className="date-input"
                           />
@@ -1026,7 +1161,7 @@ Today ({stats.today_total})
                           </button>
                         </div>
 
-                        {dateAppointments.length > 0&& lastLoadedDate === selectedDate && (
+                        {dateAppointments.length > 0 && lastLoadedDate === selectedDate && (
                           <div className="download-buttons">
                             <button className="download-btn pdf-btn" onClick={downloadPDF}>
                               <FaFilePdf /> Download PDF
@@ -1068,7 +1203,7 @@ Today ({stats.today_total})
                           <div className="activity-content">
                             <p className="activity-message">{getActivityMessage(item)}</p>
                             <span className="activity-time">
-                              {formatDate(item.appointment_date)} at {formatTime(item.slot_time)}
+                              {formatDate(item.appointment_date || item.activity_date)} at {formatTime(item.slot_time)}
                             </span>
                           </div>
                         </li>
@@ -1169,79 +1304,79 @@ Today ({stats.today_total})
                     </div>
 
                     {/* Visitor Information */}
-                   <div className="view-section">
-  <h4><FaUser /> Visitor Information</h4>
+                    <div className="view-section">
+                      <h4><FaUser /> Visitor Information</h4>
 
-  <div className="visitor-profile-row">
-    {/* Visitor Photo */}
-    <div className="visitor-photo-wrapper">
-      <img
-  src={
-    selectedAppointment.visitor_photo
-      ? selectedAppointment.visitor_photo.startsWith("http")
-        ? selectedAppointment.visitor_photo
-        : `http://localhost:5000/uploads/${selectedAppointment.visitor_photo}`
-      : "/default-user.png"
-  }
-  alt="Visitor"
-  className="visitor-photo clickable"
-  onClick={() => {
-    setPreviewPhoto(
-      selectedAppointment.visitor_photo.startsWith("http")
-        ? selectedAppointment.visitor_photo
-        : `http://localhost:5000/uploads/${selectedAppointment.visitor_photo}`
-    );
-    setShowPhotoModal(true);
-  }}
-  onError={(e) => {
-    e.target.src = "/default-user.png";
-  }}
-/>
+                      <div className="visitor-profile-row">
+                        {/* Visitor Photo */}
+                        <div className="visitor-photo-wrapper">
+                          <img
+                            src={
+                              selectedAppointment.visitor_photo
+                                ? (typeof selectedAppointment.visitor_photo === "string" && selectedAppointment.visitor_photo.startsWith("http"))
+                                  ? selectedAppointment.visitor_photo
+                                  : `http://localhost:5000/uploads/${selectedAppointment.visitor_photo}`
+                                : "/default-user.png"
+                            }
+                            alt="Visitor"
+                            className="visitor-photo clickable"
+                            onClick={() => {
+                              const photoSrc = selectedAppointment.visitor_photo
+                                ? (typeof selectedAppointment.visitor_photo === "string" && selectedAppointment.visitor_photo.startsWith("http")
+                                  ? selectedAppointment.visitor_photo
+                                  : `http://localhost:5000/uploads/${selectedAppointment.visitor_photo}`)
+                                : "/default-user.png";
+                              setPreviewPhoto(photoSrc);
+                              setShowPhotoModal(true);
+                            }}
+                            onError={(e) => {
+                              e.target.src = "/default-user.png";
+                            }}
+                          />
+                        </div>
 
-    </div>
-    {showPhotoModal && (
-  <div className="photo-modal-overlay" onClick={() => setShowPhotoModal(false)}>
-    <div className="photo-modal-content" onClick={(e) => e.stopPropagation()}>
-      <button
-        className="photo-modal-close"
-        onClick={() => setShowPhotoModal(false)}
-      >
-        ×
-      </button>
+                        {showPhotoModal && (
+                          <div className="photo-modal-overlay" onClick={() => setShowPhotoModal(false)}>
+                            <div className="photo-modal-content" onClick={(e) => e.stopPropagation()}>
+                              <button
+                                className="photo-modal-close"
+                                onClick={() => setShowPhotoModal(false)}
+                              >
+                                ×
+                              </button>
 
-      <img
-        src={previewPhoto}
-        alt="Visitor Full Preview"
-        className="photo-modal-image"
-      />
+                              <img
+                                src={previewPhoto}
+                                alt="Visitor Full Preview"
+                                className="photo-modal-image"
+                              />
 
-      <p className="photo-modal-hint">
-        Match the visitor’s face before proceeding
-      </p>
-    </div>
-  </div>
-)}
+                              <p className="photo-modal-hint">
+                                Match the visitor’s face before proceeding
+                              </p>
+                            </div>
+                          </div>
+                        )}
 
+                        {/* Visitor Details */}
+                        <div className="view-details-grid">
+                          <div className="view-detail">
+                            <span className="label">Name</span>
+                            <span className="value">{selectedAppointment.visitor_name || "N/A"}</span>
+                          </div>
 
-    {/* Visitor Details */}
-    <div className="view-details-grid">
-      <div className="view-detail">
-        <span className="label">Name</span>
-        <span className="value">{selectedAppointment.visitor_name || "N/A"}</span>
-      </div>
+                          <div className="view-detail">
+                            <span className="label"><FaPhone /> Mobile</span>
+                            <span className="value">{selectedAppointment.visitor_mobile || "N/A"}</span>
+                          </div>
 
-      <div className="view-detail">
-        <span className="label"><FaPhone /> Mobile</span>
-        <span className="value">{selectedAppointment.visitor_mobile || "N/A"}</span>
-      </div>
-
-      <div className="view-detail">
-        <span className="label"><FaEnvelope /> Email</span>
-        <span className="value">{selectedAppointment.visitor_email || "N/A"}</span>
-      </div>
-    </div>
-  </div>
-</div>
+                          <div className="view-detail">
+                            <span className="label"><FaEnvelope /> Email</span>
+                            <span className="value">{selectedAppointment.visitor_email || "N/A"}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
 
                     {/* Appointment Information */}
                     <div className="view-section">
@@ -1249,11 +1384,11 @@ Today ({stats.today_total})
                       <div className="view-details-grid">
                         <div className="view-detail">
                           <span className="label">Appointment ID</span>
-                          <span className="value">{selectedAppointment.appointment_id}</span>
+                          <span className="value">{selectedAppointment.appointment_id || selectedAppointment.walkin_id || "N/A"}</span>
                         </div>
                         <div className="view-detail">
                           <span className="label">Date</span>
-                          <span className="value">{formatDate(selectedAppointment.appointment_date)}</span>
+                          <span className="value">{formatDate(selectedAppointment.appointment_date || selectedAppointment.walkin_date)}</span>
                         </div>
                         <div className="view-detail">
                           <span className="label">Time</span>
@@ -1279,48 +1414,47 @@ Today ({stats.today_total})
                     </div>
 
                     {/* Documents Section */}
-<div className="view-section">
-  <h4><FaFilePdf /> Uploaded Documents</h4>
+                    <div className="view-section">
+                      <h4><FaFilePdf /> Uploaded Documents</h4>
 
-  {selectedAppointment.documents && selectedAppointment.documents.length > 0 ? (
-    <div className="documents-list">
-      {selectedAppointment.documents.map((doc) => (
-        <div key={doc.document_id} className="document-item">
-          <div className="document-info">
-            <FaFilePdf className="doc-icon" />
-            <div>
-              <div className="doc-name">{doc.doc_type || "Document"}</div>
-              <div className="doc-date">
-                Uploaded on {new Date(doc.uploaded_at).toLocaleDateString("en-IN")}
-              </div>
-            </div>
-          </div>
+                      {selectedAppointment.documents && selectedAppointment.documents.length > 0 ? (
+                        <div className="documents-list">
+                          {selectedAppointment.documents.map((doc) => (
+                            <div key={doc.document_id} className="document-item">
+                              <div className="document-info">
+                                <FaFilePdf className="doc-icon" />
+                                <div>
+                                  <div className="doc-name">{doc.doc_type || "Document"}</div>
+                                  <div className="doc-date">
+                                    Uploaded on {new Date(doc.uploaded_at).toLocaleDateString("en-IN")}
+                                  </div>
+                                </div>
+                              </div>
 
-          <div className="document-actions">
-            <button
-              className="doc-btn view"
-              onClick={() => handleDownloadDocument(doc.file_path)}
-              title="View / Download"
-            >
-              <FaEye /> View
-            </button>
+                              <div className="document-actions">
+                                <button
+                                  className="doc-btn view"
+                                  onClick={() => handleDownloadDocument(doc.file_path)}
+                                  title="View / Download"
+                                >
+                                  <FaEye /> View
+                                </button>
 
-            <button
-              className="doc-btn download"
-              onClick={() => handleDownloadDocument(doc.file_path)}
-              title="Download"
-            >
-              <FaDownload /> Download
-            </button>
-          </div>
-        </div>
-      ))}
-    </div>
-  ) : (
-    <p className="no-documents">No documents uploaded.</p>
-  )}
-</div>
-
+                                <button
+                                  className="doc-btn download"
+                                  onClick={() => handleDownloadDocument(doc.file_path)}
+                                  title="Download"
+                                >
+                                  <FaDownload /> Download
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="no-documents">No documents uploaded.</p>
+                      )}
+                    </div>
 
                     {/* Reschedule Reason if any */}
                     {selectedAppointment.reschedule_reason && (
@@ -1342,12 +1476,12 @@ Today ({stats.today_total})
                       Close
                     </button>
 
-                    {(selectedAppointment.status?.toLowerCase() === "pending" ||
-                      selectedAppointment.status?.toLowerCase() === "rescheduled") && (
+                    {(normalizeStatus(selectedAppointment.status) === "pending" ||
+                      normalizeStatus(selectedAppointment.status) === "rescheduled") && (
                       <>
                         <button
                           className="btn-success"
-                          onClick={() => handleUpdateStatus(selectedAppointment.appointment_id, "approved")}
+                          onClick={() => handleUpdateStatus(selectedAppointment.appointment_id || selectedAppointment.walkin_id, "approved")}
                           disabled={actionLoading}
                         >
                           <FaCheck /> Approve
@@ -1356,7 +1490,7 @@ Today ({stats.today_total})
                           className="btn-warning"
                           onClick={() => {
                             setShowViewModal(false);
-                            openRescheduleModal(selectedAppointment.appointment_id);
+                            openRescheduleModal(selectedAppointment.appointment_id || selectedAppointment.walkin_id);
                           }}
                           disabled={actionLoading}
                         >
@@ -1366,7 +1500,7 @@ Today ({stats.today_total})
                           className="btn-danger"
                           onClick={() => {
                             setShowViewModal(false);
-                            openRejectModal(selectedAppointment.appointment_id);
+                            openRejectModal(selectedAppointment.appointment_id || selectedAppointment.walkin_id);
                           }}
                           disabled={actionLoading}
                         >
@@ -1375,12 +1509,12 @@ Today ({stats.today_total})
                       </>
                     )}
 
-                    {selectedAppointment.status?.toLowerCase() === "approved" && (
+                    {normalizeStatus(selectedAppointment.status) === "approved" && (
                       <button
                         className="btn-success"
                         onClick={() => {
                           setShowViewModal(false);
-                          setVisitData({ appointment_id: selectedAppointment.appointment_id, visited: "yes" });
+                          setVisitData({ appointment_id: selectedAppointment.appointment_id || selectedAppointment.walkin_id, visited: "yes" });
                           setShowVisitModal(true);
                         }}
                         disabled={actionLoading}
@@ -1491,7 +1625,7 @@ Today ({stats.today_total})
         </div>
       </div>
     </div>
-    
+
   );
 }
 export default OfficerDashboard;

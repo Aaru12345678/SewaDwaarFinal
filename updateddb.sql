@@ -2,12 +2,12 @@
 -- PostgreSQL database dump
 --
 
-\restrict hMeRFEj9pcUkWyn2KApPTaxM5CaMBq7lqL2Jkr3dqKD7vl0ca1cciohg2pAxGfj
+\restrict fk8ngivmyUdA43G06eUBuHRDirUd0Pp34UZZITf8QLZtFygWF1feZYQOy8ZNh6z
 
 -- Dumped from database version 18.1
 -- Dumped by pg_dump version 18.1
 
--- Started on 2026-01-27 21:44:07
+-- Started on 2026-01-30 12:02:50
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
@@ -7050,7 +7050,7 @@ CREATE TABLE public.walkins (
     service_id character varying(10) NOT NULL,
     visitor_id character varying(20),
     CONSTRAINT walkins_gender_check CHECK ((gender = ANY (ARRAY['M'::bpchar, 'F'::bpchar, 'O'::bpchar]))),
-    CONSTRAINT walkins_status_check CHECK (((status)::text = ANY (ARRAY[('pending'::character varying)::text, ('approved'::character varying)::text, ('rejected'::character varying)::text, ('completed'::character varying)::text, ('cancelled'::character varying)::text])))
+    CONSTRAINT walkins_status_check CHECK (((status)::text = ANY (ARRAY['pending'::text, 'approved'::text, 'rejected'::text, 'completed'::text, 'cancelled'::text, 'expired'::text])))
 );
 
 
@@ -9564,11 +9564,11 @@ ALTER TABLE ONLY public.walkins
     ADD CONSTRAINT walkins_taluka_code_fkey FOREIGN KEY (taluka_code) REFERENCES public.m_taluka(taluka_code);
 
 
--- Completed on 2026-01-27 21:44:07
+-- Completed on 2026-01-30 12:02:51
 
 --
 -- PostgreSQL database dump complete
 --
 
-\unrestrict hMeRFEj9pcUkWyn2KApPTaxM5CaMBq7lqL2Jkr3dqKD7vl0ca1cciohg2pAxGfj
+\unrestrict fk8ngivmyUdA43G06eUBuHRDirUd0Pp34UZZITf8QLZtFygWF1feZYQOy8ZNh6z
 
