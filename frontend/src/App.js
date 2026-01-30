@@ -70,9 +70,18 @@ import AdminProfile from "./pages/AdminProfile";
 import ProtectedRoute from "./Components/ProtectedRoute";
 import OfficerProfile from "./pages/OfficerProfile";
 import HelpdeskAllAppointments from "./pages/HelpdeskAllAppointments"
+import useSessionTimeout from "./useSessionTimeout";
 function App() {
   const loggedIn = !!localStorage.getItem("token");
+const handleLogout = () => {
+    toast.warn("Session expired due to inactivity.");
+    localStorage.clear();
+    sessionStorage.clear();
+    window.location.href = "/login"; 
+  };
 
+  // 3. Initialize the sliding window
+  useSessionTimeout(handleLogout);
   const PrivateRoute = ({ children }) => {
     const location = useLocation();
     if (!loggedIn) {
