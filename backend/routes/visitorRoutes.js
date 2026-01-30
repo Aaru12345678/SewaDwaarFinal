@@ -21,12 +21,34 @@ const storage = multer.diskStorage({
 
 const upload = multer({
   storage,
-  limits: { fileSize: 200 * 1024 },
+  limits: {
+    fileSize: 200 * 1024 // 200 KB
+  },
   fileFilter: (req, file, cb) => {
-    const allowed = ["image/jpeg", "image/jpg", "image/png"];
-    allowed.includes(file.mimetype)
-      ? cb(null, true)
-      : cb(new Error("Only JPG, JPEG, PNG files allowed"));
+    // Allowed mime types
+    const allowedMimeTypes = [
+      "image/jpeg",
+      "image/jpg",
+      "image/png"
+    ];
+
+    // Allowed extensions (extra safety)
+    const allowedExtensions = [".jpg", ".jpeg", ".png"];
+
+    const ext = path.extname(file.originalname).toLowerCase();
+
+    if (
+      allowedMimeTypes.includes(file.mimetype) &&
+      allowedExtensions.includes(ext)
+    ) {
+      cb(null, true);
+    } else {
+      cb(
+        new Error(
+          "Only image files (JPG, JPEG, PNG) are allowed. PDF files are not allowed."
+        )
+      );
+    }
   }
 });
 
@@ -38,6 +60,8 @@ router.put(
   upload.single("photo"), // ✅ multer runs here
   visitorController.updateVisitorProfile
 );
+
+
 
 router.put("/change-password/:visitor_id",verifyToken, visitorController.changePassword);
 // unread notifications count:

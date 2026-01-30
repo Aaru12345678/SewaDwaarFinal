@@ -864,40 +864,57 @@ const handleGetVisitor = async () => {
 
     const res = await getVisitorDetails(params);
 
-    console.log("API RESPONSE 👉", res);
+    const visitor = res?.data?.data;
+    const success = res?.data?.success;
 
-    if (res?.data?.success && res.data.data) {
-  setVisitorDetails(res.data.data);
-  setVisitorFetched(true);
-  setShowRegisterForm(false); // hide register form if found
-} else {
-  setVisitorFetched(false);
-  setVisitorDetails({
-    full_name: "",
-    gender: "",
-    mobile_no: "",
-    email_id: ""
-  });
-
-  Swal.fire({
-    icon: "warning",
-    title: "User Not Found",
-    text: "This visitor is not registered. Do you want to register?",
-    showCancelButton: true,
-    confirmButtonText: "Register User",
-    cancelButtonText: "Cancel",
-    confirmButtonColor: "#3085d6",
-    cancelButtonColor: "#aaa"
-  }).then((result) => {
-    if (result.isConfirmed) {
-      setShowRegisterForm(true); // 👈 show form
+    // ✅ VISITOR FOUND
+    if (success && visitor) {
+      setVisitorDetails(visitor);
+      setVisitorFetched(true);
+      setShowRegisterForm(false);
+      return;
     }
-  });
-}
+
+    // ❌ VISITOR NOT FOUND → SHOW MODAL
+    setVisitorFetched(false);
+    setVisitorDetails({
+      full_name: "",
+      gender: "",
+      mobile_no: "",
+      email_id: ""
+    });
+
+    Swal.fire({
+      icon: "warning",
+      title: "Visitor Not Found",
+      text: "This visitor is not registered. Do you want to register?",
+      showCancelButton: true,
+      confirmButtonText: "Register Visitor",
+      cancelButtonText: "Cancel",
+      confirmButtonColor: "#3085d6",
+      cancelButtonColor: "#aaa"
+    }).then((result) => {
+      if (result.isConfirmed) {
+        setShowRegisterForm(true);
+      }
+    });
 
   } catch (err) {
+    // ✅ EVEN IF API FAILS → STILL SHOW REGISTER OPTION
     console.error("Visitor fetch failed", err);
-    toast.error("Failed to fetch visitor");
+
+    Swal.fire({
+      icon: "warning",
+      title: "Visitor Not Found",
+      text: "This visitor is not registered. Do you want to register?",
+      showCancelButton: true,
+      confirmButtonText: "Register Visitor",
+      cancelButtonText: "Cancel"
+    }).then((result) => {
+      if (result.isConfirmed) {
+        setShowRegisterForm(true);
+      }
+    });
   } finally {
     setVisitorLoading(false);
   }

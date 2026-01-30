@@ -91,9 +91,9 @@ const calculateStatusSummary = (appointments = []) => {
 
 const HelpdeskAllAppointments = () => {
   const [loading, setLoading] = useState(true);
-  const [selectedDate, setSelectedDate] = useState(
-    new Date().toISOString().split("T")[0]
-  );
+  // const [selectedDate, setSelectedDate] = useState(
+  //   new Date().toISOString().split("T")[0]
+  // );
   const [departments, setDepartments] = useState([]);
   const [allAppointments, setAllAppointments] = useState([]);
   const [statusSummary, setStatusSummary] = useState({});
@@ -112,8 +112,31 @@ const [showAllAppointments, setShowAllAppointments] = useState(false);
   const helpdeskId = localStorage.getItem("helpdesk_id");
   const username = localStorage.getItem("username");
     const [filteredAppointments, setFilteredAppointments] = useState([]);
-  
+  const [showPhotoModal, setShowPhotoModal] = useState(false);
+const [photoSrc, setPhotoSrc] = useState("");
+const [photoName, setPhotoName] = useState("");
+
   const navigate = useNavigate();
+  const getFirstDayOfMonth = () => {
+  const d = new Date();
+  d.setDate(1); // set first day
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
+
+const getToday = () => {
+  const d = new Date();
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
+
+const [fromDate, setFromDate] = useState(getFirstDayOfMonth());
+const [toDate, setToDate] = useState(getToday());
+
 
   const handleLogout = () => {
     localStorage.clear();
@@ -124,8 +147,8 @@ const [showAllAppointments, setShowAllAppointments] = useState(false);
     try {
       setLoading(true);
       const res = await fetch(
-        `http://localhost:5000/api/helpdesk/appointments-by-department?helpdesk_id=${username}&date=${selectedDate}`
-      );
+  `http://localhost:5000/api/helpdesk/appointments-by-department?helpdesk_id=${username}&from_date=${fromDate}&to_date=${toDate}`
+);
       const data = await res.json();
       console.log(data,"data")
       if (data.success) {
@@ -154,7 +177,7 @@ const [showAllAppointments, setShowAllAppointments] = useState(false);
     } finally {
       setLoading(false);
     }
-  }, [username, selectedDate]);
+  }, [username, fromDate,toDate]);
 
   useEffect(() => {
     fetchAppointments();
@@ -305,18 +328,33 @@ const handleMenuClick = (menu) => {
 
       {/* FILTERS */}
       <div className="hd-apt-filters">
-        <div className="hd-filter-group">
-          <label>
-            <FaCalendarAlt /> Select Date
-          </label>
-          <input
-            type="date"
-            value={selectedDate}
-            onChange={(e) => setSelectedDate(e.target.value)}
-            className="hd-date-picker"
-          />
-        </div>
+        <div className="hd-filter-group hd-date-range">
+  <label>
+    <FaCalendarAlt /> Date Range
+  </label>
 
+  <div className="hd-date-range-inputs">
+    <input
+      type="date"
+      value={fromDate}
+      max={toDate}
+      onChange={(e) => setFromDate(e.target.value)}
+      className="hd-date-picker"
+    />
+
+    <span className="hd-date-separator">to</span>
+
+    <input
+      type="date"
+      value={toDate}
+      min={fromDate}
+      onChange={(e) => setToDate(e.target.value)}
+      className="hd-date-picker"
+    />
+  </div>
+</div>
+
+{/* 
         <div className="hd-filter-group">
           <label>
             <FaSearch /> Search
@@ -344,7 +382,7 @@ const handleMenuClick = (menu) => {
             <option value="rejected">Rejected</option>
             <option value="rescheduled">Rescheduled</option>
           </select>
-        </div>
+        </div> */}
       </div>
 
       {/* SUMMARY */}
@@ -390,6 +428,7 @@ const handleMenuClick = (menu) => {
   </div>
 </div>
 
+
 {/* ================= DEPARTMENTS & APPOINTMENTS ================= */}
 <div className="hd-departments-container">
   {departments.map((dept) => (
@@ -421,31 +460,52 @@ const handleMenuClick = (menu) => {
             <div
               key={apt.appointment_id}
               className={`hd-appointment-item ${apt.status}`}
+              onClick={() => {
+    setSelectedAppointment(apt);
+    setShowViewModal(true);
+  }}
             >
               <div className="hd-apt-visitor-info">
-                
-                {/* VISITOR NAME */}
-                <div className="hd-apt-name">
-                  {apt.visitor_name}
-                </div>
+  {/* VISITOR PHOTO */}
+  <div className="hd-apt-photo">
+  <img
+    src={
+      apt.visitor_photo
+        ? `http://localhost:5000/uploads/${apt.visitor_photo}`
+        : "/images/default-avatar.png"
+    }
+    alt={apt.visitor_name}
+    onClick={(e) => {
+      e.stopPropagation(); // 🚫 prevent appointment modal
+      setPhotoSrc(
+        apt.visitor_photo
+          ? `http://localhost:5000/uploads/${apt.visitor_photo}`
+          : "/images/default-avatar.png"
+      );
+      setPhotoName(apt.visitor_name);
+      setShowPhotoModal(true);
+    }}
+    onError={(e) => {
+      e.target.src = "/images/default-avatar.png";
+    }}
+  />
+</div>
 
-                {/* DETAILS */}
-                <div className="hd-apt-details">
-                  <span className="hd-apt-time">
-                    <FaClock /> {apt.slot_time}
-                  </span>
-
-                  <span className="hd-apt-service">
-                    {apt.service_name}
-                  </span>
-
-                  {/* ✅ OFFICER NAME */}
-                  <span className="hd-apt-officer">
-                    <FaUser />{" "}
-                    {apt.officer_name || "Not Assigned"}
-                  </span>
-                </div>
-              </div>
+  {/* VISITOR NAME & DETAILS */}
+  <div className="hd-apt-info">
+    <div className="hd-apt-name">{apt.visitor_name}</div>
+     {/* OFFICER NAME */}
+  <div className="hd-apt-officer">
+    <FaUser /> {apt.officer_name || "Not Assigned"}
+  </div>
+    <div className="hd-apt-details">
+      <span className="hd-apt-time">
+        <FaClock /> {apt.slot_time}
+      </span>
+      <span className="hd-apt-service">{apt.service_name}</span>
+    </div>
+  </div>
+</div>
 
               {/* STATUS */}
               <div className="hd-apt-status">
@@ -466,116 +526,86 @@ const handleMenuClick = (menu) => {
   ))}
 </div>
 
-      {/* DEPARTMENTS */}
-      <div className="hd-departments-container">
-        {filteredDepartments.map((dept) => (
-          <div key={dept.department_id} className="hd-department-card">
-            <div
-              className="hd-dept-header"
-              onClick={() => toggleDepartment(dept.department_id)}
-            >
-              <div className="hd-dept-info">
-                <FaBuilding />
-                <div>
-                  <h3>{dept.department_name}</h3>
-                  <span className="hd-org-name">
-                    {dept.organization_name}
-                  </span>
-                </div>
-              </div>
-              <div className="hd-dept-meta">
-                <span className="hd-apt-count">
-                  {dept.appointment_count}
-                </span>
-                {expandedDepartments[dept.department_id] ? (
-                  <FaChevronUp />
-                ) : (
-                  <FaChevronDown />
-                )}
-              </div>
-            </div>
-
-            {expandedDepartments[dept.department_id] && (
-              <div className="hd-officers-list">
-                {dept.officers.map((officer) => {
-                  const oid = officer.officer_id;
-                  return (
-                    <div key={oid} className="hd-officer-card">
-                      <div
-                        className="hd-officer-header"
-                        onClick={() => toggleOfficer(oid)}
-                      >
-                        <div className="hd-officer-info">
-                          <FaUser />
-                          <div>
-                            <h4>{officer.officer_name}</h4>
-                            <span className="hd-officer-designation">
-                              {officer.officer_designation}
-                            </span>
-                          </div>
-                        </div>
-                        <div className="hd-officer-meta">
-                          <span className="hd-apt-badge">
-                            {officer.totalAppointments || officer.appointments.length}
-                          </span>
-                          {expandedOfficers[oid] ? (
-                            <FaChevronUp />
-                          ) : (
-                            <FaChevronDown />
-                          )}
-                        </div>
-                      </div>
-
-                      {/* APPOINTMENTS LIST */}
-                      {expandedOfficers[oid] && (
-                        <div className="hd-appointments-list">
-                          {officer.appointments.length > 0 ? (
-                            officer.appointments.map((apt) => (
-                              <div
-                                key={apt.appointment_id}
-                                className={`hd-appointment-item ${apt.status}`}
-                                onClick={() => {
-                                  setSelectedAppointment(apt);
-                                  setShowViewModal(true);
-                                }}
-                              >
-                                <div className="hd-apt-visitor-info">
-                                  <div className="hd-apt-name">
-                                    {apt.visitor_name}
-                                  </div>
-                                  <div className="hd-apt-details">
-                                    <span className="hd-apt-time">
-                                      <FaClock /> {apt.slot_time}
-                                    </span>
-                                    <span className="hd-apt-service">
-                                      {apt.service_name}
-                                    </span>
-                                  </div>
-                                </div>
-                                <div className="hd-apt-status">
-                                  <span className={`hd-status-badge ${apt.status}`}>
-                                    {apt.status.charAt(0).toUpperCase() +
-                                      apt.status.slice(1)}
-                                  </span>
-                                </div>
-                              </div>
-                            ))
-                          ) : (
-                            <div className="hd-no-appointments">
-                              <p>No appointments for this officer</p>
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        ))}
-      </div>
+      
     </div>)}
+    {showPhotoModal && (
+  <div
+    className="hd-photo-overlay"
+    onClick={() => setShowPhotoModal(false)}
+  >
+    <div
+      className="hd-photo-modal"
+      onClick={(e) => e.stopPropagation()}
+    >
+      <img src={photoSrc} alt={photoName} />
+      <p className="hd-photo-name">{photoName}</p>
+
+      <button
+        className="hd-photo-close"
+        onClick={() => setShowPhotoModal(false)}
+      >
+        ✕
+      </button>
+    </div>
+  </div>
+)}
+
+    {showViewModal && selectedAppointment && (
+  <div className="hd-modal-overlay" onClick={() => setShowViewModal(false)}>
+    <div
+      className="hd-modal"
+      onClick={(e) => e.stopPropagation()}
+    >
+      {/* HEADER */}
+      <div className="hd-modal-header">
+        <h3>Appointment Details</h3>
+        <button
+          className="hd-modal-close"
+          onClick={() => setShowViewModal(false)}
+        >
+          ✕
+        </button>
+      </div>
+
+      {/* BODY */}
+      <div className="hd-modal-body">
+        {/* VISITOR PHOTO */}
+        <div className="hd-modal-photo">
+          <img
+            src={
+              selectedAppointment.visitor_photo
+                ? `http://localhost:5000/uploads/${selectedAppointment.visitor_photo}`
+                : "/images/default-avatar.png"
+            }
+            alt={selectedAppointment.visitor_name}
+            onError={(e) => {
+              e.target.src = "/images/default-avatar.png";
+            }}
+          />
+        </div>
+
+        {/* DETAILS */}
+        <div className="hd-modal-details">
+          <p><strong>Name:</strong> {selectedAppointment.visitor_name}</p>
+          <p><FaPhone /> {selectedAppointment.mobile_no || "—"}</p>
+          <p><FaEnvelope /> {selectedAppointment.email_id || "—"}</p>
+          <p>
+  <FaUser /> {selectedAppointment.officer_name || "Not Assigned"}
+</p>
+
+          <p><FaClock /> {selectedAppointment.slot_time}</p>
+          <p><strong>Service:</strong> {selectedAppointment.service_name}</p>
+          <p><strong>Status:</strong> {selectedAppointment.status}</p>
+          <p>
+            <FaMapMarkerAlt />{" "}
+            {selectedAppointment.department_name}
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+)}
+
     </div>
     </div>
     </div>

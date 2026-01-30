@@ -95,6 +95,10 @@ function OfficerDashboard() {
     appointment_id: "",
     reason: "",
   });
+  // Visitor photo preview modal
+const [showPhotoModal, setShowPhotoModal] = useState(false);
+const [previewPhoto, setPreviewPhoto] = useState(null);
+
 
   const officer = localStorage.getItem("username");
   console.log(officer, "officerID");
@@ -1165,23 +1169,79 @@ Today ({stats.today_total})
                     </div>
 
                     {/* Visitor Information */}
-                    <div className="view-section">
-                      <h4><FaUser /> Visitor Information</h4>
-                      <div className="view-details-grid">
-                        <div className="view-detail">
-                          <span className="label">Name</span>
-                          <span className="value">{selectedAppointment.visitor_name || "N/A"}</span>
-                        </div>
-                        <div className="view-detail">
-                          <span className="label"><FaPhone /> Mobile</span>
-                          <span className="value">{selectedAppointment.visitor_mobile || "N/A"}</span>
-                        </div>
-                        <div className="view-detail">
-                          <span className="label"><FaEnvelope /> Email</span>
-                          <span className="value">{selectedAppointment.visitor_email || "N/A"}</span>
-                        </div>
-                      </div>
-                    </div>
+                   <div className="view-section">
+  <h4><FaUser /> Visitor Information</h4>
+
+  <div className="visitor-profile-row">
+    {/* Visitor Photo */}
+    <div className="visitor-photo-wrapper">
+      <img
+  src={
+    selectedAppointment.visitor_photo
+      ? selectedAppointment.visitor_photo.startsWith("http")
+        ? selectedAppointment.visitor_photo
+        : `http://localhost:5000/uploads/${selectedAppointment.visitor_photo}`
+      : "/default-user.png"
+  }
+  alt="Visitor"
+  className="visitor-photo clickable"
+  onClick={() => {
+    setPreviewPhoto(
+      selectedAppointment.visitor_photo.startsWith("http")
+        ? selectedAppointment.visitor_photo
+        : `http://localhost:5000/uploads/${selectedAppointment.visitor_photo}`
+    );
+    setShowPhotoModal(true);
+  }}
+  onError={(e) => {
+    e.target.src = "/default-user.png";
+  }}
+/>
+
+    </div>
+    {showPhotoModal && (
+  <div className="photo-modal-overlay" onClick={() => setShowPhotoModal(false)}>
+    <div className="photo-modal-content" onClick={(e) => e.stopPropagation()}>
+      <button
+        className="photo-modal-close"
+        onClick={() => setShowPhotoModal(false)}
+      >
+        ×
+      </button>
+
+      <img
+        src={previewPhoto}
+        alt="Visitor Full Preview"
+        className="photo-modal-image"
+      />
+
+      <p className="photo-modal-hint">
+        Match the visitor’s face before proceeding
+      </p>
+    </div>
+  </div>
+)}
+
+
+    {/* Visitor Details */}
+    <div className="view-details-grid">
+      <div className="view-detail">
+        <span className="label">Name</span>
+        <span className="value">{selectedAppointment.visitor_name || "N/A"}</span>
+      </div>
+
+      <div className="view-detail">
+        <span className="label"><FaPhone /> Mobile</span>
+        <span className="value">{selectedAppointment.visitor_mobile || "N/A"}</span>
+      </div>
+
+      <div className="view-detail">
+        <span className="label"><FaEnvelope /> Email</span>
+        <span className="value">{selectedAppointment.visitor_email || "N/A"}</span>
+      </div>
+    </div>
+  </div>
+</div>
 
                     {/* Appointment Information */}
                     <div className="view-section">

@@ -5,7 +5,8 @@ import "../css/VisitorNavbar.css";
 import { toast } from "react-toastify";
 import { getUnreadNotificationCount,markNotificationsAsRead} from "../services/api";
 
-function VisitorNavbar({ fullName }) {
+function VisitorNavbar({ fullName, photo }) {
+
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const navigate=useNavigate();
      const username = localStorage.getItem("username"); 
@@ -16,6 +17,14 @@ const countRef = useRef(0);
 const notificationSound = useRef(
   new Audio("/sounds/notification.wav")
 );
+const getProfileImage = (photo) => {
+  if (!photo) return null;
+
+  if (photo.startsWith("http")) return photo;
+
+  return `http://localhost:5000/uploads/${photo}`;
+};
+
 const fetchCount = async () => {
   try {
     const response = await getUnreadNotificationCount(username);
@@ -125,9 +134,22 @@ const handleLogout = () => {
 
       <div className="navbar-right">
         <div className="profile" onClick={() => setDropdownOpen(!dropdownOpen)}>
-          <FaUserCircle className="profile-icon" />
-          <span className="profile-name">{fullName || "Guest"}</span>
-        </div>
+  {photo ? (
+    <img
+      src={getProfileImage(photo)}
+      alt="Profile"
+      className="profile-avatar2"
+      onError={(e) => {
+        e.target.src = "/images/default-user.png";
+      }}
+    />
+  ) : (
+    <FaUserCircle className="profile-icon" />
+  )}
+
+  <span className="profile-name">{fullName || "Guest"}</span>
+</div>
+
         {dropdownOpen && (
           <div className="dropdown">
             <Link to="/profile">My Profile</Link>

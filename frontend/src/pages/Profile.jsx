@@ -58,7 +58,10 @@ function Profile() {
     <div className="fixed-header">
         <NavbarTop />
         <Header />
-        <VisitorNavbar fullName={fullName} />
+        <VisitorNavbar
+  fullName={fullName}
+  photo={visitor?.photo || visitor?.photo_url}
+/>
       </div>
 
       <div className="main-layout">

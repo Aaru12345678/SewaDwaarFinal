@@ -25,7 +25,7 @@ import {
   getDepartment,
   getServices,
   submitAppointment,
-  getServices2,getAvailableSlots} from '../services/api';
+  getServices2,getAvailableSlots,getVisitorProfile} from '../services/api';
 // import Swal from "sweetalert2";
 
 const AppointmentWizard = () => {
@@ -52,6 +52,7 @@ const [states, setStates] = useState([]);
   const [divisions, setDivisions] = useState([]);
   const [districts, setDistricts] = useState([]);
   const [talukas, setTalukas] = useState([]);
+const [visitor, setVisitor] = useState(null);
 
   // ✅ Step-wise validation
 
@@ -83,6 +84,8 @@ const fetchDivisions = useCallback(async (stateCode) => {
     },
     []
   );
+
+  
 
   useEffect(() => {
     (async () => {
@@ -143,6 +146,22 @@ const handleChange2 = (e) => {
   const [fullName, setFullName] = useState("");
 const [isMetric, setIsMetric] = useState(true); // Our condition state
 const username = localStorage.getItem("username");
+
+useEffect(() => {
+  const fetchProfile = async () => {
+    try {
+      const res = await getVisitorProfile(username);
+      if (res.data?.success) {
+        setVisitor(res.data.data);
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  fetchProfile();
+}, [username]);
+
 
 useEffect(() => {
   const fetchVisitorName = async () => {
@@ -971,7 +990,10 @@ const getError = (condition, message) => {
     <div className="fixed-header">
         <NavbarTop/>
         <Header />
-      <VisitorNavbar fullName={fullName} />
+      <VisitorNavbar
+  fullName={fullName}
+  photo={visitor?.photo || visitor?.photo_url}
+/>
         
       </div>
       <div className="main-layout">

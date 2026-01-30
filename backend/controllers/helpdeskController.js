@@ -280,23 +280,29 @@ const getOfficersForBooking = async (req, res) => {
 // Get all appointments grouped by department (read-only view for helpdesk)
 // GET /api/helpdesk/appointments-by-department?date=YYYY-MM-DD
 const getAllAppointmentsByDepartment = async (req, res) => {
-  const { date, helpdesk_id } = req.query;
+  const { helpdesk_id, from_date, to_date } = req.query;
 
-  // 🔐 Priority:
-  // 1️⃣ helpdesk_id from query (if explicitly passed)
-  // 2️⃣ otherwise take from JWT
+  // 🔐 Priority: helpdesk_id from query
   const helpdeskUserId = helpdesk_id;
 
-  // Default date = today
-  const queryDate = date || new Date().toISOString().split("T")[0];
+  // Default dates = today if not provided
+  const today = new Date().toISOString().split("T")[0];
+  const startDate = from_date || today;
+  const endDate = to_date || today;
 
   try {
     const result = await pool.query(
-      `SELECT get_all_appointments_by_department_function($1, $2) AS data`,
-      [helpdeskUserId, queryDate]
+      `SELECT get_all_appointments_by_department_function($1, $2, $3) AS data`,
+      [helpdeskUserId, startDate, endDate]
     );
 
-    res.json(result.rows[0].data);
+    // Return the same dates in the response so the frontend sees what was requested
+    res.json({
+      success: true,
+      from_date: startDate,
+      to_date: endDate,
+      ...result.rows[0].data, // assuming your function returns appointments + departments
+    });
   } catch (error) {
     console.error("❌ getAllAppointmentsByDepartment:", error);
     res.status(500).json({

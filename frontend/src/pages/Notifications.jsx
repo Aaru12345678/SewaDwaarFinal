@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import "../css/Notifications.css";
-import { getVisitorDashboard } from "../services/api";
+import { getVisitorDashboard,getVisitorProfile } from "../services/api";
 import VisitorNavbar from "./VisitorNavbar";
 import Header from "../Components/Header";
 import NavbarTop from "../Components/NavbarTop";
@@ -16,8 +16,23 @@ const Notifications = () => {
   const [loading, setLoading] = useState(true);
   const [fullName, setFullName] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
+const [visitor, setVisitor] = useState(null);
 
   const username = localStorage.getItem("username");
+useEffect(() => {
+  const fetchProfile = async () => {
+    try {
+      const res = await getVisitorProfile(username);
+      if (res.data?.success) {
+        setVisitor(res.data.data);
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  fetchProfile();
+}, [username]);
 
   /* ================= Date Grouping ================= */
   const getDateGroup = (date) => {
@@ -119,7 +134,10 @@ const Notifications = () => {
       <div className="fixed-header">
         <NavbarTop />
         <Header />
-        <VisitorNavbar fullName={fullName} />
+       <VisitorNavbar
+  fullName={fullName}
+  photo={visitor?.photo || visitor?.photo_url}
+/>
       </div>
 
       <div className="main-layout">

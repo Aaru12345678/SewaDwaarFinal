@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "../css/AppointmentList.css";
-import { getVisitorDashboard, cancelAppointment } from "../services/api";
+import { getVisitorDashboard, cancelAppointment,getVisitorProfile} from "../services/api";
 import VisitorNavbar from "./VisitorNavbar";
 import Swal from "sweetalert2";
 import Header from "../Components/Header";
@@ -21,6 +21,7 @@ const AppointmentList = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [sortAsc, setSortAsc] = useState(false);
   const [statusFilter, setStatusFilter] = useState("all");
+const [visitor, setVisitor] = useState(null);
 
   /* ================= Date Group ================= */
   const getDateGroup = (date) => {
@@ -38,6 +39,23 @@ const AppointmentList = () => {
   };
 
   /* ================= Fetch Appointments ================= */
+useEffect(() => {
+  const fetchProfile = async () => {
+    try {
+      const res = await getVisitorProfile(username);
+      if (res.data?.success) {
+        setVisitor(res.data.data);
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  fetchProfile();
+}, [username]);
+
+
+
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
@@ -130,7 +148,10 @@ const AppointmentList = () => {
       <div className="fixed-header">
         <NavbarTop />
         <Header />
-        <VisitorNavbar fullName={fullName} />
+         <VisitorNavbar
+  fullName={fullName}
+  photo={visitor?.photo || visitor?.photo_url}
+/>
       </div>
 
       <div className="main-layout">

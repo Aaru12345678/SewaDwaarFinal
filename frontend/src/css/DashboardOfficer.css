@@ -37,3 +37,75 @@
 .stat-arrow {
   display: none;
 }
+.visitor-profile-row {
+  display: flex;
+  gap: 20px;
+  align-items: center;
+}
+
+.visitor-photo-wrapper {
+  flex-shrink: 0;
+}
+
+.visitor-photo {
+  width: 90px;
+  height: 90px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid #e5e7eb;
+  background: #f3f4f6;
+}
+/* Clickable visitor photo */
+.visitor-photo.clickable {
+  cursor: zoom-in;
+  transition: transform 0.2s ease;
+}
+
+.visitor-photo.clickable:hover {
+  transform: scale(1.05);
+}
+
+/* Photo Preview Modal */
+.photo-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.85);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+
+.photo-modal-content {
+  position: relative;
+  max-width: 90%;
+  max-height: 90%;
+  text-align: center;
+}
+
+.photo-modal-image {
+  max-width: 100%;
+  max-height: 80vh;
+  border-radius: 12px;
+  box-shadow: 0 20px 50px rgba(0,0,0,0.6);
+}
+
+.photo-modal-close {
+  position: absolute;
+  top: -12px;
+  right: -12px;
+  background: #fff;
+  border: none;
+  border-radius: 50%;
+  font-size: 22px;
+  width: 36px;
+  height: 36px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.photo-modal-hint {
+  margin-top: 12px;
+  color: #e5e7eb;
+  font-size: 14px;
+}

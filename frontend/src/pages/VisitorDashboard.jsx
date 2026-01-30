@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import "../css/VisitorDashboard.css";
-import { getVisitorDashboard } from "../services/api";
+import { getVisitorDashboard,getVisitorProfile } from "../services/api";
 import VisitorNavbar from "./VisitorNavbar";
 
 import Header from "../Components/Header";
@@ -19,13 +19,32 @@ const VisitorDashboard = () => {
   const [walkins, setWalkins] = useState([]);
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
+const [visitor, setVisitor] = useState(null);
 
   // ✅ Fetch Dashboard Data (ONLY ONE useEffect)
+
+  useEffect(() => {
+  const fetchProfile = async () => {
+    try {
+      const res = await getVisitorProfile(username);
+      if (res.data?.success) {
+        setVisitor(res.data.data);
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  fetchProfile();
+}, [username]);
+
   useEffect(() => {
     if (!username) {
       navigate("/login");
       return;
     }
+
+    
 
     const fetchDashboard = async () => {
       try {
@@ -37,7 +56,7 @@ const VisitorDashboard = () => {
           console.error("Failed to load dashboard data", error);
           return;
         }
-
+        
         setFullName(data?.data?.full_name || username);
         setAppointments(data?.data?.appointments || []);
         setWalkins(data?.data?.walkins || []);
@@ -109,7 +128,11 @@ const VisitorDashboard = () => {
       <div className="fixed-header">
         <NavbarTop />
         <Header />
-        <VisitorNavbar fullName={fullName} />
+       <VisitorNavbar
+  fullName={fullName}
+  photo={visitor?.photo || visitor?.photo_url}
+/>
+
       </div>
 
       <div className="main-layout">

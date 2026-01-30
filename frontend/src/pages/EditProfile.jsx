@@ -256,20 +256,37 @@ const handleSubmit = async (values) => {
     formData.append("pincode", values.pincode);
 
     if (values.profilePic instanceof File) {
-  formData.append("photo", values.profilePic);
-}
+      formData.append("photo", values.profilePic);
+    }
 
     const res = await updateVisitorProfile(visitorId, formData);
 
-
     if (res.data.success) {
-      toast.success("Profile updated successfully!");
+      Swal.fire({
+        icon: "success",
+        title: "Profile Updated",
+        text: "Your profile has been updated successfully.",
+        confirmButtonColor: "#3085d6"
+      });
     } else {
-      toast.error(res.data.message);
+      Swal.fire({
+        icon: "error",
+        title: "Update Failed",
+        text: res.data.message || "Something went wrong.",
+        confirmButtonColor: "#d33"
+      });
     }
   } catch (err) {
     console.error(err);
-    toast.error("Update failed");
+
+    Swal.fire({
+      icon: "error",
+      title: "Update Failed",
+      text:
+        err.response?.data?.message ||
+        "Please upload a valid image and try again.",
+      confirmButtonColor: "#d33"
+    });
   }
 };
 
@@ -277,6 +294,38 @@ const handleSubmit = async (values) => {
 const handleImageUpload = (e, setFieldValue) => {
   const file = e.target.files?.[0];
   if (!file) return;
+
+  const allowedMimeTypes = ["image/jpeg", "image/jpg", "image/png"];
+  const allowedExtensions = [".jpg", ".jpeg", ".png"];
+  const ext = file.name.substring(file.name.lastIndexOf(".")).toLowerCase();
+
+  if (
+    !allowedMimeTypes.includes(file.type) ||
+    !allowedExtensions.includes(ext)
+  ) {
+    Swal.fire({
+      icon: "error",
+      title: "Invalid File",
+      text: "Only JPG, JPEG, PNG images are allowed. PDF files are not allowed.",
+      confirmButtonColor: "#d33"
+    });
+
+    e.target.value = "";
+    return;
+  }
+
+  const maxSize = 200 * 1024; // 200 KB
+  if (file.size > maxSize) {
+    Swal.fire({
+      icon: "warning",
+      title: "File Too Large",
+      text: "Image size must be less than 200 KB.",
+      confirmButtonColor: "#f0ad4e"
+    });
+
+    e.target.value = "";
+    return;
+  }
 
   setImagePreview(URL.createObjectURL(file));
   setFieldValue("profilePic", file);
@@ -311,7 +360,11 @@ useEffect(() => {
      <div className="fixed-header">
         <NavbarTop />
         <Header />
-        <VisitorNavbar fullName={fullName} />
+        <VisitorNavbar
+  fullName={fullName}
+  photo={visitor?.photo || visitor?.photo_url}
+/>
+
       </div>
 
       <div className="main-layout">
@@ -365,11 +418,12 @@ validationSchema={ProfileSchema}
               {/* Image Upload */}
               <label className="image-upload-label">
                 <input
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) => handleImageUpload(e, setFieldValue)}
-                  className="hidden-file-input"
-                />
+  type="file"
+  accept=".jpg,.jpeg,.png"
+  onChange={(e) => handleImageUpload(e, setFieldValue)}
+  className="hidden-file-input"
+/>
+
                 <span className="image-upload-btn">Upload Photo</span>
               </label>
 
