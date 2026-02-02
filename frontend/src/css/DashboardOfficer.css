@@ -109,3 +109,20 @@
   color: #e5e7eb;
   font-size: 14px;
 }
+.date-range-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.date-field {
+  display: flex;
+  flex-direction: column;
+}
+
+.date-field label {
+  font-size: 13px;
+  margin-bottom: 4px;
+  font-weight: 600;
+}

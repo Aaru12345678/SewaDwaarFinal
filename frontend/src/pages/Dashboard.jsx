@@ -78,7 +78,10 @@ function OfficerDashboard() {
   });
 
   // Date picker states for reports
-  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
+  //const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
+  const [fromDate, setFromDate] = useState("");
+const [toDate, setToDate] = useState("");
+
   const [dateAppointments, setDateAppointments] = useState([]);
   const [dateStats, setDateStats] = useState({
     total: 0,
@@ -307,183 +310,174 @@ function OfficerDashboard() {
   };
 
   // Fetch appointments for selected date
+  // const fetchAppointmentsByDate = async () => {
+  //   if (!selectedDate) {
+  //     toast.error("Please select a date");
+  //     return;
+  //   }
+
+  //   setDateLoading(true);
+  //   try {
+  //     const response = await fetch(
+  //       `http://localhost:5000/api/officer/${officer}/appointments-by-date?date=${selectedDate}`
+  //     );
+  //     const result = await response.json();
+  //     console.log(result, "response");
+
+  //     if (result.success) {
+  //       // normalize lower-casing statuses and ensure stats includes all fields
+  //       const appts = (result.data.appointments || []).map(a => ({ ...a, status: normalizeStatus(a.status) }));
+  //       setDateAppointments(appts);
+
+  //       const s = result.data.stats || {};
+  //       setDateStats({
+  //         total: Number(s.total ?? 0),
+  //         pending: Number(s.pending ?? 0),
+  //         approved: Number(s.approved ?? 0),
+  //         completed: Number(s.completed ?? 0),
+  //         rejected: Number(s.rejected ?? 0),
+  //         rescheduled: Number(s.rescheduled ?? 0),
+  //         cancelled: Number(s.cancelled ?? 0),
+  //         expired: Number(s.expired ?? 0),
+  //         walkins: Number(s.walkins ?? 0)
+  //       });
+
+  //       setLastLoadedDate(selectedDate);
+  //     } else {
+  //       toast.error(result.message || "Failed to fetch appointments");
+  //     }
+  //   } catch (err) {
+  //     console.error("Error fetching appointments by date:", err);
+  //     toast.error("Failed to fetch appointments");
+  //   }
+  //   setDateLoading(false);
+  // };
+
   const fetchAppointmentsByDate = async () => {
-    if (!selectedDate) {
-      toast.error("Please select a date");
-      return;
+  if (!fromDate || !toDate) {
+    toast.error("Please select both From and To dates");
+    return;
+  }
+
+  if (new Date(fromDate) > new Date(toDate)) {
+    toast.error("From Date cannot be after To Date");
+    return;
+  }
+
+  setDateLoading(true);
+
+  try {
+    const response = await fetch(
+      `http://localhost:5000/api/officer/${officer}/appointments-by-date?from=${fromDate}&to=${toDate}`
+    );
+
+    const result = await response.json();
+
+    if (result.success) {
+      const appts = (result.data.appointments || []).map(a => ({
+        ...a,
+        status: normalizeStatus(a.status),
+      }));
+
+      setDateAppointments(appts);
+      setDateStats(result.data.stats || {});
+    } else {
+      toast.error(result.message || "Failed to fetch appointments");
     }
+  } catch (err) {
+    toast.error("Failed to fetch appointments");
+  }
 
-    setDateLoading(true);
-    try {
-      const response = await fetch(
-        `http://localhost:5000/api/officer/${officer}/appointments-by-date?date=${selectedDate}`
-      );
-      const result = await response.json();
-      console.log(result, "response");
+  setDateLoading(false);
+};
 
-      if (result.success) {
-        // normalize lower-casing statuses and ensure stats includes all fields
-        const appts = (result.data.appointments || []).map(a => ({ ...a, status: normalizeStatus(a.status) }));
-        setDateAppointments(appts);
-
-        const s = result.data.stats || {};
-        setDateStats({
-          total: Number(s.total ?? 0),
-          pending: Number(s.pending ?? 0),
-          approved: Number(s.approved ?? 0),
-          completed: Number(s.completed ?? 0),
-          rejected: Number(s.rejected ?? 0),
-          rescheduled: Number(s.rescheduled ?? 0),
-          cancelled: Number(s.cancelled ?? 0),
-          expired: Number(s.expired ?? 0),
-          walkins: Number(s.walkins ?? 0)
-        });
-
-        setLastLoadedDate(selectedDate);
-      } else {
-        toast.error(result.message || "Failed to fetch appointments");
-      }
-    } catch (err) {
-      console.error("Error fetching appointments by date:", err);
-      toast.error("Failed to fetch appointments");
-    }
-    setDateLoading(false);
-  };
 
   // Download as PDF (unchanged behavior)
-  const downloadPDF = () => {
-    if (dateAppointments.length === 0) {
-      toast.warning("No appointments to download");
-      return;
-    }
-    if (!lastLoadedDate || lastLoadedDate !== selectedDate) {
-      toast.warning("Please click Search to load data for the selected date before downloading.");
-      return;
-    }
+const downloadPDF = () => {
+  if (!fromDate || !toDate || dateAppointments.length === 0) {
+    toast.warning("Please search appointments for the selected range first");
+    return;
+  }
 
-    const formattedDate = new Date(selectedDate).toLocaleDateString("en-IN", {
-      day: "numeric", month: "long", year: "numeric"
-    });
+  const formattedRange = `${new Date(fromDate).toLocaleDateString("en-IN", {
+    day: "numeric", month: "long", year: "numeric"
+  })} to ${new Date(toDate).toLocaleDateString("en-IN", {
+    day: "numeric", month: "long", year: "numeric"
+  })}`;
 
-    const tableRows = dateAppointments.map((apt, index) => `
-      <tr>
-        <td>${index + 1}</td>
-        <td>${apt.visitor_name || "N/A"}</td>
-        <td>${apt.visitor_mobile || "N/A"}</td>
-        <td>${formatTime(apt.slot_time)}</td>
-        <td>${apt.service_name || apt.department_name || "N/A"}</td>
-        <td>${apt.purpose || "N/A"}</td>
-        <td>${apt.status || "N/A"}</td>
-      </tr>
-    `).join("");
+  const tableRows = dateAppointments.map((apt, index) => `
+    <tr>
+      <td>${index + 1}</td>
+      <td>${apt.visitor_name || "N/A"}</td>
+      <td>${apt.visitor_mobile || "N/A"}</td>
+      <td>${formatTime(apt.slot_time)}</td>
+      <td>${apt.service_name || apt.department_name || "N/A"}</td>
+      <td>${apt.purpose || "N/A"}</td>
+      <td>${apt.status || "N/A"}</td>
+    </tr>
+  `).join("");
 
-    const htmlContent = `
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <title>Appointments Report - ${formattedDate}</title>
-        <style>
-          body { font-family: Arial, sans-serif; padding: 20px; }
-          h1 { color: #1a365d; text-align: center; }
-          h2 { color: #2d3748; text-align: center; margin-bottom: 20px; }
-          .stats { display: flex; justify-content: center; gap: 20px; margin-bottom: 20px; flex-wrap: wrap; }
-          .stat-box { background: #f7fafc; padding: 10px 20px; border-radius: 8px; text-align: center; }
-          .stat-box strong { display: block; font-size: 24px; color: #2b6cb0; }
-          table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-          th, td { border: 1px solid #e2e8f0; padding: 10px; text-align: left; }
-          th { background: #2b6cb0; color: white; }
-          tr:nth-child(even) { background: #f7fafc; }
-          .footer { text-align: center; margin-top: 30px; color: #718096; font-size: 12px; }
-        </style>
-      </head>
-      <body>
-        <h1>🏛️ SewaDwaar - Appointments Report</h1>
-        <h2>Date: ${formattedDate}</h2>
-        <div class="stats">
-          <div class="stat-box"><strong>${dateStats.total || 0}</strong>Total</div>
-          <div class="stat-box"><strong>${dateStats.pending || 0}</strong>Pending</div>
-          <div class="stat-box"><strong>${dateStats.approved || 0}</strong>Approved</div>
-          <div class="stat-box"><strong>${dateStats.completed || 0}</strong>Completed</div>
-          <div class="stat-box"><strong>${dateStats.rejected || 0}</strong>Rejected</div>
-        </div>
-        <table>
-          <thead>
-            <tr>
-              <th>#</th>
-              <th>Visitor Name</th>
-              <th>Mobile</th>
-              <th>Time</th>
-              <th>Service</th>
-              <th>Purpose</th>
-              <th>Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${tableRows}
-          </tbody>
-        </table>
-        <div class="footer">
-          <p>Generated on ${new Date().toLocaleString("en-IN")}</p>
-          <p>Officer: ${fullName}</p>
-        </div>
-      </body>
-      </html>
-    `;
+  const htmlContent = `
+    <html>
+    <head>
+      <title>Appointments Report - ${formattedRange}</title>
+    </head>
+    <body>
+      <h1>🏛️ SewaDwaar - Appointments Report</h1>
+      <h2>Date Range: ${formattedRange}</h2>
+      ${tableRows}
+    </body>
+    </html>
+  `;
 
-    const printWindow = window.open("", "_blank");
-    printWindow.document.write(htmlContent);
-    printWindow.document.close();
-    printWindow.print();
-  };
+  const printWindow = window.open("", "_blank");
+  printWindow.document.write(htmlContent);
+  printWindow.document.close();
+  printWindow.print();
+};
 
-  const downloadExcel = () => {
-    if (dateAppointments.length === 0) {
-      toast.warning("No appointments to download");
-      return;
-    }
-    if (!lastLoadedDate || lastLoadedDate !== selectedDate) {
-      toast.warning("Please click Search to load data for the selected date before downloading.");
-      return;
-    }
 
-    const formattedDate = new Date(selectedDate).toLocaleDateString("en-IN", {
-      day: "numeric", month: "long", year: "numeric"
-    });
+const downloadExcel = () => {
+  if (!fromDate || !toDate || dateAppointments.length === 0) {
+    toast.warning("Please search appointments for the selected range first");
+    return;
+  }
 
-    const headers = ["#", "Visitor Name", "Mobile", "Email", "Time", "Service", "Department", "Purpose", "Status"];
-    const csvRows = [
-      `SewaDwaar - Appointments Report for ${formattedDate}`,
-      `Officer: ${fullName}`,
-      `Generated: ${new Date().toLocaleString("en-IN")}`,
-      "",
-      `Total: ${dateStats.total || 0}, Pending: ${dateStats.pending || 0}, Approved: ${dateStats.approved || 0}, Completed: ${dateStats.completed || 0}, Rejected: ${dateStats.rejected || 0}`,
-      "",
-      headers.join(","),
-      ...dateAppointments.map((apt, index) => [
-        index + 1,
-        `"${apt.visitor_name || "N/A"}"`,
-        `"${apt.visitor_mobile || "N/A"}"`,
-        `"${apt.visitor_email || "N/A"}"`,
-        `"${formatTime(apt.slot_time)}"`,
-        `"${apt.service_name || "N/A"}"`,
-        `"${apt.department_name || "N/A"}"`,
-        `"${apt.purpose || "N/A"}"`,
-        `"${apt.status || "N/A"}"`
-      ].join(","))
-    ];
+  const formattedRange = `${fromDate} to ${toDate}`;
 
-    const csvContent = csvRows.join("\n");
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-    const link = document.createElement("a");
-    const url = URL.createObjectURL(blob);
-    link.setAttribute("href", url);
-    link.setAttribute("download", `appointments_${selectedDate}.csv`);
-    link.style.visibility = "hidden";
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    toast.success("Excel file downloaded successfully");
-  };
+  const headers = ["#", "Visitor Name", "Mobile", "Email", "Time", "Service", "Department", "Purpose", "Status"];
+
+  const csvRows = [
+    `SewaDwaar - Appointments Report (${formattedRange})`,
+    `Officer: ${fullName}`,
+    `Generated: ${new Date().toLocaleString("en-IN")}`,
+    "",
+    `Total: ${dateStats.total || 0}, Pending: ${dateStats.pending || 0}, Approved: ${dateStats.approved || 0}, Completed: ${dateStats.completed || 0}, Rejected: ${dateStats.rejected || 0}`,
+    "",
+    headers.join(","),
+    ...dateAppointments.map((apt, index) => [
+      index + 1,
+      `"${apt.visitor_name || "N/A"}"`,
+      `"${apt.visitor_mobile || "N/A"}"`,
+      `"${apt.visitor_email || "N/A"}"`,
+      `"${formatTime(apt.slot_time)}"`,
+      `"${apt.service_name || "N/A"}"`,
+      `"${apt.department_name || "N/A"}"`,
+      `"${apt.purpose || "N/A"}"`,
+      `"${apt.status || "N/A"}"`
+    ].join(","))
+  ];
+
+  const csvContent = csvRows.join("\n");
+  const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+
+  const link = document.createElement("a");
+  link.href = URL.createObjectURL(blob);
+  link.download = `appointments_${fromDate}_to_${toDate}.csv`;
+  link.click();
+
+  toast.success("Excel file downloaded successfully");
+};
 
   // Generic update status that accepts extra payload
   const handleUpdateStatus = async (appointmentId, status, reason = null, extra = {}) => {
@@ -1133,54 +1127,52 @@ function OfficerDashboard() {
                   {/* Date picker section for "By Date" tab */}
                   {activeTab === "bydate" && (
                     <div className="date-picker-section">
-                      <div className="date-picker-controls">
-                        <div className="date-input-group">
-                          <label>Select Date:</label>
-                          <input
-                            type="date"
-                            value={selectedDate}
-                            onChange={(e) => {
-                              const newDate = e.target.value;
-                              setSelectedDate(newDate);
+                    <div className="date-picker-controls">
+  <div className="date-range-row">
+    <div className="date-field">
+      <label>From</label>
+      <input
+        type="date"
+        value={fromDate}
+        onChange={(e) => setFromDate(e.target.value)}
+        className="date-input"
+      />
+    </div>
 
-                              // Clear previously loaded results because the selected date changed.
-                              // This forces the user to click Search to load data for the new date.
-                              setDateAppointments([]);
-                              setDateStats({ total: 0, pending: 0, approved: 0, completed: 0, rejected: 0, rescheduled: 0, cancelled: 0, expired: 0, walkins: 0 });
-                              setLastLoadedDate(null);
-                            }}
+    <div className="date-field">
+      <label>To</label>
+      <input
+        type="date"
+        value={toDate}
+        onChange={(e) => setToDate(e.target.value)}
+        className="date-input"
+      />
+    </div>
 
-                            className="date-input"
-                          />
-                          <button
-                            className="search-btn"
-                            onClick={fetchAppointmentsByDate}
-                            disabled={dateLoading}
-                          >
-                            {dateLoading ? "Loading..." : <><FaSearch /> Search</>}
-                          </button>
-                        </div>
+    <button
+      className="search-btn"
+      onClick={fetchAppointmentsByDate}
+      disabled={dateLoading}
+    >
+      {dateLoading ? "Loading..." : <><FaSearch /> Search</>}
+    </button>
+  </div>
+</div>
 
-                        {dateAppointments.length > 0 && lastLoadedDate === selectedDate && (
-                          <div className="download-buttons">
-                            <button className="download-btn pdf-btn" onClick={downloadPDF}>
-                              <FaFilePdf /> Download PDF
-                            </button>
-                            <button className="download-btn excel-btn" onClick={downloadExcel}>
-                              <FaFileExcel /> Download Excel
-                            </button>
-                          </div>
-                        )}
-                      </div>
+
 
                       {dateAppointments.length > 0 && (
-                        <div className="date-stats-bar">
-                          <span className="date-stat">Total: <strong>{dateStats.total || 0}</strong></span>
-                          <span className="date-stat pending">Pending: <strong>{dateStats.pending || 0}</strong></span>
-                          <span className="date-stat approved">Approved: <strong>{dateStats.approved || 0}</strong></span>
-                          <span className="date-stat completed">Completed: <strong>{dateStats.completed || 0}</strong></span>
-                          <span className="date-stat rejected">Rejected: <strong>{dateStats.rejected || 0}</strong></span>
-                        </div>
+                       <div className="date-stats-bar">
+  <span className="date-stat">Total: <strong>{dateStats.total}</strong></span>
+  <span className="date-stat pending">Pending: <strong>{dateStats.pending}</strong></span>
+  <span className="date-stat approved">Approved: <strong>{dateStats.approved}</strong></span>
+  <span className="date-stat completed">Completed: <strong>{dateStats.completed}</strong></span>
+  <span className="date-stat rejected">Rejected: <strong>{dateStats.rejected}</strong></span>
+  <span className="date-stat rescheduled">Rescheduled: <strong>{dateStats.rescheduled}</strong></span>
+  <span className="date-stat cancelled">Cancelled: <strong>{dateStats.cancelled}</strong></span>
+  <span className="date-stat expired">Expired: <strong>{dateStats.expired}</strong></span>
+</div>
+
                       )}
                     </div>
                   )}

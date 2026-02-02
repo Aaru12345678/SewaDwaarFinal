@@ -589,25 +589,30 @@ exports.rescheduleAppointment = async (req, res) => {
 exports.getAppointmentsByDate = async (req, res) => {
   try {
     const { officer_id } = req.params;
-    const { date } = req.query;
-    // console.log(officer_id,"officer_id")
-    // console.log(date,"date")
+    const { from, to } = req.query;
+
+    if (!from || !to) {
+      return res.status(400).json({
+        success: false,
+        message: "From and To dates are required",
+      });
+    }
 
     const { rows } = await pool.query(
-      "SELECT get_appointments_by_date($1, $2) AS result",
-      [officer_id, date]
+      "SELECT get_appointments_by_date_range($1, $2, $3) AS result",
+      [officer_id, from, to]
     );
-   
-    return res.status(200).json(rows[0].result);
 
+    return res.status(200).json(rows[0].result);
   } catch (error) {
-    console.error("❌ Error fetching appointments by date:", error);
+    console.error("❌ Error fetching appointments by range:", error);
     return res.status(500).json({
       success: false,
       message: "Server error while fetching appointments",
     });
   }
 };
+
 
 
 // Get report data for officer

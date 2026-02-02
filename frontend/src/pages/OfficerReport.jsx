@@ -829,7 +829,7 @@ const OfficerReports = () => {
                   </div>
 
                   {/* Insights Section */}
-                  <div className="insights-section">
+                  {/* <div className="insights-section">
                     <h3>💡 Key Insights & Recommendations</h3>
                     <div className="insights-grid">
                       <div className="insight-card">
@@ -869,7 +869,7 @@ const OfficerReports = () => {
                         </div>
                       </div>
                     </div>
-                  </div>
+                  </div> */}
                 </>
               )}
             </div>
