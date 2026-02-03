@@ -16,7 +16,7 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage });
 
-router.post("/signup", upload.single("photo"), insertVisitorSignup);
+router.post("/signup", insertVisitorSignup);
 router.post("/walkinsignup",insertVisitorSignupWalkin);
 
 router.post("/login", login);
