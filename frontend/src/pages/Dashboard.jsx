@@ -31,6 +31,7 @@ import {
   FaPhone,
   FaEnvelope,
   FaClipboardList,
+  FaUserCircle,
   FaChartBar
 } from "react-icons/fa";
 import "../css/Dashboard.css";
@@ -50,6 +51,7 @@ function OfficerDashboard() {
     rescheduled: 0,
     cancelled: 0,
     expired: 0,
+    no_show: 0,
     walkins: 0,
   });
 
@@ -72,10 +74,18 @@ function OfficerDashboard() {
 
   // Visit confirmation modal
   const [showVisitModal, setShowVisitModal] = useState(false);
-  const [visitData, setVisitData] = useState({
-    appointment_id: "",
-    visited: "yes", // 'yes' or 'no'
-  });
+ 
+  const [remark, setRemark] = useState("");
+  const [visitorArrived, setVisitorArrived] = useState(true);
+const [selectedAppointmentId, setSelectedAppointmentId] = useState(null);
+
+
+const [visitData, setVisitData] = useState({
+  appointment_id: null,
+  visited: "yes",   // "yes" | "no"
+  remark: "",
+});
+
 
   // Date picker states for reports
   //const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
@@ -92,6 +102,7 @@ const [toDate, setToDate] = useState("");
     rescheduled: 0,
     cancelled: 0,
     expired: 0,
+    no_show: 0,
     walkins: 0
   });
   const [dateLoading, setDateLoading] = useState(false);
@@ -115,7 +126,16 @@ const [toDate, setToDate] = useState("");
   const [rejectedAppointments, setRejectedAppointments] = useState([]);
   const [cancelledAppointments, setCancelledAppointments] = useState([]);
   const [expiredAppointments, setExpiredAppointments] = useState([]);
+  const [noshowAppointments, setNoShowAppointments] = useState([]);
 
+
+  const notCompletedCount =
+  (stats.cancelled || 0) +
+  (stats.rejected || 0) +
+  (stats.expired || 0) +
+  (stats.no_show || 0);
+
+  
   const officer = localStorage.getItem("username");
   console.log(officer, "officerID");
 
@@ -178,7 +198,7 @@ const [toDate, setToDate] = useState("");
           setRejectedAppointments(combinedToday.filter(a => normalizeStatus(a.status) === "rejected"));
           setCancelledAppointments(combinedToday.filter(a => normalizeStatus(a.status) === "cancelled"));
           setExpiredAppointments(combinedToday.filter(a => normalizeStatus(a.status) === "expired"));
-
+          setNoShowAppointments(combinedToday.filter(a => normalizeStatus(a.status) === "no-show"))
           // Stats: prefer the stats object from API but fallback to lengths of arrays
           const s = inner.stats || {};
           setStats({
@@ -190,6 +210,8 @@ const [toDate, setToDate] = useState("");
             rescheduled: Number(s.rescheduled ?? rescheduledNorm.length ?? 0),
             cancelled: Number(s.cancelled ?? cancelledAppointments.length ?? 0),
             expired: Number(s.expired ?? expiredAppointments.length ?? 0),
+            no_show: Number(s.no_show ?? expiredAppointments.length ?? 0),
+
             walkins: Number(s.walkins ?? walkinNorm.length ?? 0),
           });
         }
@@ -302,6 +324,7 @@ const [toDate, setToDate] = useState("");
         rescheduled: Number(s.rescheduled ?? rescheduledNorm.length ?? 0),
         cancelled: Number(s.cancelled ?? (combinedToday.filter(a => normalizeStatus(a.status) === "cancelled").length) ?? 0),
         expired: Number(s.expired ?? (combinedToday.filter(a => normalizeStatus(a.status) === "expired").length) ?? 0),
+        no_show: Number(s.no_show ??(combinedToday.filter(a =>normalizeStatus(a.status)  === "no-show").length)??0),
         walkins: Number(s.walkins ?? walkinNorm.length ?? 0),
       });
     } catch (err) {
@@ -673,6 +696,19 @@ const downloadExcel = () => {
         return todayAppointments;
     }
   };
+  const getVisitorPhotoUrl = (appointment) => {
+  const photo = appointment?.visitor_photo;
+  if (!photo) return null;
+
+  if (photo.startsWith("http")) return photo;
+
+  if (appointment?.appointment_type === "WALKIN") {
+    return `http://localhost:5000/uploads/visitors/${photo}`;
+  }
+
+  return `http://localhost:5000/uploads/${photo}`;
+};
+
 
   // Render action buttons based on status
   const renderActionButtons = (apt, showViewBtn = true) => {
@@ -680,9 +716,15 @@ const downloadExcel = () => {
 
     // open visit modal helper
     const openVisitConfirm = (appointmentId) => {
-      setVisitData({ appointment_id: appointmentId, visited: "yes" });
-      setShowVisitModal(true);
-    };
+  setVisitData({
+    appointment_id: appointmentId,
+    visited: "yes",
+    remark: "",
+  });
+  setShowVisitModal(true);
+};
+
+
 
     return (
       <div className="action-buttons">
@@ -785,6 +827,8 @@ const downloadExcel = () => {
       );
     }
 
+   
+
     return (
       <div className="appointments-table-wrapper">
         <table className="appointments-table">
@@ -836,49 +880,57 @@ const downloadExcel = () => {
     );
   };
 
+  
+
+
+
   // Handle confirmation from visit modal
   const handleConfirmVisit = async () => {
-    if (!visitData.appointment_id) {
-      toast.error("Invalid appointment");
-      return;
-    }
-    // No confirm popup here because modal already used; set loading and call update
-    setActionLoading(true);
-    try {
-      // map 'yes'/'no' to boolean
-      const visitedBool = visitData.visited === "yes";
-      const response = await fetch("http://localhost:5000/api/appointment/update-status", {
+  if (visitData.visited === "no" && !visitData.remark.trim()) {
+  toast.error("Please add a remark for no-show");
+  return;
+}
+  if (!visitData.appointment_id) {
+    toast.error("Invalid appointment");
+    return;
+  }
+
+  setActionLoading(true);
+
+  try {
+    const response = await fetch(
+      "http://localhost:5000/api/appointment/update-status",
+      {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           appointment_id: visitData.appointment_id,
           status: "completed",
           officer_id: officer,
-          visited: visitedBool,
-          notify_visitor: true // helpful flag if backend supports it
+          reason: visitData.remark || null,
+          visitor_arrived: visitData.visited === "yes",
         }),
-      });
-
-      const text = await response.text();
-      try {
-        const result = JSON.parse(text);
-        if (result.success) {
-          toast.success(result.message || "Appointment marked completed");
-          setShowVisitModal(false);
-          await refreshDashboard();
-        } else {
-          toast.error(result.message || "Failed to update");
-        }
-      } catch (e) {
-        console.error("Server returned non-JSON:", text);
-        toast.error("Server error. Please try again.");
       }
-    } catch (err) {
-      console.error("Error updating completion:", err);
-      toast.error("Failed to update appointment");
+    );
+
+    const result = await response.json();
+
+    if (result.success) {
+      toast.success(result.message || "Appointment updated");
+      setShowVisitModal(false);
+      await refreshDashboard();
+    } else {
+      toast.error(result.message || "Update failed");
     }
+  } catch (err) {
+    console.error(err);
+    toast.error("Server error");
+  } finally {
     setActionLoading(false);
-  };
+  }
+};
+
+
 
   if (loading) {
     return (
@@ -896,6 +948,8 @@ const downloadExcel = () => {
         completed: dateStats.completed || 0,
         rescheduled: dateStats.rescheduled || 0,
         walkins: dateStats.walkins || 0,
+        no_show: dateStats.no_show || 0,
+
       }
     : stats;
 
@@ -1065,6 +1119,21 @@ const downloadExcel = () => {
                   <FaArrowRight className="stat-arrow" />
                 </div>
 
+                <div
+  onClick={() => setActiveTab("no_show")}
+  className={`stat-card not-show ${activeTab === "no_show" ? "active" : ""}`}
+>
+  <div className="stat-icon">
+    🚫
+  </div>
+  <div className="stat-info">
+    <span className="stat-number">{stats.no_show}</span>
+    <span className="stat-label">No Show (Today)</span>
+  </div>
+  <FaArrowRight className="stat-arrow" />
+</div>
+
+
               </section>
 
               {/* Main Content Grid */}
@@ -1171,6 +1240,8 @@ const downloadExcel = () => {
   <span className="date-stat rescheduled">Rescheduled: <strong>{dateStats.rescheduled}</strong></span>
   <span className="date-stat cancelled">Cancelled: <strong>{dateStats.cancelled}</strong></span>
   <span className="date-stat expired">Expired: <strong>{dateStats.expired}</strong></span>
+  {/* <span className="date-stat expired">No show: <strong>{dateStats.no_show}</strong></span> */}
+
 </div>
 
                       )}
@@ -1301,31 +1372,28 @@ const downloadExcel = () => {
 
                       <div className="visitor-profile-row">
                         {/* Visitor Photo */}
-                        <div className="visitor-photo-wrapper">
-                          <img
-                            src={
-                              selectedAppointment.visitor_photo
-                                ? (typeof selectedAppointment.visitor_photo === "string" && selectedAppointment.visitor_photo.startsWith("http"))
-                                  ? selectedAppointment.visitor_photo
-                                  : `http://localhost:5000/uploads/${selectedAppointment.visitor_photo}`
-                                : "/default-user.png"
-                            }
-                            alt="Visitor"
-                            className="visitor-photo clickable"
-                            onClick={() => {
-                              const photoSrc = selectedAppointment.visitor_photo
-                                ? (typeof selectedAppointment.visitor_photo === "string" && selectedAppointment.visitor_photo.startsWith("http")
-                                  ? selectedAppointment.visitor_photo
-                                  : `http://localhost:5000/uploads/${selectedAppointment.visitor_photo}`)
-                                : "/default-user.png";
-                              setPreviewPhoto(photoSrc);
-                              setShowPhotoModal(true);
-                            }}
-                            onError={(e) => {
-                              e.target.src = "/default-user.png";
-                            }}
-                          />
-                        </div>
+                        <div className="visitor-photo-wrapper clickable"
+     onClick={() => {
+       const url = getVisitorPhotoUrl(selectedAppointment);
+       if (url) {
+         setPreviewPhoto(url);
+         setShowPhotoModal(true);
+       }
+     }}
+>
+  {getVisitorPhotoUrl(selectedAppointment) ? (
+    <img
+      src={getVisitorPhotoUrl(selectedAppointment)}
+      alt="Visitor"
+      className="visitor-photo"
+      onError={(e) => {
+        e.currentTarget.style.display = "none";
+      }}
+    />
+  ) : (
+    <FaUserCircle className="visitor-photo-icon" />
+  )}
+</div>
 
                         {showPhotoModal && (
                           <div className="photo-modal-overlay" onClick={() => setShowPhotoModal(false)}>
@@ -1597,17 +1665,45 @@ const downloadExcel = () => {
                           /> No
                         </label>
                       </div>
+                      {/* 🔹 Remark Field */}
+                        <div className="form-group">
+                    <label>Remark</label>
+        <textarea
+  rows="4"
+  placeholder="Enter remark here..."
+  value={visitData.remark}
+  onChange={(e) =>
+    setVisitData(prev => ({ ...prev, remark: e.target.value }))
+  }
+/>
+
+                      </div>
                       <p style={{ marginTop: 12, color: "#6b7280", fontSize: 13 }}>
                         This information will be visible to the visitor on their side.
                       </p>
                     </div>
                   </div>
                   <div className="modal-footer">
-                    <button className="btn-secondary" onClick={() => setShowVisitModal(false)}>Cancel</button>
-                    <button className="btn-primary" onClick={handleConfirmVisit} disabled={actionLoading}>
-                      {actionLoading ? "Saving..." : "Confirm"}
-                    </button>
-                  </div>
+  <button
+    className="btn-secondary"
+    onClick={() => setShowVisitModal(false)}
+    disabled={actionLoading}
+  >
+    Cancel
+  </button>
+
+  <button
+    className="btn-primary"
+    onClick={handleConfirmVisit}
+    disabled={
+      actionLoading ||
+      (visitData.visited === "no" && !visitData.remark.trim())
+    }
+  >
+    {actionLoading ? "Saving..." : "Confirm"}
+  </button>
+</div>
+
                 </div>
               </div>
             )}

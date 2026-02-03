@@ -111,6 +111,14 @@ const [visitor, setVisitor] = useState(null);
   const cancelledCount = combinedAppointments.filter((a) =>
     ["rejected", "cancelled"].includes(a.status?.toLowerCase())
   ).length;
+  const rescheduledCount = combinedAppointments.filter(
+  (a) => a.status?.toLowerCase() === "rescheduled"
+).length;
+
+const expiredCount = combinedAppointments.filter(
+  (a) => a.status?.toLowerCase() === "expired"
+).length;
+
 
   // ✅ View Button handler
   const handleView = (type, id) => {
@@ -170,90 +178,23 @@ const [visitor, setVisitor] = useState(null);
                   <h3>Cancelled / Rejected</h3>
                   <p className="count">{cancelledCount}</p>
                 </div>
+
+                <div className="card rescheduled">
+  <h3>Rescheduled</h3>
+  <p className="count">{rescheduledCount}</p>
+</div>
+
+<div className="card expired">
+  <h3>Expired</h3>
+  <p className="count">{expiredCount}</p>
+</div>
+
               </div>
 
               <Link to="/appointment-wizard">
                 <button className="book-btn">📅 Book New Appointment</button>
               </Link>
 
-              {/* ✅ Appointments + Walkins Combined Table */}
-              {/* <div className="table-container">
-                <h3>🗓️ Your Appointments (Normal + Walk-ins)</h3>
-                <table>
-                  <thead>
-                    <tr>
-                      <th>ID</th>
-                      <th>Type</th>
-                      <th>Officer</th>
-                      <th>Department</th>
-                      <th>Service</th>
-                      <th>Date & Time</th>
-                      <th>Status</th>
-                      <th>Action</th>
-                    </tr>
-                  </thead>
-
-                  <tbody>
-                    {combinedAppointments.length === 0 ? (
-                      <tr>
-                        <td colSpan="8" className="no-data">
-                          No appointments found.
-                        </td>
-                      </tr>
-                    ) : (
-                      combinedAppointments.map((appt) => (
-                        <tr key={appt.id}>
-                          <td>{appt.id}</td>
-
-                          <td style={{ fontWeight: "bold" }}>
-                            {appt.rowType === "walkin" ? "Walk-in" : "Online"}
-                          </td>
-
-                          <td>{appt.officer_name || "-"}</td>
-                          <td>{appt.department_name || "Search by service"}</td>
-                          <td>{appt.service_name || "-"}</td>
-
-                          <td>
-                            {appt.date || "-"} {appt.slot_time || ""}
-                          </td>
-
-                          <td className={`status ${appt.status?.toLowerCase()}`}>
-                            {appt.status || "-"}
-                          </td>
-
-                          <td>
-                            <button
-                              className="view-btn"
-                              onClick={() => handleView(appt.rowType, appt.id)}
-                            >
-                              View
-                            </button>
-                          </td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </div> */}
-
-              {/* Notifications */}
-              {/* <div className="notifications">
-                <h3>🔔 Notifications</h3>
-                {notifications.length === 0 ? (
-                  <p className="empty">No notifications yet.</p>
-                ) : (
-                  <ul className="notification-list">
-                    {notifications.map((note, i) => (
-                      <li key={i} className={`notification ${note.type}`}>
-                        <p>{note.message}</p>
-                        <span className="notif-time">
-                          {note.created_at.toLocaleString()}
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </div> */}
             </div>
           </div>
         </div>

@@ -11,7 +11,9 @@ import {
   FaPhone,
   FaEnvelope,
   FaMapMarkerAlt,
-} from "react-icons/fa";
+  FaUserCircle,
+ } from "react-icons/fa";
+
 import "../css/HelpdeskAllAppointment.css";
 import Header from "../Components/Header";
 import NavbarHelpdesk from "../pages/NavbarHelpdesk";
@@ -65,13 +67,11 @@ const calculateStatusSummary = (appointments = []) => {
         acc[status] = (acc[status] || 0) + 1;
       }
 
-      /* 🔴 CHANGE KEY HERE IF BACKEND DIFFERS */
-      if (apt.is_walkin === true) {
+      // ✅ WALKINS via appointment_type
+      if (apt.appointment_type === "WALKIN") {
         acc.walkins += 1;
-        if (status === "completed") {
-          acc.walkins_completed += 1;
-        }
       }
+
 
       return acc;
     },
@@ -81,8 +81,9 @@ const calculateStatusSummary = (appointments = []) => {
       completed: 0,
       rejected: 0,
       rescheduled: 0,
-      walkins: 0,
-      walkins_completed: 0,
+      cancelled: 0,   // ✅ added
+      expired: 0,     // ✅ added
+      walkins: 0
     }
   );
 };
@@ -111,7 +112,6 @@ const [showAllAppointments, setShowAllAppointments] = useState(false);
   const [showAppointmentList, setShowAppointmentList] = useState(false);
   const helpdeskId = localStorage.getItem("helpdesk_id");
   const username = localStorage.getItem("username");
-    const [filteredAppointments, setFilteredAppointments] = useState([]);
   const [showPhotoModal, setShowPhotoModal] = useState(false);
 const [photoSrc, setPhotoSrc] = useState("");
 const [photoName, setPhotoName] = useState("");
@@ -187,82 +187,6 @@ const [toDate, setToDate] = useState(getToday());
   setShowAllAppointments(true);
 }, []);
 
-
-  const toggleDepartment = (id) =>
-    setExpandedDepartments((p) => ({ ...p, [id]: !p[id] }));
-
-  const toggleOfficer = (id) =>
-    setExpandedOfficers((p) => ({ ...p, [id]: !p[id] }));
-
-  // Check if officer name matches search
-  const doesOfficerNameMatch = (officerName) => {
-    if (!searchTerm) return false;
-    return officerName?.toLowerCase().includes(searchTerm.toLowerCase());
-  };
-
-  // Filter appointments - but skip search filtering if officer name matches
-  const filterAppointments = (apts, officerName) => {
-    return apts.filter((a) => {
-      // If officer name matches search, don't filter by search term
-      // Only filter by status in this case
-      if (doesOfficerNameMatch(officerName)) {
-        const matchStatus = statusFilter === "all" || a.status === statusFilter;
-        return matchStatus;
-      }
-
-      // Otherwise, filter by both search term and status
-      const matchSearch =
-        !searchTerm ||
-        a.visitor_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        a.appointment_id?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        a.service_name?.toLowerCase().includes(searchTerm.toLowerCase());
-
-      const matchStatus = statusFilter === "all" || a.status === statusFilter;
-      return matchSearch && matchStatus;
-    });
-  };
-
-  const filteredDepartments = departments
-    .map((dept) => {
-      const officers = dept.officers
-        .map((o) => {
-          // Get filtered appointments (for display list)
-          const filteredAppts = filterAppointments(o.appointments || [], o.officer_name);
-          
-          return {
-            ...o,
-            appointments: filteredAppts,
-            // Store total count for badge (before filtering)
-            totalAppointments: o.appointments?.length || 0,
-          };
-        })
-        .filter((o) => {
-          // Show officer if:
-          // 1. They have filtered appointments OR
-          // 2. Officer name matches search term
-          const hasMatchingAppointments = o.appointments.length > 0;
-          const officerNameMatches = doesOfficerNameMatch(o.officer_name);
-          
-          return hasMatchingAppointments || officerNameMatches;
-        });
-
-      return {
-        ...dept,
-        officers,
-        // Use total appointments for count
-        appointment_count: officers.reduce(
-          (s, o) => s + o.totalAppointments,
-          0
-        ),
-      };
-    })
-    .filter((d) => d.appointment_count > 0 || (searchTerm && d.officers.length > 0));
-
-  const totalFiltered = filteredDepartments.reduce(
-    (s, d) => s + d.appointment_count,
-    0
-  );
-
 const handleBackToDashboard = () => {
     setShowAppointmentList(false);
     setShowBooking(false);
@@ -300,6 +224,30 @@ const handleMenuClick = (menu) => {
     );
   }
 
+  const getVisitorPhotoUrl = (appointment) => {
+  const photo = appointment?.visitor_photo;
+  if (!photo) return null;
+
+  if (photo.startsWith("http")) return photo;
+
+  if (appointment?.appointment_type === "WALKIN") {
+    return `http://localhost:5000/uploads/visitors/${photo}`;
+  }
+
+  return `http://localhost:5000/uploads/${photo}`;
+};
+ const filteredAppointments =
+  statusFilter === "all"
+    ? allAppointments
+    : statusFilter === "walkins"
+    ? allAppointments.filter(
+        (apt) => apt.appointment_type === "WALKIN"
+      )
+    : allAppointments.filter(
+        (apt) => apt.status === statusFilter
+      );
+
+
   return (
     <>
      <Header />
@@ -312,13 +260,8 @@ const handleMenuClick = (menu) => {
   {showBooking ? (
     <HelpdeskBooking onBack={handleBackToDashboard} />
   ) 
-   : showAppointmentList ? (
-    <AppointmentList
-      filteredAppointments={filteredAppointments}
-      handleBackToDashboard={handleBackToDashboard}
-      filterType={filterType}
-    />
-  ) : (
+  
+  : (
     <div className="hd-all-appointments">
       {/* HEADER */}
       <div className="hd-apt-header">
@@ -328,104 +271,121 @@ const handleMenuClick = (menu) => {
 
       {/* FILTERS */}
       <div className="hd-apt-filters">
-        <div className="hd-filter-group hd-date-range">
-  <label>
-    <FaCalendarAlt /> Date Range
-  </label>
+  {/* DATE RANGE */}
+  <div className="hd-filter-group hd-date-range">
+    <label>
+      <FaCalendarAlt /> Date Range
+    </label>
 
-  <div className="hd-date-range-inputs">
-    <input
-      type="date"
-      value={fromDate}
-      max={toDate}
-      onChange={(e) => setFromDate(e.target.value)}
-      className="hd-date-picker"
-    />
+    <div className="hd-date-range-inputs">
+      <input
+        type="date"
+        value={fromDate}
+        max={toDate}
+        onChange={(e) => setFromDate(e.target.value)}
+        className="hd-date-picker"
+      />
 
-    <span className="hd-date-separator">to</span>
+      <span className="hd-date-separator">to</span>
 
-    <input
-      type="date"
-      value={toDate}
-      min={fromDate}
-      onChange={(e) => setToDate(e.target.value)}
-      className="hd-date-picker"
-    />
+      <input
+        type="date"
+        value={toDate}
+        min={fromDate}
+        onChange={(e) => setToDate(e.target.value)}
+        className="hd-date-picker"
+      />
+    </div>
+  </div>
+
+  {/* WALK-IN STATS */}
+  <div
+    className={`hd-walkin-card ${
+      statusFilter === "walkins" ? "active" : ""
+    }`}
+    onClick={() => setStatusFilter("walkins")}
+  >
+    <span className="hd-walkin-count">
+      {statusSummary.walkins}
+    </span>
+    <span className="hd-walkin-label">Walk-ins</span>
   </div>
 </div>
 
-{/* 
-        <div className="hd-filter-group">
-          <label>
-            <FaSearch /> Search
-          </label>
-          <input
-            type="text"
-            className="hd-search-input"
-            placeholder="Search…"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-        </div>
-
-        <div className="hd-filter-group">
-          <label>Status</label>
-          <select
-            className="hd-status-filter"
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-          >
-            <option value="all">All</option>
-            <option value="pending">Pending</option>
-            <option value="approved">Approved</option>
-            <option value="completed">Completed</option>
-            <option value="rejected">Rejected</option>
-            <option value="rescheduled">Rescheduled</option>
-          </select>
-        </div> */}
-      </div>
-
       {/* SUMMARY */}
-      <div className="hd-apt-summary">
-  <div className="hd-summary-card total">
+     <div className="hd-apt-summary">
+  <div
+    className={`hd-summary-card total ${statusFilter === "all" ? "active" : ""}`}
+    onClick={() => setStatusFilter("all")}
+  >
     <span className="hd-summary-count">{allAppointments.length}</span>
     <span className="hd-summary-label">Total</span>
   </div>
 
-  <div className="hd-summary-card pending">
+  <div
+    className={`hd-summary-card pending ${statusFilter === "pending" ? "active" : ""}`}
+    onClick={() => setStatusFilter("pending")}
+  >
     <span className="hd-summary-count">{statusSummary.pending}</span>
     <span className="hd-summary-label">Pending</span>
   </div>
 
-  <div className="hd-summary-card approved">
+  <div
+    className={`hd-summary-card approved ${statusFilter === "approved" ? "active" : ""}`}
+    onClick={() => setStatusFilter("approved")}
+  >
     <span className="hd-summary-count">{statusSummary.approved}</span>
     <span className="hd-summary-label">Approved</span>
   </div>
 
-  <div className="hd-summary-card completed">
+  <div
+    className={`hd-summary-card completed ${statusFilter === "completed" ? "active" : ""}`}
+    onClick={() => setStatusFilter("completed")}
+  >
     <span className="hd-summary-count">{statusSummary.completed}</span>
     <span className="hd-summary-label">Completed</span>
   </div>
 
-  <div className="hd-summary-card rejected">
+  <div
+    className={`hd-summary-card rejected ${statusFilter === "rejected" ? "active" : ""}`}
+    onClick={() => setStatusFilter("rejected")}
+  >
     <span className="hd-summary-count">{statusSummary.rejected}</span>
     <span className="hd-summary-label">Rejected</span>
   </div>
 
-  <div className="hd-summary-card rescheduled">
+  <div
+    className={`hd-summary-card rescheduled ${statusFilter === "rescheduled" ? "active" : ""}`}
+    onClick={() => setStatusFilter("rescheduled")}
+  >
     <span className="hd-summary-count">{statusSummary.rescheduled}</span>
     <span className="hd-summary-label">Rescheduled</span>
   </div>
+{/* <div
+  className={`hd-summary-card walkins ${
+    statusFilter === "walkins" ? "active" : ""
+  }`}
+  onClick={() => setStatusFilter("walkins")}
+>
+  <span className="hd-summary-count">{statusSummary.walkins}</span>
+  <span className="hd-summary-label">Walk-ins</span>
+</div> */}
+ 
+     <div
+  className={`hd-summary-card cancelled ${statusFilter === "cancelled" ? "active" : ""}`}
+  onClick={() => setStatusFilter("cancelled")}
+>
+  <span className="hd-summary-count">{statusSummary.cancelled}</span>
+  <span className="hd-summary-label">Cancelled</span>
+</div>
+<div
+  className={`hd-summary-card expired ${statusFilter === "expired" ? "active" : ""}`}
+  onClick={() => setStatusFilter("expired")}
+>
+  <span className="hd-summary-count">{statusSummary.expired}</span>
+  <span className="hd-summary-label">Expired</span>
+</div>
 
-  <div className="hd-summary-card walkins">
-    <span className="hd-summary-count">{statusSummary.walkins}</span>
-    <span className="hd-summary-label">Walk-ins</span>
-  </div>
-
-  <div className="hd-summary-card walkins-completed">
-    <span className="hd-summary-count">{statusSummary.walkins_completed}</span>
-    <span className="hd-summary-label">Walk-ins Completed</span>
-  </div>
 </div>
 
 
@@ -455,8 +415,8 @@ const handleMenuClick = (menu) => {
 
       {/* ================= APPOINTMENTS LIST ================= */}
       <div className="hd-appointments-list">
-        {allAppointments.length > 0 ? (
-          allAppointments.map((apt) => (
+        {filteredAppointments.length > 0 ? (
+          filteredAppointments.map((apt) => (
             <div
               key={apt.appointment_id}
               className={`hd-appointment-item ${apt.status}`}
@@ -467,29 +427,33 @@ const handleMenuClick = (menu) => {
             >
               <div className="hd-apt-visitor-info">
   {/* VISITOR PHOTO */}
-  <div className="hd-apt-photo">
-  <img
-    src={
-      apt.visitor_photo
-        ? `http://localhost:5000/uploads/${apt.visitor_photo}`
-        : "/images/default-avatar.png"
-    }
-    alt={apt.visitor_name}
-    onClick={(e) => {
-      e.stopPropagation(); // 🚫 prevent appointment modal
-      setPhotoSrc(
-        apt.visitor_photo
-          ? `http://localhost:5000/uploads/${apt.visitor_photo}`
-          : "/images/default-avatar.png"
-      );
-      setPhotoName(apt.visitor_name);
-      setShowPhotoModal(true);
-    }}
-    onError={(e) => {
-      e.target.src = "/images/default-avatar.png";
+
+<div className="hd-apt-photo">
+  {getVisitorPhotoUrl(apt) ? (
+    <img
+      src={getVisitorPhotoUrl(apt)}
+      alt={apt.visitor_name}
+      onClick={(e) => {
+        e.stopPropagation();
+        setPhotoSrc(getVisitorPhotoUrl(apt));
+        setPhotoName(apt.visitor_name);
+        setShowPhotoModal(true);
+      }}
+      onError={(e) => {
+        e.currentTarget.style.display = "none";
+        e.currentTarget.nextSibling.style.display = "flex";
+      }}
+    />
+  ) : null}
+
+  <FaUserCircle
+    className="hd-avatar-icon"
+    style={{
+      display: getVisitorPhotoUrl(apt) ? "none" : "flex",
     }}
   />
 </div>
+
 
   {/* VISITOR NAME & DETAILS */}
   <div className="hd-apt-info">
@@ -572,16 +536,10 @@ const handleMenuClick = (menu) => {
         {/* VISITOR PHOTO */}
         <div className="hd-modal-photo">
           <img
-            src={
-              selectedAppointment.visitor_photo
-                ? `http://localhost:5000/uploads/${selectedAppointment.visitor_photo}`
-                : "/images/default-avatar.png"
-            }
-            alt={selectedAppointment.visitor_name}
-            onError={(e) => {
-              e.target.src = "/images/default-avatar.png";
-            }}
-          />
+  src={getVisitorPhotoUrl(selectedAppointment)}
+  alt={selectedAppointment.visitor_name}
+/>
+
         </div>
 
         {/* DETAILS */}
@@ -591,6 +549,8 @@ const handleMenuClick = (menu) => {
           <p><FaEnvelope /> {selectedAppointment.email_id || "—"}</p>
           <p>
   <FaUser /> {selectedAppointment.officer_name || "Not Assigned"}
+          <p><FaCalendarAlt /> {selectedAppointment.appointment_date || "—"}</p>
+
 </p>
 
           <p><FaClock /> {selectedAppointment.slot_time}</p>

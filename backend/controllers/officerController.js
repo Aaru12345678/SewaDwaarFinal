@@ -536,13 +536,26 @@ exports.getOfficerReports = async (req, res) => {
 
 
 // Update appointment status (approve, reject, complete)
+// Update appointment status (approve, reject, complete)
 exports.updateAppointmentStatus = async (req, res) => {
   try {
-    const { appointment_id, status, officer_id, reason } = req.body;
+    const {
+      appointment_id,
+      status,
+      officer_id,
+      reason,
+      visitor_arrived, // 👈 NEW
+    } = req.body;
 
     const { rows } = await pool.query(
-      `SELECT update_appointment_status($1, $2, $3, $4) AS result`,
-      [appointment_id, status, officer_id, reason]
+      `SELECT update_appointment_status($1, $2, $3, $4, $5) AS result`,
+      [
+        appointment_id,
+        status,
+        officer_id,
+        reason || null,
+        visitor_arrived ?? true, // 👈 default TRUE
+      ]
     );
 
     const result = rows[0].result;
@@ -561,6 +574,7 @@ exports.updateAppointmentStatus = async (req, res) => {
     });
   }
 };
+
 
 
 // Reschedule appointment

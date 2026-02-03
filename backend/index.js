@@ -10,8 +10,7 @@ const visitorRoutes = require('./routes/visitorRoutes');
 const fetchRoutes = require("./routes/fetchRoutes"); // ⭐ VERY IMPORTANT
 const helpdeskRoutes=require("./routes/helpdeskRoute");
 const app = express();
-require("./jobs/expireAppointments");
-
+// require("./jobs/expireAppointments");
 
 app.use(cors({
   origin: "http://localhost:3000",
@@ -23,6 +22,10 @@ const path = require("path");
 app.use(
   "/uploads",
   express.static(path.join(__dirname, "uploads"))
+);
+app.use(
+  "/uploads/visitors",
+  express.static(path.join(__dirname, "uploads/visitors"))
 );
 
 app.use("/api/visitor", require("./routes/visitorRoutes"));

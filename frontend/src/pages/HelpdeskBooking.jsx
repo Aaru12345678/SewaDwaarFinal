@@ -1,11 +1,11 @@
-import React, { useEffect, useState, useCallback, useMemo } from "react";
+import React, { useEffect, useState, useCallback, useMemo,useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import "../css/AppointmentWizard.css"; // Link to basic CSS
 import { toast } from "react-toastify";
 import { Link } from "react-router-dom";
 import { getVisitorDashboard } from "../services/api";
 import { getAvailableSlots } from "../services/api";
-
+import {FaUserCircle} from "react-icons/fa"
 import { OfficerName,getOfficersByLocation,uploadAppointmentDocuments ,submitWalkinAppointment ,submitWalkinSignup} from "../services/api.jsx"; // ✅ Officer API
 // import VisitorNavbar from "./VisitorNavbar.jsx";
 // import Header from '../Components/Header';
@@ -32,6 +32,8 @@ import {
   getVisitorDetails
 } from '../services/api';
 // import Swal from "sweetalert2";
+import Webcam from "react-webcam";
+
 
 const HelpdeskBooking = () => {
 
@@ -53,6 +55,9 @@ const [visitorDetails, setVisitorDetails] = useState({
   mobile_no: "",
   email_id: ""
 });
+  const [selectedAppointment, setSelectedAppointment] = useState(null);
+  const [previewPhoto, setPreviewPhoto] = useState(null);
+  const [showPhotoModal, setShowPhotoModal] = useState(false);
 
 const [visitorLoading, setVisitorLoading] = useState(false);
 
@@ -70,6 +75,9 @@ const [states, setStates] = useState([]);
   const [visitorFetched, setVisitorFetched] = useState(false);
 const [fetchError, setFetchError] = useState("");
 const [errors, setErrors] = useState({});
+const webcamRef = useRef(null);
+const [showCamera, setShowCamera] = useState(false);
+const [capturedPhoto, setCapturedPhoto] = useState(null);
 
 
   // ✅ Step-wise validation
@@ -240,6 +248,39 @@ const [isMetric, setIsMetric] = useState(true); // Our condition state
 //   fetchVisitorName();
 // }, [username]);
 // 🔐 Location from localStorage (single source of truth)
+// capture live photo:
+
+const base64ToFile = (base64, filename) => {
+  const arr = base64.split(",");
+  const mime = arr[0].match(/:(.*?);/)[1];
+  const bstr = atob(arr[1]);
+  let n = bstr.length;
+  const u8arr = new Uint8Array(n);
+
+  while (n--) {
+    u8arr[n] = bstr.charCodeAt(n);
+  }
+
+  return new File([u8arr], filename, { type: mime });
+};
+
+const capturePhoto = () => {
+  const imageSrc = webcamRef.current.getScreenshot();
+  setCapturedPhoto(imageSrc);
+
+  const photoFile = base64ToFile(
+    imageSrc,
+    `visitor_${Date.now()}.jpg`
+  );
+
+  setFormData(prev => ({
+    ...prev,
+    photo: photoFile // ✅ FILE, not base64
+  }));
+
+  setShowCamera(false);
+};
+
 
 const todayDate = useMemo(() => {
   const today = new Date();
@@ -256,6 +297,8 @@ const storedLocation = useMemo(() => {
   }
   return v;
 };
+
+
 
 
   return {
@@ -508,6 +551,11 @@ const handleSubmit = async (e) => {
     toast.error("Please fetch visitor details first or register new visitor");
     return;
   }
+  
+if (showRegisterForm && !formData.photo) {
+  toast.error("Please capture visitor photo");
+  return;
+}
 
   try {
     setSubmitting(true);
@@ -515,20 +563,28 @@ const handleSubmit = async (e) => {
 
     // 3️⃣ If new visitor, register first
     if (showRegisterForm) {
-      const signupPayload = {
-        full_name: formData.full_name,
-        email_id: formData.email_id,
-        mobile_no: formData.mobile_no,
-        gender: formData.gender,
-        dob: formData.dob,
-        state: formData.state,
-        division: formData.division || null,
-        district: formData.district || null,
-        taluka: formData.taluka || null,
-        pincode: formData.pincode
-      };
+     const signupFormData = new FormData();
 
-      const signupRes = await submitWalkinSignup(signupPayload);
+signupFormData.append("full_name", formData.full_name);
+signupFormData.append("email_id", formData.email_id || "");
+signupFormData.append("mobile_no", formData.mobile_no);
+signupFormData.append("gender", formData.gender);
+signupFormData.append("dob", formData.dob);
+signupFormData.append("state", formData.state);
+signupFormData.append("division", formData.division || "");
+signupFormData.append("district", formData.district || "");
+signupFormData.append("taluka", formData.taluka || "");
+signupFormData.append("pincode", formData.pincode);
+
+if (formData.photo) {
+  signupFormData.append("photo", formData.photo); // ✅ multer key
+}
+
+const signupRes = await submitWalkinSignup(signupFormData);
+
+
+
+      // const signupRes = await submitWalkinSignup(signupPayload);
 
       if (!signupRes.data.success) {
         toast.error(signupRes.data.message || "Failed to register visitor");
@@ -843,6 +899,41 @@ const getError = (field) => {
   return <span className="error-text">{errors[field]}</span>;
 };
 
+const getVisitorPhotoCandidates = (photo) => {
+  if (!photo) return [];
+
+  if (photo.startsWith("http")) return [photo];
+
+  return [
+    `http://localhost:5000/uploads/${photo}`,
+    `http://localhost:5000/uploads/visitors/${photo}`
+  ];
+};
+
+const VisitorPhoto = ({ photo, onClick }) => {
+  const urls = getVisitorPhotoCandidates(photo);
+  const [index, setIndex] = useState(0);
+
+  if (!photo) {
+    return <FaUserCircle className="visitor-photo-icon" />;
+  }
+
+  return (
+    <img
+      src={urls[index]}
+      alt="Visitor"
+      className="visitor-photo clickable"
+      onClick={() => onClick?.(urls[index])}
+      onError={() => {
+        if (index < urls.length - 1) {
+          setIndex(index + 1); // 🔁 try next URL
+        }
+      }}
+    />
+  );
+};
+
+
 const handleGetVisitor = async () => {
   if (!username2 || username2.trim().length < 3) {
     toast.error("Enter Visitor ID / Mobile / Email");
@@ -984,6 +1075,59 @@ useEffect(() => {
   {showRegisterForm && (
   <div className="panel-section visitor-new">
     <div className="section-title">Register New Visitor</div>
+{/* Live Photo Capture */}
+<div className="form-field full center">
+  <label>Visitor Photo <span className="required">*</span></label>
+
+  {!capturedPhoto && !showCamera && (
+    <button
+      type="button"
+      className="btn-primary"
+      onClick={() => setShowCamera(true)}
+    >
+      📸 Click Photo
+    </button>
+  )}
+
+  {showCamera && (
+    <div className="camera-box">
+      <Webcam
+        ref={webcamRef}
+        audio={false}
+        screenshotFormat="image/jpeg"
+        width={220}
+      />
+      <div className="camera-actions">
+        <button type="button" onClick={capturePhoto} className="btn-success">
+          Capture
+        </button>
+        <button
+          type="button"
+          onClick={() => setShowCamera(false)}
+          className="btn-secondary"
+        >
+          Cancel
+        </button>
+      </div>
+    </div>
+  )}
+
+  {capturedPhoto && (
+    <div className="photo-preview">
+      <img src={capturedPhoto} alt="Visitor" />
+      <button
+        type="button"
+        className="btn-link"
+        onClick={() => {
+          setCapturedPhoto(null);
+          setFormData(prev => ({ ...prev, photo: null }));
+        }}
+      >
+        Retake Photo
+      </button>
+    </div>
+  )}
+</div>
 
     <div className="grid-4">
 
@@ -1144,41 +1288,77 @@ useEffect(() => {
 )}
 
   {/* VISITOR DETAILS READ-ONLY */}
-  {visitorFetched && !showRegisterForm && (
-    <div className="panel-section visitor-readonly">
-      <div className="section-title">Visitor Details</div>
-      <div className="grid-4">
-        <div className="form-field">
-          <label>Full Name<span className="required">*</span></label>
-          <input value={visitorDetails.full_name} disabled/>
-        </div>
-        <div className="form-field">
-          <label>Gender<span className="required">*</span></label>
-          <input
-            value={
-              visitorDetails.gender === "M"
-                ? "Male"
-                : visitorDetails.gender === "F"
-                ? "Female"
-                : "Other"
-            }
-            disabled
-          />
-                    
+ {visitorFetched && !showRegisterForm && (
+  <div className="panel-section visitor-readonly">
+    <div className="section-title">Visitor Details</div>
 
-        </div>
-        <div className="form-field">
-          <label>Mobile No<span className="required">*</span></label>
-          <input value={visitorDetails.mobile_no} disabled />
-                   
-        </div>
-        <div className="form-field">
-          <label>Email ID</label>
-          <input value={visitorDetails.email_id} disabled />
-                         </div>
+    {/* PROFILE PHOTO */}
+     <div className="visitor-photo-wrapper">
+  <VisitorPhoto
+    photo={visitorDetails?.photo}
+    onClick={(url) => {
+      setPreviewPhoto(url);
+      setShowPhotoModal(true);
+    }}
+  />
+</div>
+{showPhotoModal && (
+  <div className="photo-modal-overlay" onClick={() => setShowPhotoModal(false)}>
+    <div
+      className="photo-modal"
+      onClick={(e) => e.stopPropagation()}
+    >
+      <img
+        src={previewPhoto}
+        alt="Visitor"
+        className="photo-modal-img"
+      />
+
+      <button
+        className="close-btn"
+        onClick={() => setShowPhotoModal(false)}
+      >
+        ✕
+      </button>
+    </div>
+  </div>
+)}
+
+
+
+
+    <div className="grid-4">
+      <div className="form-field">
+        <label>Full Name<span className="required">*</span></label>
+        <input value={visitorDetails.full_name} disabled />
+      </div>
+
+      <div className="form-field">
+        <label>Gender<span className="required">*</span></label>
+        <input
+          value={
+            visitorDetails.gender === "M"
+              ? "Male"
+              : visitorDetails.gender === "F"
+              ? "Female"
+              : "Other"
+          }
+          disabled
+        />
+      </div>
+
+      <div className="form-field">
+        <label>Mobile No<span className="required">*</span></label>
+        <input value={visitorDetails.mobile_no} disabled />
+      </div>
+
+      <div className="form-field">
+        <label>Email ID</label>
+        <input value={visitorDetails.email_id} disabled />
       </div>
     </div>
-  )}
+  </div>
+)}
 
   {/* OFFICE DETAILS */}
   <div className="panel-section">

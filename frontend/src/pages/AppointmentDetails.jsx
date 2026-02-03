@@ -69,7 +69,7 @@ const isCancelled = status === "cancelled";
 const isRejected = status === "rejected";
 const isRescheduled = status === "rescheduled";
 const isCompleted = status === "completed";
-
+const isExpired = status === "expired";
 
   return (
     <>
@@ -139,7 +139,7 @@ const isCompleted = status === "completed";
   </span>
 
   {/* NORMAL FLOW (Pending → Approved → Completed) */}
-  {!isCancelled && !isRejected && !isRescheduled && (
+  {!isCancelled && !isRejected && !isRescheduled && !isExpired && (
     <div className="status-timeline">
       <div className="timeline-step active">
         <div className="circle"></div>
@@ -177,6 +177,21 @@ const isCompleted = status === "completed";
     <div className="cancelled-info">
       <p className="cancelled-msg">
         This appointment has been rejected.
+      </p>
+      {appointment.reschedule_reason && (
+        <p className="cancelled-reason">
+          <strong>Reason:</strong> {appointment.reschedule_reason}
+        </p>
+      )}
+    </div>
+  )}
+
+
+{/* ❌ Expired */}
+  {isExpired && (
+    <div className="cancelled-info">
+      <p className="cancelled-msg">
+        This appointment has been expired.
       </p>
       {appointment.reschedule_reason && (
         <p className="cancelled-reason">

@@ -137,9 +137,8 @@ useEffect(() => {
     return g;
   }, {});
 
-  const canCancel = (s) => ["pending", "rescheduled"].includes(s);
-  const canViewPass = (s) =>
-    ["approved", "rescheduled"].includes(s);
+  const handleViewPass = (id) => navigate(`/appointment-pass/${id}`);
+  const handleView = (id) => navigate(`/appointment/${id}`);
 
   if (loading) return <p>Loading appointments...</p>;
 
@@ -223,48 +222,130 @@ useEffect(() => {
                             {appt.appointment_date}{" "}
                             {appt.slot_time}
                           </td>
-                          <td
-                            className={`status ${appt.status}`}
-                          >
-                            {appt.status}
-                          </td>
-                          <td>
-                            {appt.status !== "rejected" && (
-                              <button
-                                onClick={() =>
-                                  navigate(
-                                    `/appointment/${appt.appointment_id}`
-                                  )
-                                }
-                              >
-                                View
-                              </button>
-                            )}
+                          <td className={`status ${appt.status.toLowerCase()}`}>
+                    {appt.status}
+                  </td>
+<td>
+                    {/* PENDING */}
+                    {appt.status === "pending" && (
+                      <>
+                        <button onClick={() => handleView(appt.appointment_id)}>
+                          View
+                        </button>
+                        <button
+                          onClick={() => handleCancel(appt.appointment_id)}
+                          style={{ marginLeft: "5px" }}
+                        >
+                          Cancel
+                        </button>
+                      </>
+                    )}
 
-                            {canViewPass(appt.status) && (
-                              <button
-                                onClick={() =>
-                                  navigate(
-                                    `/appointment-pass/${appt.appointment_id}`
-                                  )
-                                }
-                              >
-                                View Pass
-                              </button>
-                            )}
+                    {/* APPROVED → VIEW PASS */}
+                    {appt.status === "approved" && (
+                      <>
+                        <button onClick={() => handleViewPass(appt.appointment_id)}>
+                          View Pass
+                        </button>
+                        <button
+                          onClick={() => handleCancel(appt.appointment_id)}
+                          style={{ marginLeft: "5px" }}
+                        >
+                          Cancel
+                        </button>
+                      </>
+                    )}
 
-                            {canCancel(appt.status) && (
-                              <button
-                                onClick={() =>
-                                  handleCancel(
-                                    appt.appointment_id
-                                  )
-                                }
-                              >
-                                Cancel
-                              </button>
-                            )}
-                          </td>
+{appt.status === "rescheduled" && (
+                      <>
+                        <button onClick={() => handleViewPass(appt.appointment_id)}>
+                          View Pass
+                        </button>
+                        <button
+                          onClick={() => handleCancel(appt.appointment_id)}
+                          style={{ marginLeft: "5px" }}
+                        >
+                          Cancel
+                        </button>
+                      </>
+                    )}
+
+                    {/* CANCELLED */}
+                    {appt.status === "cancelled" && (
+                      <>
+                        <button onClick={() => handleView(appt.appointment_id)}>
+                          View
+                        </button>
+                        <button
+                          disabled
+                          style={{
+                            cursor: "not-allowed",
+                            opacity: 0.5,
+                            marginLeft: "5px",
+                          }}
+                        >
+                          Cancel
+                        </button>
+                      </>
+                    )}
+
+                    {/* COMPLETED */}
+                    {appt.status === "completed" && (
+                      <>
+                      <button onClick={() => handleView(appt.appointment_id)}>
+                        View Details
+                      </button>
+                      <button
+                          disabled
+                          style={{
+                            cursor: "not-allowed",
+                            opacity: 0.5,
+                            marginLeft: "5px",
+                          }}
+                        >
+                          Cancel
+                        </button>
+                      </>
+                    )}
+               
+                {/* Expired */}
+{appt.status === "expired" && (
+                      <>
+                        <button onClick={() => handleView(appt.appointment_id)}>
+                          View
+                        </button>
+                        <button
+                          disabled
+                          style={{
+                            cursor: "not-allowed",
+                            opacity: 0.5,
+                            marginLeft: "5px",
+                          }}
+                        >
+                          Cancel
+                        </button>
+                      </>
+                    )}
+
+                    {/* REJECTED */}
+                    {appt.status === "rejected" && (
+                      <>
+                        <button onClick={() => handleView(appt.appointment_id)}>
+                          View
+                        </button>
+                        <button
+                          disabled
+                          style={{
+                            cursor: "not-allowed",
+                            opacity: 0.5,
+                            marginLeft: "5px",
+                          }}
+                        >
+                          Cancel
+                        </button>
+                      </>
+                    )}
+                  </td>
                         </tr>
                       ))}
                     </tbody>
